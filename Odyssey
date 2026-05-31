@@ -33,7 +33,7 @@ function ProgressBar:Create(title)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Font = Enum.Font.GothamBold
     t.TextSize = 13
-    t.Text = title or "Progress"
+    t.Text = Odyssey | title or "Progress"
 
     s = Instance.new("TextLabel", f)
     s.Size = UDim2.new(1, -60, 0, 16)
