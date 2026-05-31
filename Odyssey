@@ -1,0 +1,70 @@
+local g=Instance.new("ScreenGui")
+g.Name="OdysseyProgress"
+g.ResetOnSpawn=false
+g.Parent=game.Players.LocalPlayer.PlayerGui
+
+local f=Instance.new("Frame")
+f.Size=UDim2.new(0,300,0,80)
+f.Position=UDim2.new(0.5,-150,0,10)
+f.BackgroundColor3=Color3.fromRGB(30,30,30)
+f.BorderSizePixel=0
+f.Parent=g
+
+Instance.new("UICorner",f).CornerRadius=UDim.new(0,8)
+
+local t=Instance.new("TextLabel",f)
+t.Size=UDim2.new(1,-20,0,20)
+t.Position=UDim2.new(0,10,0,8)
+t.BackgroundTransparency=1
+t.TextColor3=Color3.fromRGB(255,255,255)
+t.TextXAlignment=Enum.TextXAlignment.Left
+t.Font=Enum.Font.GothamBold
+t.TextSize=13
+t.Text="Auto Buy"
+
+local s=Instance.new("TextLabel",f)
+s.Size=UDim2.new(1,-60,0,16)
+s.Position=UDim2.new(0,10,0,28)
+s.BackgroundTransparency=1
+s.TextColor3=Color3.fromRGB(180,180,180)
+s.TextXAlignment=Enum.TextXAlignment.Left
+s.Font=Enum.Font.Gotham
+s.TextSize=11
+s.Text="Buying item 1/10"
+
+local p=Instance.new("TextLabel",f)
+p.Size=UDim2.new(0,40,0,16)
+p.Position=UDim2.new(1,-50,0,28)
+p.BackgroundTransparency=1
+p.TextColor3=Color3.fromRGB(180,180,180)
+p.TextXAlignment=Enum.TextXAlignment.Right
+p.Font=Enum.Font.Gotham
+p.TextSize=11
+p.Text="0%"
+
+local bg=Instance.new("Frame",f)
+bg.Size=UDim2.new(1,-20,0,8)
+bg.Position=UDim2.new(0,10,0,52)
+bg.BackgroundColor3=Color3.fromRGB(50,50,50)
+bg.BorderSizePixel=0
+Instance.new("UICorner",bg).CornerRadius=UDim.new(1,0)
+
+local b=Instance.new("Frame",bg)
+b.Size=UDim2.new(0,0,1,0)
+b.BackgroundColor3=Color3.fromRGB(0,150,255)
+b.BorderSizePixel=0
+Instance.new("UICorner",b).CornerRadius=UDim.new(1,0)
+
+task.spawn(function()
+    for i=1,10 do
+        task.wait(0.5)
+        local pr=i/10
+        b.Size=UDim2.new(pr,0,1,0)
+        p.Text=math.floor(pr*100).."%"
+        s.Text="Buying item "..i.."/10"
+    end
+    s.Text="Done!"
+    b.BackgroundColor3=Color3.fromRGB(0,200,100)
+    task.wait(2)
+    g:Destroy()
+end)
