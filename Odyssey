@@ -1,11 +1,16 @@
 local ProgressBar = {}
 
-local gui, f, t, s, p, b
+local gui, f, t, s, p, b, eta
+local startTime, itemsDone, totalItems
 
 function ProgressBar:Create(title)
     if game.Players.LocalPlayer.PlayerGui:FindFirstChild("OdysseyProgress") then
         game.Players.LocalPlayer.PlayerGui.OdysseyProgress:Destroy()
     end
+
+    startTime = nil
+    itemsDone = 0
+    totalItems = 0
 
     gui = Instance.new("ScreenGui")
     gui.Name = "OdysseyProgress"
@@ -13,8 +18,8 @@ function ProgressBar:Create(title)
     gui.Parent = game.Players.LocalPlayer.PlayerGui
 
     f = Instance.new("Frame")
-    f.Size = UDim2.new(0, 300, 0, 80)
-    f.Position = UDim2.new(0.5, -150, 0, 10)
+    f.Size = UDim2.new(0, 320, 0, 95)
+    f.Position = UDim2.new(0.5, -160, 0, 10)
     f.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     f.BorderSizePixel = 0
     f.Parent = gui
@@ -50,9 +55,20 @@ function ProgressBar:Create(title)
     p.TextSize = 11
     p.Text = "0%"
 
+    eta = Instance.new("TextLabel", f)
+    eta.Size = UDim2.new(1, -20, 0, 14)
+    eta.Position = UDim2.new(0, 10, 0, 46)
+    eta.BackgroundTransparency = 1
+    eta.TextColor3 = Color3.fromRGB(130, 130, 130)
+    eta.TextXAlignment = Enum.TextXAlignment.Left
+    eta.Font = Enum.Font.Gotham
+    eta.TextSize = 10
+    eta.Text = "Estimated time: calculating..."
+    eta.Parent = f
+
     local bg = Instance.new("Frame", f)
     bg.Size = UDim2.new(1, -20, 0, 8)
-    bg.Position = UDim2.new(0, 10, 0, 52)
+    bg.Position = UDim2.new(0, 10, 0, 68)
     bg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     bg.BorderSizePixel = 0
     Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
@@ -64,12 +80,39 @@ function ProgressBar:Create(title)
     Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
 end
 
+local function formatTime(seconds)
+    seconds = math.round(seconds)
+    if seconds >= 3600 then
+        local h = math.floor(seconds / 3600)
+        local m = math.floor((seconds % 3600) / 60)
+        local s = seconds % 60
+        return h .. "h " .. m .. "m " .. s .. "s"
+    elseif seconds >= 60 then
+        local m = math.floor(seconds / 60)
+        local s = seconds % 60
+        return m .. "m " .. s .. "s"
+    else
+        return seconds .. "s"
+    end
+end
+
 function ProgressBar:Update(status, current, total)
     if not f then return end
+    if not startTime then startTime = os.clock() end
+    itemsDone = current
+    totalItems = total
     local progress = current / total
     b.Size = UDim2.new(progress, 0, 1, 0)
     p.Text = math.floor(progress * 100) .. "%"
     s.Text = status
+    if current > 0 then
+        local elapsed = os.clock() - startTime
+        local avgPerItem = elapsed / current
+        local remaining = avgPerItem * (total - current)
+        eta.Text = "Estimated time remaining: ~" .. formatTime(remaining)
+    else
+        eta.Text = "Estimated time: calculating..."
+    end
 end
 
 function ProgressBar:Complete(status)
@@ -78,14 +121,18 @@ function ProgressBar:Complete(status)
     b.Size = UDim2.new(1, 0, 1, 0)
     b.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
     p.Text = "100%"
-    task.wait(2)
+    if startTime then
+        eta.Text = "Completed in " .. formatTime(os.clock() - startTime)
+    end
+    task.wait(3)
     ProgressBar:Destroy()
 end
 
 function ProgressBar:Destroy()
     if gui then
         gui:Destroy()
-        gui, f, t, s, p, b = nil, nil, nil, nil, nil, nil
+        gui, f, t, s, p, b, eta = nil, nil, nil, nil, nil, nil, nil
+        startTime, itemsDone, totalItems = nil, nil, nil
     end
 end
 
