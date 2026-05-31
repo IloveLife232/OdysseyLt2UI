@@ -1,0 +1,142 @@
+local function ShowChangelog()
+    if game.Players.LocalPlayer.PlayerGui:FindFirstChild("OdysseyChangelog") then
+        game.Players.LocalPlayer.PlayerGui.OdysseyChangelog:Destroy()
+        return
+    end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "OdysseyChangelog"
+    gui.ResetOnSpawn = false
+    gui.Parent = game.Players.LocalPlayer.PlayerGui
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(0, 400, 0, 500)
+    bg.Position = UDim2.new(0.5, -200, 0.5, -250)
+    bg.BackgroundColor3 = Color3.fromRGB(28, 28, 30)
+    bg.BorderSizePixel = 0
+    bg.Parent = gui
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 8)
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -60, 0, 30)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.Text = "Odyssey Changelog"
+    title.Parent = bg
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -40, 0, 10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 52)
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    closeBtn.Text = "X"
+    closeBtn.Parent = bg
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+    closeBtn.MouseButton1Click:Connect(function()
+        gui:Destroy()
+    end)
+
+    local divider = Instance.new("Frame")
+    divider.Size = UDim2.new(1, -20, 0, 1)
+    divider.Position = UDim2.new(0, 10, 0, 48)
+    divider.BackgroundColor3 = Color3.fromRGB(60, 60, 62)
+    divider.BorderSizePixel = 0
+    divider.Parent = bg
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -20, 1, -65)
+    scroll.Position = UDim2.new(0, 10, 0, 58)
+    scroll.BackgroundTransparency = 1
+    scroll.BorderSizePixel = 0
+    scroll.ScrollBarThickness = 4
+    scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.Parent = bg
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = scroll
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 5)
+    padding.PaddingLeft = UDim.new(0, 5)
+    padding.PaddingRight = UDim.new(0, 5)
+    padding.Parent = scroll
+
+    local changelog = {
+        {
+            version = "Version 3.0",
+            date = "June 2025",
+            changes = {
+                "Added progress bars to Auto Buy, Get Tree and Rukiryaxe",
+                "Rebuilt Auto Buy with better reliability",
+                "Added Vehicle Speed, Flip Vehicle and Vehicle Spawner",
+                "Added Rainbow Vehicle",
+                "Added Mobile Fly",
+                "New LT2 UI color theme",
+                "Added ETA to progress bars",
+                "Improved Get Tree for all wood types",
+                "Fixed blueprint teleport after buying",
+                "Added abort support for all auto buy functions",
+            }
+        },
+        {
+            version = "Version 2.0",
+            date = "2024",
+            changes = {
+                "Initial release of Odyssey",
+                "Added Auto Buy",
+                "Added Get Tree",
+                "Added Dupe",
+                "Added Fly",
+                "Added No Clip",
+                "Added Teleports",
+            }
+        }
+    }
+
+    for _, entry in ipairs(changelog) do
+        local versionLabel = Instance.new("TextLabel")
+        versionLabel.Size = UDim2.new(1, 0, 0, 22)
+        versionLabel.BackgroundTransparency = 1
+        versionLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+        versionLabel.TextXAlignment = Enum.TextXAlignment.Left
+        versionLabel.Font = Enum.Font.GothamBold
+        versionLabel.TextSize = 13
+        versionLabel.Text = entry.version .. " - " .. entry.date
+        versionLabel.Parent = scroll
+
+        for _, change in ipairs(entry.changes) do
+            local changeLabel = Instance.new("TextLabel")
+            changeLabel.Size = UDim2.new(1, 0, 0, 0)
+            changeLabel.AutomaticSize = Enum.AutomaticSize.Y
+            changeLabel.BackgroundTransparency = 1
+            changeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            changeLabel.TextXAlignment = Enum.TextXAlignment.Left
+            changeLabel.TextWrapped = true
+            changeLabel.Font = Enum.Font.Gotham
+            changeLabel.TextSize = 11
+            changeLabel.Text = "- " .. change
+            changeLabel.Parent = scroll
+        end
+
+        local spacer = Instance.new("Frame")
+        spacer.Size = UDim2.new(1, 0, 0, 8)
+        spacer.BackgroundTransparency = 1
+        spacer.Parent = scroll
+    end
+
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+    end)
+    scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+end
+
+ShowChangelog()
