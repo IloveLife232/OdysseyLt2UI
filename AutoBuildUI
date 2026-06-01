@@ -10,14 +10,13 @@ Window.Parent = AutoBuildGUI
 Window.BackgroundColor3 = Color3.fromRGB(26, 26, 28)
 Window.BorderSizePixel = 0
 Window.Position = UDim2.new(0.7, 0, 0.15, 0)
-Window.Size = UDim2.new(0, 280, 0, 340)
+Window.Size = UDim2.new(0, 280, 0, 360)
 Window.Visible = false
 Instance.new("UICorner", Window).CornerRadius = UDim.new(0, 12)
 local WinStroke = Instance.new("UIStroke", Window)
 WinStroke.Color = Color3.fromRGB(255,255,255)
 WinStroke.Transparency = 0.92
 
--- Titlebar
 local Titlebar = Instance.new("Frame")
 Titlebar.Name = "Titlebar"
 Titlebar.Parent = Window
@@ -66,7 +65,6 @@ MinBtn.Size = UDim2.new(0, 10, 0, 10)
 MinBtn.Text = ""
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(1, 0)
 
--- Divider
 local Divider = Instance.new("Frame")
 Divider.Parent = Window
 Divider.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -75,7 +73,6 @@ Divider.BorderSizePixel = 0
 Divider.Position = UDim2.new(0, 0, 0, 34)
 Divider.Size = UDim2.new(1, 0, 0, 1)
 
--- ScrollingFrame
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Parent = Window
 ScrollFrame.BackgroundTransparency = 1
@@ -90,11 +87,10 @@ ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local Grid = Instance.new("UIGridLayout")
 Grid.Parent = ScrollFrame
-Grid.CellSize = UDim2.new(0.5, -4, 0, 72)
+Grid.CellSize = UDim2.new(0.5, -4, 0, 84)
 Grid.CellPadding = UDim2.new(0, 6, 0, 6)
 Grid.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Wood types data
 local WoodTypes = {
     {Name = "Birch",       Color = Color3.fromRGB(205, 205, 205)},
     {Name = "CaveCrawler", Color = Color3.fromRGB(16, 42, 220)},
@@ -131,14 +127,12 @@ local function CreateWoodCard(woodData, order)
     CardStroke.Color = Color3.fromRGB(255,255,255)
     CardStroke.Transparency = 0.92
 
-    -- Color accent strip
     local Accent = Instance.new("Frame")
     Accent.BackgroundColor3 = woodData.Color
     Accent.BorderSizePixel = 0
     Accent.Size = UDim2.new(0, 3, 1, 0)
     Accent.Parent = Card
-    local AccentCorner = Instance.new("UICorner", Accent)
-    AccentCorner.CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", Accent).CornerRadius = UDim.new(0, 8)
     local AccentFix = Instance.new("Frame")
     AccentFix.BackgroundColor3 = woodData.Color
     AccentFix.BorderSizePixel = 0
@@ -146,7 +140,6 @@ local function CreateWoodCard(woodData, order)
     AccentFix.Size = UDim2.new(0.5, 0, 1, 0)
     AccentFix.Parent = Accent
 
-    -- Wood name
     local NameLabel = Instance.new("TextLabel")
     NameLabel.Parent = Card
     NameLabel.BackgroundTransparency = 1
@@ -159,24 +152,22 @@ local function CreateWoodCard(woodData, order)
     NameLabel.TextSize = 11
     NameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Have
     local HaveLabel = Instance.new("TextLabel")
     HaveLabel.Parent = Card
     HaveLabel.BackgroundTransparency = 1
     HaveLabel.Position = UDim2.new(0, 10, 0, 23)
-    HaveLabel.Size = UDim2.new(1, -14, 0, 14)
+    HaveLabel.Size = UDim2.new(1, -14, 0, 13)
     HaveLabel.Font = Enum.Font.Gotham
     HaveLabel.Text = "Have: 0"
     HaveLabel.TextColor3 = Color3.fromRGB(74, 222, 128)
     HaveLabel.TextSize = 10
     HaveLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Need
     local NeedLabel = Instance.new("TextLabel")
     NeedLabel.Parent = Card
     NeedLabel.BackgroundTransparency = 1
-    NeedLabel.Position = UDim2.new(0, 10, 0, 38)
-    NeedLabel.Size = UDim2.new(1, -14, 0, 14)
+    NeedLabel.Position = UDim2.new(0, 10, 0, 37)
+    NeedLabel.Size = UDim2.new(1, -14, 0, 13)
     NeedLabel.Font = Enum.Font.Gotham
     NeedLabel.Text = "Need: 0"
     NeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -184,12 +175,11 @@ local function CreateWoodCard(woodData, order)
     NeedLabel.TextSize = 10
     NeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Missing
     local MissingLabel = Instance.new("TextLabel")
     MissingLabel.Parent = Card
     MissingLabel.BackgroundTransparency = 1
-    MissingLabel.Position = UDim2.new(0, 10, 0, 53)
-    MissingLabel.Size = UDim2.new(1, -14, 0, 14)
+    MissingLabel.Position = UDim2.new(0, 10, 0, 51)
+    MissingLabel.Size = UDim2.new(1, -14, 0, 13)
     MissingLabel.Font = Enum.Font.Gotham
     MissingLabel.Text = "Missing: 0"
     MissingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -197,10 +187,29 @@ local function CreateWoodCard(woodData, order)
     MissingLabel.TextSize = 10
     MissingLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+    -- Progress bar track
+    local BarTrack = Instance.new("Frame")
+    BarTrack.Parent = Card
+    BarTrack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    BarTrack.BackgroundTransparency = 0.9
+    BarTrack.BorderSizePixel = 0
+    BarTrack.Position = UDim2.new(0, 10, 0, 69)
+    BarTrack.Size = UDim2.new(1, -20, 0, 3)
+    Instance.new("UICorner", BarTrack).CornerRadius = UDim.new(1, 0)
+
+    -- Progress bar fill
+    local BarFill = Instance.new("Frame")
+    BarFill.Parent = BarTrack
+    BarFill.BackgroundColor3 = Color3.fromRGB(74, 222, 128)
+    BarFill.BorderSizePixel = 0
+    BarFill.Size = UDim2.new(0, 0, 1, 0)
+    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+
     WoodLabels[woodData.Name] = {
         Have = HaveLabel,
         Need = NeedLabel,
-        Missing = MissingLabel
+        Missing = MissingLabel,
+        BarFill = BarFill
     }
 end
 
@@ -234,7 +243,6 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
     end
 end)
 
--- Close/minimize
 CloseBtn.MouseButton1Click:Connect(function()
     Window.Visible = false
 end)
@@ -244,10 +252,9 @@ MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     ScrollFrame.Visible = not minimized
     Divider.Visible = not minimized
-    Window.Size = minimized and UDim2.new(0, 280, 0, 34) or UDim2.new(0, 280, 0, 340)
+    Window.Size = minimized and UDim2.new(0, 280, 0, 34) or UDim2.new(0, 280, 0, 360)
 end)
 
--- Public API
 local AutoBuildUI = {}
 
 function AutoBuildUI:Show()
@@ -260,24 +267,25 @@ end
 
 function AutoBuildUI:Update(woodName, have, need, missing)
     if WoodLabels[woodName] then
-        WoodLabels[woodName].Have.Text = "Have: " .. tostring(have)
-        WoodLabels[woodName].Need.Text = "Need: " .. tostring(need)
-        WoodLabels[woodName].Missing.Text = "Missing: " .. tostring(missing)
+        local labels = WoodLabels[woodName]
+        labels.Have.Text = "Have: " .. tostring(have)
+        labels.Need.Text = "Need: " .. tostring(need)
+        labels.Missing.Text = "Missing: " .. tostring(missing)
+
+        -- Progress bar
+        local pct = need > 0 and math.clamp(have / need, 0, 1) or 0
+        labels.BarFill.Size = UDim2.new(pct, 0, 1, 0)
+
         if missing > 0 then
-            WoodLabels[woodName].Missing.TextColor3 = Color3.fromRGB(248, 113, 113)
-            WoodLabels[woodName].Missing.TextTransparency = 0
+            labels.Missing.TextColor3 = Color3.fromRGB(248, 113, 113)
+            labels.Missing.TextTransparency = 0
+            labels.BarFill.BackgroundColor3 = Color3.fromRGB(248, 113, 113)
         else
-            WoodLabels[woodName].Missing.TextColor3 = Color3.fromRGB(255, 255, 255)
-            WoodLabels[woodName].Missing.TextTransparency = 0.7
+            labels.Missing.TextColor3 = Color3.fromRGB(255, 255, 255)
+            labels.Missing.TextTransparency = 0.7
+            labels.BarFill.BackgroundColor3 = Color3.fromRGB(74, 222, 128)
         end
     end
 end
-
--- Test it
-AutoBuildUI:Show()
-AutoBuildUI:Update("Birch", 12, 20, 8)
-AutoBuildUI:Update("CaveCrawler", 0, 15, 15)
-AutoBuildUI:Update("Cherry", 7, 7, 0)
-AutoBuildUI:Update("Koa", 2, 12, 10)
 
 return AutoBuildUI
