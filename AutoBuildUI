@@ -1,4 +1,4 @@
-```lua
+
 local AutoBuildGUI = Instance.new("ScreenGui")
 AutoBuildGUI.Name = "AutoBuildGUI"
 AutoBuildGUI.Parent = game:GetService("CoreGui")
