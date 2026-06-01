@@ -1,3 +1,4 @@
+```lua
 local AutoBuildGUI = Instance.new("ScreenGui")
 AutoBuildGUI.Name = "AutoBuildGUI"
 AutoBuildGUI.Parent = game:GetService("CoreGui")
@@ -187,7 +188,6 @@ local function CreateWoodCard(woodData, order)
     MissingLabel.TextSize = 10
     MissingLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Progress bar track
     local BarTrack = Instance.new("Frame")
     BarTrack.Parent = Card
     BarTrack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -197,7 +197,6 @@ local function CreateWoodCard(woodData, order)
     BarTrack.Size = UDim2.new(1, -20, 0, 3)
     Instance.new("UICorner", BarTrack).CornerRadius = UDim.new(1, 0)
 
-    -- Progress bar fill
     local BarFill = Instance.new("Frame")
     BarFill.Parent = BarTrack
     BarFill.BackgroundColor3 = Color3.fromRGB(74, 222, 128)
@@ -217,7 +216,6 @@ for i, wood in ipairs(WoodTypes) do
     CreateWoodCard(wood, i)
 end
 
--- Drag
 local dragging, dragInput, mousePos, framePos
 Titlebar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -271,11 +269,8 @@ function AutoBuildUI:Update(woodName, have, need, missing)
         labels.Have.Text = "Have: " .. tostring(have)
         labels.Need.Text = "Need: " .. tostring(need)
         labels.Missing.Text = "Missing: " .. tostring(missing)
-
-        -- Progress bar
         local pct = need > 0 and math.clamp(have / need, 0, 1) or 0
         labels.BarFill.Size = UDim2.new(pct, 0, 1, 0)
-
         if missing > 0 then
             labels.Missing.TextColor3 = Color3.fromRGB(248, 113, 113)
             labels.Missing.TextTransparency = 0
