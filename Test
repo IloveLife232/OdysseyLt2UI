@@ -5,134 +5,120 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
 
-local COLORS = {
-    bg = Color3.fromRGB(22, 22, 24),
-    sidebar = Color3.fromRGB(28, 28, 30),
-    card = Color3.fromRGB(38, 38, 40),
-    innerCard = Color3.fromRGB(48, 48, 52),
-    text = Color3.fromRGB(255, 255, 255),
-    textSecondary = Color3.fromRGB(160, 160, 165),
-    accent = Color3.fromRGB(0, 150, 255),
-    toggle_on = Color3.fromRGB(0, 150, 255),
-    toggle_off = Color3.fromRGB(80, 80, 85),
-    divider = Color3.fromRGB(60, 60, 62),
+local C = {
+    bg = Color3.fromRGB(17, 17, 19),
+    topbar = Color3.fromRGB(26, 26, 28),
+    sidebar = Color3.fromRGB(26, 26, 28),
+    card = Color3.fromRGB(30, 30, 32),
+    innerCard = Color3.fromRGB(42, 42, 46),
+    text = Color3.fromRGB(240, 240, 240),
+    textSecondary = Color3.fromRGB(85, 85, 90),
+    accent = Color3.fromRGB(10, 132, 255),
+    accentDark = Color3.fromRGB(28, 58, 94),
+    on = Color3.fromRGB(10, 132, 255),
+    off = Color3.fromRGB(51, 51, 51),
+    green = Color3.fromRGB(48, 209, 88),
+    greenDark = Color3.fromRGB(30, 58, 40),
+    border = Color3.fromRGB(42, 42, 42),
+    white = Color3.fromRGB(255, 255, 255),
 }
 
-local function corner(parent, radius)
-    local c = Instance.new("UICorner", parent)
-    c.CornerRadius = UDim.new(0, radius or 6)
-    return c
-end
-
-local function padding(parent, top, left, right, bottom)
-    local p = Instance.new("UIPadding", parent)
-    p.PaddingTop = UDim.new(0, top or 8)
-    p.PaddingLeft = UDim.new(0, left or 8)
-    p.PaddingRight = UDim.new(0, right or 8)
-    p.PaddingBottom = UDim.new(0, bottom or 8)
-    return p
-end
+local function corner(p, r) local c = Instance.new("UICorner", p) c.CornerRadius = UDim.new(0, r or 8) end
+local function pad(p, t, l, r, b) local u = Instance.new("UIPadding", p) u.PaddingTop = UDim.new(0, t or 8) u.PaddingLeft = UDim.new(0, l or 8) u.PaddingRight = UDim.new(0, r or 8) u.PaddingBottom = UDim.new(0, b or 8) end
+local function stroke(p, c, t) local s = Instance.new("UIStroke", p) s.Color = c or Color3.fromRGB(42,42,42) s.Thickness = t or 1 end
 
 function MobileUI.new(title)
     local self = setmetatable({}, MobileUI)
     self.tabs = {}
     self.currentTab = nil
-    self.visible = true
 
-    -- main gui
     local gui = Instance.new("ScreenGui")
     gui.Name = "OdysseyMobileUI"
     gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = player.PlayerGui
     self.gui = gui
 
-    -- main frame
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 380, 0, 500)
-    main.Position = UDim2.new(0.5, -190, 0.5, -250)
-    main.BackgroundColor3 = COLORS.bg
+    main.Size = UDim2.new(0, 600, 0, 320)
+    main.Position = UDim2.new(0.5, -300, 0.5, -160)
+    main.BackgroundColor3 = C.bg
     main.BorderSizePixel = 0
     main.Parent = gui
-    corner(main, 10)
+    corner(main, 16)
+    stroke(main, C.border)
     self.main = main
 
-    -- topbar
     local topbar = Instance.new("Frame")
-    topbar.Size = UDim2.new(1, 0, 0, 40)
-    topbar.BackgroundColor3 = COLORS.sidebar
+    topbar.Size = UDim2.new(1, 0, 0, 44)
+    topbar.BackgroundColor3 = C.topbar
     topbar.BorderSizePixel = 0
     topbar.Parent = main
-    corner(topbar, 10)
+    corner(topbar, 16)
 
-    -- fix topbar bottom corners
     local topbarFix = Instance.new("Frame")
-    topbarFix.Size = UDim2.new(1, 0, 0, 10)
-    topbarFix.Position = UDim2.new(0, 0, 1, -10)
-    topbarFix.BackgroundColor3 = COLORS.sidebar
+    topbarFix.Size = UDim2.new(1, 0, 0, 16)
+    topbarFix.Position = UDim2.new(0, 0, 1, -16)
+    topbarFix.BackgroundColor3 = C.topbar
     topbarFix.BorderSizePixel = 0
     topbarFix.Parent = topbar
 
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -80, 1, 0)
-    titleLabel.Position = UDim2.new(0, 15, 0, 0)
+    titleLabel.Size = UDim2.new(1, -100, 1, 0)
+    titleLabel.Position = UDim2.new(0, 16, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.TextColor3 = COLORS.text
+    titleLabel.TextColor3 = C.text
     titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 14
+    titleLabel.TextSize = 13
     titleLabel.Text = title or "Odyssey"
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = topbar
 
-    -- close button
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -38, 0, 5)
-    closeBtn.BackgroundColor3 = COLORS.card
-    closeBtn.TextColor3 = COLORS.text
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    closeBtn.Text = "X"
-    closeBtn.Parent = topbar
-    corner(closeBtn, 6)
-    closeBtn.MouseButton1Click:Connect(function()
-        gui:Destroy()
-    end)
-
-    -- minimize button
     local minBtn = Instance.new("TextButton")
-    minBtn.Size = UDim2.new(0, 30, 0, 30)
-    minBtn.Position = UDim2.new(1, -72, 0, 5)
-    minBtn.BackgroundColor3 = COLORS.card
-    minBtn.TextColor3 = COLORS.text
+    minBtn.Size = UDim2.new(0, 26, 0, 26)
+    minBtn.Position = UDim2.new(1, -62, 0, 9)
+    minBtn.BackgroundColor3 = C.innerCard
+    minBtn.TextColor3 = C.textSecondary
     minBtn.Font = Enum.Font.GothamBold
     minBtn.TextSize = 14
     minBtn.Text = "-"
+    minBtn.BorderSizePixel = 0
     minBtn.Parent = topbar
-    corner(minBtn, 6)
+    corner(minBtn, 7)
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 26, 0, 26)
+    closeBtn.Position = UDim2.new(1, -32, 0, 9)
+    closeBtn.BackgroundColor3 = C.innerCard
+    closeBtn.TextColor3 = C.textSecondary
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 12
+    closeBtn.Text = "X"
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = topbar
+    corner(closeBtn, 7)
+    closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
 
     local minimized = false
     minBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
-        if minimized then
-            TweenService:Create(main, TweenInfo.new(0.2), {Size = UDim2.new(0, 380, 0, 40)}):Play()
-        else
-            TweenService:Create(main, TweenInfo.new(0.2), {Size = UDim2.new(0, 380, 0, 500)}):Play()
-        end
+        TweenService:Create(main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            Size = minimized and UDim2.new(0, 600, 0, 44) or UDim2.new(0, 600, 0, 320)
+        }):Play()
     end)
 
-    -- body
     local body = Instance.new("Frame")
-    body.Size = UDim2.new(1, 0, 1, -40)
-    body.Position = UDim2.new(0, 0, 0, 40)
+    body.Size = UDim2.new(1, 0, 1, -44)
+    body.Position = UDim2.new(0, 0, 0, 44)
     body.BackgroundTransparency = 1
+    body.ClipsDescendants = true
     body.Parent = main
     self.body = body
 
-    -- sidebar
     local sidebar = Instance.new("ScrollingFrame")
-    sidebar.Size = UDim2.new(0, 90, 1, 0)
-    sidebar.BackgroundColor3 = COLORS.sidebar
+    sidebar.Size = UDim2.new(0, 58, 1, 0)
+    sidebar.BackgroundColor3 = C.sidebar
     sidebar.BorderSizePixel = 0
     sidebar.ScrollBarThickness = 0
     sidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -140,25 +126,42 @@ function MobileUI.new(title)
     sidebar.Parent = body
     self.sidebar = sidebar
 
-    local sidebarLayout = Instance.new("UIListLayout", sidebar)
-    sidebarLayout.Padding = UDim.new(0, 4)
-    sidebarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    padding(sidebar, 8, 6, 6, 8)
+    local sidebarFix = Instance.new("Frame")
+    sidebarFix.Size = UDim2.new(1, 0, 0, 16)
+    sidebarFix.BackgroundColor3 = C.sidebar
+    sidebarFix.BorderSizePixel = 0
+    sidebarFix.Parent = sidebar
 
-    -- content area
+    local sidebarLayout = Instance.new("UIListLayout", sidebar)
+    sidebarLayout.Padding = UDim.new(0, 2)
+    sidebarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    pad(sidebar, 16, 5, 5, 8)
+
+    local divider = Instance.new("Frame")
+    divider.Size = UDim2.new(0, 1, 1, 0)
+    divider.Position = UDim2.new(0, 58, 0, 0)
+    divider.BackgroundColor3 = C.border
+    divider.BorderSizePixel = 0
+    divider.Parent = body
+
     local content = Instance.new("ScrollingFrame")
-    content.Size = UDim2.new(1, -90, 1, 0)
-    content.Position = UDim2.new(0, 90, 0, 0)
+    content.Size = UDim2.new(1, -59, 1, 0)
+    content.Position = UDim2.new(0, 59, 0, 0)
     content.BackgroundTransparency = 1
     content.BorderSizePixel = 0
     content.ScrollBarThickness = 3
-    content.ScrollBarImageColor3 = COLORS.accent
+    content.ScrollBarImageColor3 = C.accent
     content.CanvasSize = UDim2.new(0, 0, 0, 0)
     content.AutomaticCanvasSize = Enum.AutomaticSize.Y
     content.Parent = body
     self.content = content
 
-    -- make draggable
+    local contentLayout = Instance.new("UIListLayout", content)
+    contentLayout.Padding = UDim.new(0, 5)
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    pad(content, 8, 8, 8, 8)
+    self.contentLayout = contentLayout
+
     local dragging, dragStart, startPos = false, nil, nil
     topbar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -185,37 +188,35 @@ end
 function MobileUI:CreateTab(name, icon)
     local tab = {}
     tab.name = name
-    tab.elements = {}
 
     local tabBtn = Instance.new("TextButton")
-    tabBtn.Size = UDim2.new(1, 0, 0, 70)
-    tabBtn.BackgroundColor3 = COLORS.card
+    tabBtn.Size = UDim2.new(1, 0, 0, 46)
+    tabBtn.BackgroundColor3 = C.card
     tabBtn.BorderSizePixel = 0
     tabBtn.Text = ""
     tabBtn.Parent = self.sidebar
-    corner(tabBtn, 8)
+    corner(tabBtn, 10)
 
     local iconLabel = Instance.new("TextLabel")
-    iconLabel.Size = UDim2.new(1, 0, 0, 30)
-    iconLabel.Position = UDim2.new(0, 0, 0, 8)
+    iconLabel.Size = UDim2.new(1, 0, 0, 22)
+    iconLabel.Position = UDim2.new(0, 0, 0, 5)
     iconLabel.BackgroundTransparency = 1
-    iconLabel.TextColor3 = COLORS.textSecondary
+    iconLabel.TextColor3 = C.textSecondary
     iconLabel.Font = Enum.Font.GothamBold
-    iconLabel.TextSize = 18
+    iconLabel.TextSize = 16
     iconLabel.Text = icon or "●"
     iconLabel.Parent = tabBtn
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 20)
-    nameLabel.Position = UDim2.new(0, 0, 0, 40)
+    nameLabel.Size = UDim2.new(1, 0, 0, 14)
+    nameLabel.Position = UDim2.new(0, 0, 0, 28)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = COLORS.textSecondary
+    nameLabel.TextColor3 = C.textSecondary
     nameLabel.Font = Enum.Font.Gotham
-    nameLabel.TextSize = 10
+    nameLabel.TextSize = 8
     nameLabel.Text = name
     nameLabel.Parent = tabBtn
 
-    -- content frame for this tab
     local tabContent = Instance.new("Frame")
     tabContent.Size = UDim2.new(1, 0, 1, 0)
     tabContent.BackgroundTransparency = 1
@@ -223,24 +224,21 @@ function MobileUI:CreateTab(name, icon)
     tabContent.Parent = self.content
 
     local tabLayout = Instance.new("UIListLayout", tabContent)
-    tabLayout.Padding = UDim.new(0, 6)
+    tabLayout.Padding = UDim.new(0, 5)
     tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    padding(tabContent, 8, 8, 8, 8)
 
     tab.frame = tabContent
     tab.btn = tabBtn
     tab.iconLabel = iconLabel
     tab.nameLabel = nameLabel
+    tab.layout = tabLayout
 
     tabBtn.MouseButton1Click:Connect(function()
         self:SelectTab(tab)
     end)
 
     table.insert(self.tabs, tab)
-
-    if #self.tabs == 1 then
-        self:SelectTab(tab)
-    end
+    if #self.tabs == 1 then self:SelectTab(tab) end
 
     return tab
 end
@@ -248,143 +246,152 @@ end
 function MobileUI:SelectTab(tab)
     for _, t in ipairs(self.tabs) do
         t.frame.Visible = false
-        t.btn.BackgroundColor3 = COLORS.card
-        t.iconLabel.TextColor3 = COLORS.textSecondary
-        t.nameLabel.TextColor3 = COLORS.textSecondary
+        t.btn.BackgroundColor3 = C.card
+        t.iconLabel.TextColor3 = C.textSecondary
+        t.nameLabel.TextColor3 = C.textSecondary
     end
     tab.frame.Visible = true
-    tab.btn.BackgroundColor3 = COLORS.innerCard
-    tab.iconLabel.TextColor3 = COLORS.accent
-    tab.nameLabel.TextColor3 = COLORS.text
+    tab.btn.BackgroundColor3 = C.accentDark
+    tab.iconLabel.TextColor3 = C.accent
+    tab.nameLabel.TextColor3 = C.accent
     self.currentTab = tab
 end
 
 function MobileUI:CreateSection(tab, name)
-    local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, 0, 0, 0)
-    section.AutomaticSize = Enum.AutomaticSize.Y
-    section.BackgroundTransparency = 1
-    section.Parent = tab.frame
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 18)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = C.textSecondary
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 9
+    label.Text = string.upper(name)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = tab.frame
 
-    local sectionLabel = Instance.new("TextLabel")
-    sectionLabel.Size = UDim2.new(1, 0, 0, 20)
-    sectionLabel.BackgroundTransparency = 1
-    sectionLabel.TextColor3 = COLORS.accent
-    sectionLabel.Font = Enum.Font.GothamBold
-    sectionLabel.TextSize = 11
-    sectionLabel.Text = string.upper(name)
-    sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-    sectionLabel.Parent = section
+    return tab.frame
+end
 
-    local divider = Instance.new("Frame")
-    divider.Size = UDim2.new(1, 0, 0, 1)
-    divider.Position = UDim2.new(0, 0, 0, 22)
-    divider.BackgroundColor3 = COLORS.divider
-    divider.BorderSizePixel = 0
-    divider.Parent = section
+function MobileUI:CreateCardRow(tab)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 0)
+    row.AutomaticSize = Enum.AutomaticSize.Y
+    row.BackgroundTransparency = 1
+    row.Parent = tab.frame
 
-    local sectionLayout = Instance.new("UIListLayout", section)
-    sectionLayout.Padding = UDim.new(0, 4)
-    sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    local layout = Instance.new("UIListLayout", row)
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.Padding = UDim.new(0, 5)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    return section
+    return row
 end
 
 function MobileUI:CreateButton(parent, options)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 50)
-    btn.BackgroundColor3 = COLORS.card
-    btn.BorderSizePixel = 0
-    btn.Text = ""
-    btn.Parent = parent
-    corner(btn, 8)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, options.Description and 56 or 46)
+    card.BackgroundColor3 = C.card
+    card.BorderSizePixel = 0
+    card.Parent = parent
+    corner(card, 10)
+    stroke(card, C.border)
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -20, 0, 20)
-    nameLabel.Position = UDim2.new(0, 10, 0, 8)
+    nameLabel.Size = UDim2.new(1, -90, 0, 18)
+    nameLabel.Position = UDim2.new(0, 12, 0, options.Description and 8 or 14)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = COLORS.text
+    nameLabel.TextColor3 = C.text
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.TextSize = 12
     nameLabel.Text = options.Name or "Button"
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = btn
+    nameLabel.Parent = card
 
     if options.Description then
-        btn.Size = UDim2.new(1, 0, 0, 60)
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Size = UDim2.new(1, -20, 0, 16)
-        descLabel.Position = UDim2.new(0, 10, 0, 30)
-        descLabel.BackgroundTransparency = 1
-        descLabel.TextColor3 = COLORS.textSecondary
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.TextSize = 10
-        descLabel.Text = options.Description
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.TextWrapped = true
-        descLabel.Parent = btn
+        local desc = Instance.new("TextLabel")
+        desc.Size = UDim2.new(1, -90, 0, 14)
+        desc.Position = UDim2.new(0, 12, 0, 28)
+        desc.BackgroundTransparency = 1
+        desc.TextColor3 = C.textSecondary
+        desc.Font = Enum.Font.Gotham
+        desc.TextSize = 9
+        desc.Text = options.Description
+        desc.TextXAlignment = Enum.TextXAlignment.Left
+        desc.TextWrapped = true
+        desc.Parent = card
     end
 
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 60, 0, 26)
+    btn.Position = UDim2.new(1, -72, 0.5, -13)
+    btn.BackgroundColor3 = C.accent
+    btn.TextColor3 = C.white
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.Text = "RUN"
+    btn.BorderSizePixel = 0
+    btn.Parent = card
+    corner(btn, 7)
+
     btn.MouseButton1Click:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = COLORS.accent}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0, 100, 200)}):Play()
         task.delay(0.15, function()
-            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = COLORS.card}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = C.accent}):Play()
         end)
         if options.Callback then options.Callback() end
     end)
 
-    return btn
+    return card
 end
 
 function MobileUI:CreateToggle(parent, options)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 50)
-    frame.BackgroundColor3 = COLORS.card
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    corner(frame, 8)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, options.Description and 56 or 46)
+    card.BackgroundColor3 = C.card
+    card.BorderSizePixel = 0
+    card.Parent = parent
+    corner(card, 10)
+    stroke(card, C.border)
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -60, 0, 20)
-    nameLabel.Position = UDim2.new(0, 10, 0, 8)
+    nameLabel.Size = UDim2.new(1, -70, 0, 18)
+    nameLabel.Position = UDim2.new(0, 12, 0, options.Description and 8 or 14)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = COLORS.text
+    nameLabel.TextColor3 = C.text
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.TextSize = 12
     nameLabel.Text = options.Name or "Toggle"
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = frame
+    nameLabel.Parent = card
 
     if options.Description then
-        frame.Size = UDim2.new(1, 0, 0, 60)
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Size = UDim2.new(1, -60, 0, 16)
-        descLabel.Position = UDim2.new(0, 10, 0, 30)
-        descLabel.BackgroundTransparency = 1
-        descLabel.TextColor3 = COLORS.textSecondary
-        descLabel.Font = Enum.Font.Gotham
-        descLabel.TextSize = 10
-        descLabel.Text = options.Description
-        descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.TextWrapped = true
-        descLabel.Parent = frame
+        local desc = Instance.new("TextLabel")
+        desc.Size = UDim2.new(1, -70, 0, 14)
+        desc.Position = UDim2.new(0, 12, 0, 28)
+        desc.BackgroundTransparency = 1
+        desc.TextColor3 = C.textSecondary
+        desc.Font = Enum.Font.Gotham
+        desc.TextSize = 9
+        desc.Text = options.Description
+        desc.TextXAlignment = Enum.TextXAlignment.Left
+        desc.TextWrapped = true
+        desc.Parent = card
     end
 
     local toggleBg = Instance.new("Frame")
-    toggleBg.Size = UDim2.new(0, 44, 0, 24)
-    toggleBg.Position = UDim2.new(1, -54, 0, 13)
-    toggleBg.BackgroundColor3 = options.CurrentValue and COLORS.toggle_on or COLORS.toggle_off
+    toggleBg.Size = UDim2.new(0, 42, 0, 24)
+    toggleBg.Position = UDim2.new(1, -54, 0.5, -12)
+    toggleBg.BackgroundColor3 = options.CurrentValue and C.on or C.off
     toggleBg.BorderSizePixel = 0
-    toggleBg.Parent = frame
+    toggleBg.Parent = card
     corner(toggleBg, 12)
 
-    local toggleKnob = Instance.new("Frame")
-    toggleKnob.Size = UDim2.new(0, 18, 0, 18)
-    toggleKnob.Position = options.CurrentValue and UDim2.new(0, 23, 0, 3) or UDim2.new(0, 3, 0, 3)
-    toggleKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    toggleKnob.BorderSizePixel = 0
-    toggleKnob.Parent = toggleBg
-    corner(toggleKnob, 9)
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 18, 0, 18)
+    knob.Position = options.CurrentValue and UDim2.new(0, 21, 0, 3) or UDim2.new(0, 3, 0, 3)
+    knob.BackgroundColor3 = C.white
+    knob.BorderSizePixel = 0
+    knob.Parent = toggleBg
+    corner(knob, 9)
 
     local value = options.CurrentValue or false
 
@@ -392,78 +399,79 @@ function MobileUI:CreateToggle(parent, options)
     btn.Size = UDim2.new(1, 0, 1, 0)
     btn.BackgroundTransparency = 1
     btn.Text = ""
-    btn.Parent = frame
+    btn.Parent = card
 
     btn.MouseButton1Click:Connect(function()
         value = not value
-        TweenService:Create(toggleBg, TweenInfo.new(0.15), {BackgroundColor3 = value and COLORS.toggle_on or COLORS.toggle_off}):Play()
-        TweenService:Create(toggleKnob, TweenInfo.new(0.15), {Position = value and UDim2.new(0, 23, 0, 3) or UDim2.new(0, 3, 0, 3)}):Play()
+        TweenService:Create(toggleBg, TweenInfo.new(0.15), {BackgroundColor3 = value and C.on or C.off}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.15), {Position = value and UDim2.new(0, 21, 0, 3) or UDim2.new(0, 3, 0, 3)}):Play()
         if options.Callback then options.Callback(value) end
     end)
 
     local toggle = {}
     function toggle:Set(v)
         value = v
-        TweenService:Create(toggleBg, TweenInfo.new(0.15), {BackgroundColor3 = v and COLORS.toggle_on or COLORS.toggle_off}):Play()
-        TweenService:Create(toggleKnob, TweenInfo.new(0.15), {Position = v and UDim2.new(0, 23, 0, 3) or UDim2.new(0, 3, 0, 3)}):Play()
+        TweenService:Create(toggleBg, TweenInfo.new(0.15), {BackgroundColor3 = v and C.on or C.off}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.15), {Position = v and UDim2.new(0, 21, 0, 3) or UDim2.new(0, 3, 0, 3)}):Play()
     end
 
     return toggle
 end
 
 function MobileUI:CreateSlider(parent, options)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 70)
-    frame.BackgroundColor3 = COLORS.card
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    corner(frame, 8)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 68)
+    card.BackgroundColor3 = C.card
+    card.BorderSizePixel = 0
+    card.Parent = parent
+    corner(card, 10)
+    stroke(card, C.border)
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -60, 0, 20)
-    nameLabel.Position = UDim2.new(0, 10, 0, 8)
+    nameLabel.Size = UDim2.new(1, -60, 0, 18)
+    nameLabel.Position = UDim2.new(0, 12, 0, 8)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = COLORS.text
+    nameLabel.TextColor3 = C.text
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.TextSize = 12
     nameLabel.Text = options.Name or "Slider"
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = frame
+    nameLabel.Parent = card
 
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 40, 0, 20)
-    valueLabel.Position = UDim2.new(1, -50, 0, 8)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.TextColor3 = COLORS.accent
-    valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.TextSize = 12
-    valueLabel.Text = tostring(options.CurrentValue or options.Range[1])
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Parent = frame
+    local valLabel = Instance.new("TextLabel")
+    valLabel.Size = UDim2.new(0, 50, 0, 18)
+    valLabel.Position = UDim2.new(1, -62, 0, 8)
+    valLabel.BackgroundTransparency = 1
+    valLabel.TextColor3 = C.accent
+    valLabel.Font = Enum.Font.GothamBold
+    valLabel.TextSize = 12
+    valLabel.Text = tostring(options.CurrentValue or options.Range[1])
+    valLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valLabel.Parent = card
 
     local trackBg = Instance.new("Frame")
-    trackBg.Size = UDim2.new(1, -20, 0, 6)
-    trackBg.Position = UDim2.new(0, 10, 0, 40)
-    trackBg.BackgroundColor3 = COLORS.innerCard
+    trackBg.Size = UDim2.new(1, -24, 0, 4)
+    trackBg.Position = UDim2.new(0, 12, 0, 42)
+    trackBg.BackgroundColor3 = C.innerCard
     trackBg.BorderSizePixel = 0
-    trackBg.Parent = frame
-    corner(trackBg, 3)
+    trackBg.Parent = card
+    corner(trackBg, 2)
 
     local trackFill = Instance.new("Frame")
     trackFill.Size = UDim2.new(0, 0, 1, 0)
-    trackFill.BackgroundColor3 = COLORS.accent
+    trackFill.BackgroundColor3 = C.accent
     trackFill.BorderSizePixel = 0
     trackFill.Parent = trackBg
-    corner(trackFill, 3)
+    corner(trackFill, 2)
 
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 18, 0, 18)
-    knob.Position = UDim2.new(0, -9, 0, -6)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    knob.BorderSizePixel = 0
-    knob.Parent = trackFill
-    knob.AnchorPoint = Vector2.new(1, 0)
-    corner(knob, 9)
+    local thumb = Instance.new("Frame")
+    thumb.Size = UDim2.new(0, 16, 0, 16)
+    thumb.AnchorPoint = Vector2.new(1, 0.5)
+    thumb.Position = UDim2.new(0, 0, 0.5, 0)
+    thumb.BackgroundColor3 = C.white
+    thumb.BorderSizePixel = 0
+    thumb.Parent = trackFill
+    corner(thumb, 8)
 
     local range = options.Range or {0, 100}
     local increment = options.Increment or 1
@@ -474,7 +482,7 @@ function MobileUI:CreateSlider(parent, options)
         currentValue = val
         local pct = (val - range[1]) / (range[2] - range[1])
         trackFill.Size = UDim2.new(pct, 0, 1, 0)
-        valueLabel.Text = tostring(val)
+        valLabel.Text = tostring(val)
         if options.Callback then options.Callback(val) end
     end
 
@@ -482,25 +490,24 @@ function MobileUI:CreateSlider(parent, options)
 
     local dragging = false
     local dragBtn = Instance.new("TextButton")
-    dragBtn.Size = UDim2.new(1, 0, 0, 30)
-    dragBtn.Position = UDim2.new(0, 0, 0, 30)
+    dragBtn.Size = UDim2.new(1, -24, 0, 28)
+    dragBtn.Position = UDim2.new(0, 12, 0, 32)
     dragBtn.BackgroundTransparency = 1
     dragBtn.Text = ""
-    dragBtn.Parent = frame
+    dragBtn.Parent = card
 
     dragBtn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
+            local relX = math.clamp((input.Position.X - trackBg.AbsolutePosition.X) / trackBg.AbsoluteSize.X, 0, 1)
+            updateSlider(range[1] + relX * (range[2] - range[1]))
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local trackPos = trackBg.AbsolutePosition.X
-            local trackWidth = trackBg.AbsoluteSize.X
-            local relX = math.clamp((input.Position.X - trackPos) / trackWidth, 0, 1)
-            local val = range[1] + relX * (range[2] - range[1])
-            updateSlider(val)
+            local relX = math.clamp((input.Position.X - trackBg.AbsolutePosition.X) / trackBg.AbsoluteSize.X, 0, 1)
+            updateSlider(range[1] + relX * (range[2] - range[1]))
         end
     end)
 
@@ -518,56 +525,52 @@ function MobileUI:CreateLabel(parent, options)
     label.Size = UDim2.new(1, 0, 0, 0)
     label.AutomaticSize = Enum.AutomaticSize.Y
     label.BackgroundTransparency = 1
-    label.TextColor3 = COLORS.textSecondary
+    label.TextColor3 = C.textSecondary
     label.Font = Enum.Font.Gotham
-    label.TextSize = 11
+    label.TextSize = 10
     label.Text = options.Text or ""
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.TextWrapped = true
     label.Parent = parent
-
-    return {
-        Set = function(text)
-            label.Text = text
-        end
-    }
+    return {Set = function(t) label.Text = t end}
 end
 
 function MobileUI:CreateTextbox(parent, options)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 60)
-    frame.BackgroundColor3 = COLORS.card
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    corner(frame, 8)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 60)
+    card.BackgroundColor3 = C.card
+    card.BorderSizePixel = 0
+    card.Parent = parent
+    corner(card, 10)
+    stroke(card, C.border)
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -20, 0, 20)
-    nameLabel.Position = UDim2.new(0, 10, 0, 5)
+    nameLabel.Size = UDim2.new(1, -20, 0, 16)
+    nameLabel.Position = UDim2.new(0, 12, 0, 6)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = COLORS.text
+    nameLabel.TextColor3 = C.text
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 12
+    nameLabel.TextSize = 11
     nameLabel.Text = options.Name or "Textbox"
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = frame
+    nameLabel.Parent = card
 
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, -20, 0, 26)
-    box.Position = UDim2.new(0, 10, 0, 28)
-    box.BackgroundColor3 = COLORS.innerCard
-    box.TextColor3 = COLORS.text
+    box.Size = UDim2.new(1, -24, 0, 26)
+    box.Position = UDim2.new(0, 12, 0, 26)
+    box.BackgroundColor3 = C.innerCard
+    box.TextColor3 = C.text
     box.Font = Enum.Font.Gotham
     box.TextSize = 11
     box.Text = options.CurrentValue or ""
-    box.PlaceholderText = options.PlaceholderText or "Enter value..."
-    box.PlaceholderColor3 = COLORS.textSecondary
+    box.PlaceholderText = options.PlaceholderText or ""
+    box.PlaceholderColor3 = C.textSecondary
     box.BorderSizePixel = 0
     box.TextXAlignment = Enum.TextXAlignment.Left
     box.ClearTextOnFocus = false
-    box.Parent = frame
+    box.Parent = card
     corner(box, 6)
-    padding(box, 4, 8, 8, 4)
+    pad(box, 4, 8, 8, 4)
 
     box.FocusLost:Connect(function()
         if options.Callback then options.Callback(box.Text) end
@@ -577,105 +580,91 @@ function MobileUI:CreateTextbox(parent, options)
 end
 
 function MobileUI:CreateDropdown(parent, options)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 0)
-    frame.AutomaticSize = Enum.AutomaticSize.Y
-    frame.BackgroundColor3 = COLORS.card
-    frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-    frame.Parent = parent
-    corner(frame, 8)
-
-    local headerBtn = Instance.new("TextButton")
-    headerBtn.Size = UDim2.new(1, 0, 0, 50)
-    headerBtn.BackgroundTransparency = 1
-    headerBtn.Text = ""
-    headerBtn.Parent = frame
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 46)
+    card.BackgroundColor3 = C.card
+    card.BorderSizePixel = 0
+    card.ClipsDescendants = false
+    card.Parent = parent
+    corner(card, 10)
+    stroke(card, C.border)
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -50, 0, 20)
-    nameLabel.Position = UDim2.new(0, 10, 0, 8)
+    nameLabel.Size = UDim2.new(0.5, 0, 0, 18)
+    nameLabel.Position = UDim2.new(0, 12, 0, 14)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = COLORS.text
+    nameLabel.TextColor3 = C.text
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.TextSize = 12
     nameLabel.Text = options.Name or "Dropdown"
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = headerBtn
+    nameLabel.Parent = card
 
-    local selectedLabel = Instance.new("TextLabel")
-    selectedLabel.Size = UDim2.new(1, -20, 0, 16)
-    selectedLabel.Position = UDim2.new(0, 10, 0, 28)
-    selectedLabel.BackgroundTransparency = 1
-    selectedLabel.TextColor3 = COLORS.accent
-    selectedLabel.Font = Enum.Font.Gotham
-    selectedLabel.TextSize = 11
-    selectedLabel.Text = options.CurrentOption or "Select..."
-    selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
-    selectedLabel.Parent = headerBtn
+    local selectedBtn = Instance.new("TextButton")
+    selectedBtn.Size = UDim2.new(0.48, 0, 0, 28)
+    selectedBtn.Position = UDim2.new(0.5, 0, 0, 9)
+    selectedBtn.BackgroundColor3 = C.innerCard
+    selectedBtn.TextColor3 = C.accent
+    selectedBtn.Font = Enum.Font.Gotham
+    selectedBtn.TextSize = 10
+    selectedBtn.Text = (options.CurrentOption or "Select") .. "  v"
+    selectedBtn.BorderSizePixel = 0
+    selectedBtn.Parent = card
+    corner(selectedBtn, 7)
 
-    local arrow = Instance.new("TextLabel")
-    arrow.Size = UDim2.new(0, 20, 0, 20)
-    arrow.Position = UDim2.new(1, -30, 0, 15)
-    arrow.BackgroundTransparency = 1
-    arrow.TextColor3 = COLORS.textSecondary
-    arrow.Font = Enum.Font.GothamBold
-    arrow.TextSize = 12
-    arrow.Text = "v"
-    arrow.Parent = headerBtn
+    local dropFrame = Instance.new("Frame")
+    dropFrame.Size = UDim2.new(0.48, 0, 0, 0)
+    dropFrame.Position = UDim2.new(0.5, 0, 0, 40)
+    dropFrame.BackgroundColor3 = C.innerCard
+    dropFrame.BorderSizePixel = 0
+    dropFrame.Visible = false
+    dropFrame.ZIndex = 10
+    dropFrame.Parent = card
+    corner(dropFrame, 8)
+    stroke(dropFrame, C.border)
 
-    local optionsFrame = Instance.new("Frame")
-    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-    optionsFrame.Position = UDim2.new(0, 0, 0, 50)
-    optionsFrame.BackgroundColor3 = COLORS.innerCard
-    optionsFrame.BorderSizePixel = 0
-    optionsFrame.Visible = false
-    optionsFrame.Parent = frame
+    local dropLayout = Instance.new("UIListLayout", dropFrame)
+    dropLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local optLayout = Instance.new("UIListLayout", optionsFrame)
-    optLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    local open = false
 
     local function buildOptions(opts)
-        for _, child in ipairs(optionsFrame:GetChildren()) do
+        for _, child in ipairs(dropFrame:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
         for _, opt in ipairs(opts) do
             local optBtn = Instance.new("TextButton")
-            optBtn.Size = UDim2.new(1, 0, 0, 36)
+            optBtn.Size = UDim2.new(1, 0, 0, 28)
             optBtn.BackgroundTransparency = 1
-            optBtn.TextColor3 = COLORS.text
+            optBtn.TextColor3 = C.text
             optBtn.Font = Enum.Font.Gotham
-            optBtn.TextSize = 11
+            optBtn.TextSize = 10
             optBtn.Text = opt
-            optBtn.TextXAlignment = Enum.TextXAlignment.Left
-            padding(optBtn, 0, 12, 0, 0)
-            optBtn.Parent = optionsFrame
+            optBtn.ZIndex = 11
+            optBtn.Parent = dropFrame
 
             optBtn.MouseButton1Click:Connect(function()
-                selectedLabel.Text = opt
-                optionsFrame.Visible = false
-                optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-                frame.ClipsDescendants = true
+                selectedBtn.Text = opt .. "  v"
+                open = false
+                dropFrame.Visible = false
                 if options.Callback then options.Callback(opt) end
             end)
         end
-        optionsFrame.Size = UDim2.new(1, 0, 0, #opts * 36)
+        dropFrame.Size = UDim2.new(0.48, 0, 0, math.min(#opts, 5) * 28)
     end
 
     buildOptions(options.Options or {})
 
-    local open = false
-    headerBtn.MouseButton1Click:Connect(function()
+    selectedBtn.MouseButton1Click:Connect(function()
         open = not open
-        optionsFrame.Visible = open
-        frame.ClipsDescendants = not open
-        arrow.Text = open and "^" or "v"
+        dropFrame.Visible = open
+        selectedBtn.Text = (dropFrame.Visible and selectedBtn.Text:gsub("  v", "  ^") or selectedBtn.Text:gsub("  ^", "  v"))
     end)
 
     return {
         Set = function(opts)
             if opts.Options then buildOptions(opts.Options) end
-            if opts.CurrentOption then selectedLabel.Text = opts.CurrentOption end
+            if opts.CurrentOption then selectedBtn.Text = opts.CurrentOption .. "  v" end
         end
     }
 end
@@ -687,27 +676,29 @@ function MobileUI:Notification(options)
     local notifGui = Instance.new("ScreenGui")
     notifGui.Name = "OdysseyMobileNotif"
     notifGui.ResetOnSpawn = false
+    notifGui.IgnoreGuiInset = true
     notifGui.Parent = player.PlayerGui
 
     local notif = Instance.new("Frame")
-    notif.Size = UDim2.new(0, 300, 0, 0)
+    notif.Size = UDim2.new(0, 280, 0, 0)
     notif.AutomaticSize = Enum.AutomaticSize.Y
-    notif.Position = UDim2.new(0.5, -150, 0, -100)
-    notif.BackgroundColor3 = COLORS.card
+    notif.Position = UDim2.new(0.5, -140, 0, -80)
+    notif.BackgroundColor3 = C.card
     notif.BorderSizePixel = 0
     notif.Parent = notifGui
-    corner(notif, 8)
-    padding(notif, 10, 12, 12, 10)
+    corner(notif, 10)
+    stroke(notif, C.border)
+    pad(notif, 10, 14, 14, 10)
 
     local layout = Instance.new("UIListLayout", notif)
-    layout.Padding = UDim.new(0, 4)
+    layout.Padding = UDim.new(0, 3)
 
     local titleLbl = Instance.new("TextLabel")
-    titleLbl.Size = UDim2.new(1, 0, 0, 18)
+    titleLbl.Size = UDim2.new(1, 0, 0, 16)
     titleLbl.BackgroundTransparency = 1
-    titleLbl.TextColor3 = COLORS.text
+    titleLbl.TextColor3 = C.text
     titleLbl.Font = Enum.Font.GothamBold
-    titleLbl.TextSize = 12
+    titleLbl.TextSize = 11
     titleLbl.Text = options.Title or "Odyssey"
     titleLbl.TextXAlignment = Enum.TextXAlignment.Left
     titleLbl.Parent = notif
@@ -716,19 +707,23 @@ function MobileUI:Notification(options)
     contentLbl.Size = UDim2.new(1, 0, 0, 0)
     contentLbl.AutomaticSize = Enum.AutomaticSize.Y
     contentLbl.BackgroundTransparency = 1
-    contentLbl.TextColor3 = COLORS.textSecondary
+    contentLbl.TextColor3 = C.textSecondary
     contentLbl.Font = Enum.Font.Gotham
-    contentLbl.TextSize = 11
+    contentLbl.TextSize = 10
     contentLbl.Text = options.Content or ""
     contentLbl.TextXAlignment = Enum.TextXAlignment.Left
     contentLbl.TextWrapped = true
     contentLbl.Parent = notif
 
-    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = UDim2.new(0.5, -150, 0, 10)}):Play()
+    TweenService:Create(notif, TweenInfo.new(0.25, Enum.EasingStyle.Back), {
+        Position = UDim2.new(0.5, -140, 0, 10)
+    }):Play()
 
     task.delay(options.Duration or 3, function()
-        TweenService:Create(notif, TweenInfo.new(0.2), {Position = UDim2.new(0.5, -150, 0, -100)}):Play()
-        task.wait(0.2)
+        TweenService:Create(notif, TweenInfo.new(0.2), {
+            Position = UDim2.new(0.5, -140, 0, -80)
+        }):Play()
+        task.wait(0.25)
         notifGui:Destroy()
     end)
 end
