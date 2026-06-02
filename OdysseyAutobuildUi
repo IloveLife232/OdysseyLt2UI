@@ -247,4 +247,4 @@ _G.ABSetWood = function(name, have, need, missing)
     end
 end
 
-_G.ABFrame = autobuild
+_G.autobuild = autobuild
