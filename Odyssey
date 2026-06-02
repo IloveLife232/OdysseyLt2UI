@@ -1,84 +1,11 @@
 local ProgressBar = {}
 
-local gui, f, t, s, p, b, eta
-local startTime, itemsDone, totalItems
+local gui, win, iconLabel, subLabel, statDone, statStep, statElapsed, statEta, fillBar, statusLabel
+local startTime
 
-function ProgressBar:Create(title)
-    if game.Players.LocalPlayer.PlayerGui:FindFirstChild("OdysseyProgress") then
-        game.Players.LocalPlayer.PlayerGui.OdysseyProgress:Destroy()
-    end
-
-    startTime = nil
-    itemsDone = 0
-    totalItems = 0
-
-    gui = Instance.new("ScreenGui")
-    gui.Name = "OdysseyProgress"
-    gui.ResetOnSpawn = false
-    gui.Parent = game.Players.LocalPlayer.PlayerGui
-
-    f = Instance.new("Frame")
-    f.Size = UDim2.new(0, 320, 0, 95)
-    f.Position = UDim2.new(0.5, -160, 0, 10)
-    f.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    f.BorderSizePixel = 0
-    f.Parent = gui
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
-
-    t = Instance.new("TextLabel", f)
-    t.Size = UDim2.new(1, -20, 0, 20)
-    t.Position = UDim2.new(0, 10, 0, 8)
-    t.BackgroundTransparency = 1
-    t.TextColor3 = Color3.fromRGB(255, 255, 255)
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 13
-    t.Text = "Odyssey | " .. (title or "Progress")
-
-    s = Instance.new("TextLabel", f)
-    s.Size = UDim2.new(1, -60, 0, 16)
-    s.Position = UDim2.new(0, 10, 0, 28)
-    s.BackgroundTransparency = 1
-    s.TextColor3 = Color3.fromRGB(180, 180, 180)
-    s.TextXAlignment = Enum.TextXAlignment.Left
-    s.Font = Enum.Font.Gotham
-    s.TextSize = 11
-    s.Text = "Starting..."
-
-    p = Instance.new("TextLabel", f)
-    p.Size = UDim2.new(0, 40, 0, 16)
-    p.Position = UDim2.new(1, -50, 0, 28)
-    p.BackgroundTransparency = 1
-    p.TextColor3 = Color3.fromRGB(180, 180, 180)
-    p.TextXAlignment = Enum.TextXAlignment.Right
-    p.Font = Enum.Font.Gotham
-    p.TextSize = 11
-    p.Text = "0%"
-
-    eta = Instance.new("TextLabel", f)
-    eta.Size = UDim2.new(1, -20, 0, 14)
-    eta.Position = UDim2.new(0, 10, 0, 46)
-    eta.BackgroundTransparency = 1
-    eta.TextColor3 = Color3.fromRGB(130, 130, 130)
-    eta.TextXAlignment = Enum.TextXAlignment.Left
-    eta.Font = Enum.Font.Gotham
-    eta.TextSize = 10
-    eta.Text = "Estimated time: calculating..."
-    eta.Parent = f
-
-    local bg = Instance.new("Frame", f)
-    bg.Size = UDim2.new(1, -20, 0, 8)
-    bg.Position = UDim2.new(0, 10, 0, 68)
-    bg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    bg.BorderSizePixel = 0
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
-
-    b = Instance.new("Frame", bg)
-    b.Size = UDim2.new(0, 0, 1, 0)
-    b.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-    b.BorderSizePixel = 0
-    Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
-end
+local TweenService = game:GetService("TweenService")
+local tweenFast = TweenInfo.new(0.2, Enum.EasingStyle.Exponential)
+local tweenMed  = TweenInfo.new(0.35, Enum.EasingStyle.Exponential)
 
 local function formatTime(seconds)
     seconds = math.round(seconds)
@@ -96,44 +23,250 @@ local function formatTime(seconds)
     end
 end
 
-function ProgressBar:Update(status, current, total)
-    if not f then return end
-    if not startTime then startTime = os.clock() end
-    itemsDone = current
-    totalItems = total
-    local progress = current / total
-    b.Size = UDim2.new(progress, 0, 1, 0)
-    p.Text = math.floor(progress * 100) .. "%"
-    s.Text = status
-    if current > 0 then
-        local elapsed = os.clock() - startTime
-        local avgPerItem = elapsed / current
-        local remaining = avgPerItem * (total - current)
-        eta.Text = "Estimated time remaining: ~" .. formatTime(remaining)
-    else
-        eta.Text = "Estimated time: calculating..."
+local function makeLabel(parent, size, pos, font, textSize, color, text, xAlign, zIndex, wrap)
+    local l = Instance.new("TextLabel")
+    l.Size = size
+    l.Position = pos
+    l.BackgroundTransparency = 1
+    l.Font = font
+    l.TextSize = textSize
+    l.TextColor3 = color
+    l.Text = text
+    l.TextXAlignment = xAlign or Enum.TextXAlignment.Left
+    l.ZIndex = zIndex or 2
+    l.TextWrapped = wrap or false
+    l.Parent = parent
+    return l
+end
+
+local function makeLine(parent, size, pos, color, zIndex)
+    local f = Instance.new("Frame")
+    f.Size = size
+    f.Position = pos
+    f.BackgroundColor3 = color
+    f.BorderSizePixel = 0
+    f.ZIndex = zIndex or 2
+    f.Parent = parent
+    return f
+end
+
+function ProgressBar:Create(title)
+    if game.Players.LocalPlayer.PlayerGui:FindFirstChild("OdysseyProgress") then
+        game.Players.LocalPlayer.PlayerGui.OdysseyProgress:Destroy()
     end
+
+    startTime = nil
+
+    gui = Instance.new("ScreenGui")
+    gui.Name = "OdysseyProgress"
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    if syn and syn.protect_gui then
+        syn.protect_gui(gui)
+        gui.Parent = game:GetService("CoreGui")
+    elseif gethui then
+        gui.Parent = gethui()
+    else
+        gui.Parent = game.Players.LocalPlayer.PlayerGui
+    end
+
+    -- main window
+    win = Instance.new("Frame")
+    win.Name = "ProgressWindow"
+    win.Size = UDim2.new(0, 340, 0, 0)
+    win.Position = UDim2.new(0.5, -170, 0, 14)
+    win.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+    win.BackgroundTransparency = 1
+    win.BorderSizePixel = 0
+    win.ZIndex = 2
+    win.Parent = gui
+    Instance.new("UICorner", win).CornerRadius = UDim.new(0, 10)
+
+    local winStroke = Instance.new("UIStroke")
+    winStroke.Color = Color3.fromRGB(58, 58, 68)
+    winStroke.Thickness = 1
+    winStroke.Parent = win
+
+    TweenService:Create(win, tweenMed, {
+        BackgroundTransparency = 0,
+        Size = UDim2.new(0, 340, 0, 98)
+    }):Play()
+
+    -- topbar
+    local topbar = Instance.new("Frame")
+    topbar.Size = UDim2.new(1, 0, 0, 44)
+    topbar.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+    topbar.BorderSizePixel = 0
+    topbar.ZIndex = 3
+    topbar.Parent = win
+    Instance.new("UICorner", topbar).CornerRadius = UDim.new(0, 10)
+
+    makeLine(topbar, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 1, -1), Color3.fromRGB(58, 58, 68), 3)
+
+    local iconBox = Instance.new("Frame")
+    iconBox.Size = UDim2.new(0, 26, 0, 26)
+    iconBox.Position = UDim2.new(0, 10, 0.5, -13)
+    iconBox.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
+    iconBox.BorderSizePixel = 0
+    iconBox.ZIndex = 3
+    iconBox.Parent = topbar
+    Instance.new("UICorner", iconBox).CornerRadius = UDim.new(0, 6)
+
+    iconLabel = makeLabel(iconBox, UDim2.new(1,0,1,0), UDim2.new(0,0,0,0), Enum.Font.GothamBold, 11, Color3.fromRGB(61,155,255), "...", Enum.TextXAlignment.Center, 3)
+
+    makeLabel(topbar, UDim2.new(1,-100,0,16), UDim2.new(0,44,0,6), Enum.Font.GothamBold, 12, Color3.fromRGB(232,232,238), "Odyssey | " .. (title or "Progress"), Enum.TextXAlignment.Left, 3)
+    subLabel = makeLabel(topbar, UDim2.new(1,-100,0,13), UDim2.new(0,44,0,25), Enum.Font.Gotham, 10, Color3.fromRGB(90,90,104), "progress", Enum.TextXAlignment.Left, 3)
+
+    -- body
+    local body = Instance.new("Frame")
+    body.Size = UDim2.new(1, 0, 1, -44)
+    body.Position = UDim2.new(0, 0, 0, 44)
+    body.BackgroundColor3 = Color3.fromRGB(34, 34, 40)
+    body.BorderSizePixel = 0
+    body.ZIndex = 2
+    body.Parent = win
+    Instance.new("UICorner", body).CornerRadius = UDim.new(0, 10)
+
+    -- stat row
+    local statRow = Instance.new("Frame")
+    statRow.Size = UDim2.new(1, 0, 0, 42)
+    statRow.BackgroundTransparency = 1
+    statRow.BorderSizePixel = 0
+    statRow.ZIndex = 2
+    statRow.Parent = body
+
+    local statLine = makeLine(statRow, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 1, -1), Color3.fromRGB(58, 58, 68), 2)
+
+    local function makeStat(xScale, xOffset, labelText)
+        local cell = Instance.new("Frame")
+        cell.Size = UDim2.new(0.25, 0, 1, 0)
+        cell.Position = UDim2.new(xScale, xOffset, 0, 0)
+        cell.BackgroundTransparency = 1
+        cell.BorderSizePixel = 0
+        cell.ZIndex = 2
+        cell.Parent = statRow
+
+        if xScale > 0 then
+            makeLine(cell, UDim2.new(0, 1, 1, 0), UDim2.new(0, 0, 0, 0), Color3.fromRGB(58, 58, 68), 2)
+        end
+
+        local lbl = makeLabel(cell, UDim2.new(1,-8,0,11), UDim2.new(0,8,0,7), Enum.Font.GothamBold, 9, Color3.fromRGB(90,90,104), labelText, Enum.TextXAlignment.Left, 2)
+        lbl.Text = string.upper(labelText)
+
+        local val = makeLabel(cell, UDim2.new(1,-8,0,16), UDim2.new(0,8,0,20), Enum.Font.GothamBold, 12, Color3.fromRGB(232,232,238), "—", Enum.TextXAlignment.Left, 2)
+        return val
+    end
+
+    statDone    = makeStat(0,    0, "done")
+    statStep    = makeStat(0.25, 0, "step")
+    statElapsed = makeStat(0.5,  0, "elapsed")
+    statEta     = makeStat(0.75, 0, "eta")
+
+    statDone.TextColor3 = Color3.fromRGB(61, 155, 255)
+
+    -- track area
+    local trackArea = Instance.new("Frame")
+    trackArea.Size = UDim2.new(1, 0, 0, 42)
+    trackArea.Position = UDim2.new(0, 0, 0, 42)
+    trackArea.BackgroundTransparency = 1
+    trackArea.BorderSizePixel = 0
+    trackArea.ZIndex = 2
+    trackArea.Parent = body
+
+    local trackPad = Instance.new("UIPadding")
+    trackPad.PaddingTop = UDim.new(0, 10)
+    trackPad.PaddingBottom = UDim.new(0, 10)
+    trackPad.PaddingLeft = UDim.new(0, 12)
+    trackPad.PaddingRight = UDim.new(0, 12)
+    trackPad.Parent = trackArea
+
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, 0, 0, 7)
+    track.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
+    track.BorderSizePixel = 0
+    track.ZIndex = 2
+    track.Parent = trackArea
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+
+    local trackStroke = Instance.new("UIStroke")
+    trackStroke.Color = Color3.fromRGB(58, 58, 68)
+    trackStroke.Thickness = 1
+    trackStroke.Parent = track
+
+    fillBar = Instance.new("Frame")
+    fillBar.Size = UDim2.new(0, 0, 1, 0)
+    fillBar.BackgroundColor3 = Color3.fromRGB(61, 155, 255)
+    fillBar.BorderSizePixel = 0
+    fillBar.ZIndex = 3
+    fillBar.Parent = track
+    Instance.new("UICorner", fillBar).CornerRadius = UDim.new(1, 0)
+
+    statusLabel = makeLabel(trackArea, UDim2.new(1,0,0,13), UDim2.new(0,0,1,-13), Enum.Font.Gotham, 10, Color3.fromRGB(90,90,104), "Starting...", Enum.TextXAlignment.Left, 2)
+end
+
+function ProgressBar:Update(status, current, total)
+    if not win then return end
+    if not startTime then startTime = os.clock() end
+
+    local progress = math.clamp(current / total, 0, 1)
+    local elapsed  = os.clock() - startTime
+
+    TweenService:Create(fillBar, tweenFast, {Size = UDim2.new(progress, 0, 1, 0)}):Play()
+
+    statDone.Text    = math.floor(progress * 100) .. "%"
+    statStep.Text    = current .. " / " .. total
+    statElapsed.Text = formatTime(elapsed)
+    statusLabel.Text = status
+
+    if current > 0 then
+        local avg = elapsed / current
+        local remaining = avg * (total - current)
+        statEta.Text = "~" .. formatTime(remaining)
+    else
+        statEta.Text = "—"
+    end
+
+    iconLabel.Text = math.floor(progress * 100) .. "%"
 end
 
 function ProgressBar:Complete(status)
-    if not f then return end
-    s.Text = status or "Done!"
-    b.Size = UDim2.new(1, 0, 1, 0)
-    b.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-    p.Text = "100%"
+    if not win then return end
+
+    TweenService:Create(fillBar, tweenFast, {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(34, 197, 94)
+    }):Play()
+
+    statDone.Text = "100%"
+    statDone.TextColor3 = Color3.fromRGB(34, 197, 94)
+    statStep.Text = statStep.Text:gsub("^%d+", function(n) return n end)
+    statEta.Text = "done"
+    statEta.TextColor3 = Color3.fromRGB(34, 197, 94)
+    statusLabel.Text = status or "Done!"
+    statusLabel.TextColor3 = Color3.fromRGB(34, 197, 94)
+    subLabel.Text = "complete"
+    iconLabel.Text = "ok"
+    iconLabel.TextColor3 = Color3.fromRGB(34, 197, 94)
+
     if startTime then
-        eta.Text = "Completed in " .. formatTime(os.clock() - startTime)
+        statElapsed.Text = formatTime(os.clock() - startTime)
     end
+
     task.wait(3)
     ProgressBar:Destroy()
 end
 
 function ProgressBar:Destroy()
-    if gui then
-        gui:Destroy()
-        gui, f, t, s, p, b, eta = nil, nil, nil, nil, nil, nil, nil
-        startTime, itemsDone, totalItems = nil, nil, nil
-    end
+    if not gui then return end
+    TweenService:Create(win, tweenMed, {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 340, 0, 0)
+    }):Play()
+    task.wait(0.36)
+    gui:Destroy()
+    gui, win, iconLabel, subLabel, statDone, statStep, statElapsed, statEta, fillBar, statusLabel = nil,nil,nil,nil,nil,nil,nil,nil,nil,nil
+    startTime = nil
 end
 
 return ProgressBar
