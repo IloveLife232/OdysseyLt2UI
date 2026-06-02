@@ -1,3 +1,5 @@
+local TweenService = game:GetService("TweenService")
+
 local AutoBuildGUI = Instance.new("ScreenGui")
 AutoBuildGUI.Name = "AutoBuildGUI"
 AutoBuildGUI.ResetOnSpawn = false
@@ -12,30 +14,27 @@ else
     AutoBuildGUI.Parent = game.Players.LocalPlayer.PlayerGui
 end
 
-local TweenService = game:GetService("TweenService")
-
-local win = Instance.new("Frame")
-win.Name = "autobuild"
-win.Size = UDim2.new(0, 380, 0, 0)
-win.Position = UDim2.new(1, -400, 0.5, -220)
-win.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
-win.BackgroundTransparency = 1
-win.BorderSizePixel = 0
-win.Visible = false
-win.Parent = AutoBuildGUI
-Instance.new("UICorner", win).CornerRadius = UDim.new(0, 10)
+local autobuild = Instance.new("Frame")
+autobuild.Name = "autobuild"
+autobuild.Size = UDim2.new(0, 380, 0, 440)
+autobuild.Position = UDim2.new(1, -400, 0.5, -220)
+autobuild.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+autobuild.BorderSizePixel = 0
+autobuild.Visible = false
+autobuild.Parent = AutoBuildGUI
+Instance.new("UICorner", autobuild).CornerRadius = UDim.new(0, 10)
 
 local winStroke = Instance.new("UIStroke")
 winStroke.Color = Color3.fromRGB(58, 58, 68)
 winStroke.Thickness = 1
-winStroke.Parent = win
+winStroke.Parent = autobuild
 
 local topbar = Instance.new("Frame")
 topbar.Size = UDim2.new(1, 0, 0, 44)
 topbar.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
 topbar.BorderSizePixel = 0
 topbar.ZIndex = 3
-topbar.Parent = win
+topbar.Parent = autobuild
 Instance.new("UICorner", topbar).CornerRadius = UDim.new(0, 10)
 
 local topbarLine = Instance.new("Frame")
@@ -98,7 +97,7 @@ body.ScrollBarImageColor3 = Color3.fromRGB(61, 155, 255)
 body.CanvasSize = UDim2.new(0, 0, 0, 0)
 body.AutomaticCanvasSize = Enum.AutomaticSize.Y
 body.ZIndex = 2
-body.Parent = win
+body.Parent = autobuild
 Instance.new("UICorner", body).CornerRadius = UDim.new(0, 10)
 
 local grid = Instance.new("UIGridLayout")
@@ -136,8 +135,6 @@ local woodTypes = {
     {name="Walnut", color=Color3.fromRGB(105,64,40)},
 }
 
-local woodRefs = {}
-
 local function makeLabel(parent, size, pos, font, textSize, color, text, xAlign, zIndex)
     local l = Instance.new("TextLabel")
     l.Size = size
@@ -167,6 +164,9 @@ local function makeStatCell(parent, labelText)
     return cell, val
 end
 
+-- exposed refs so main script can update directly like the old UI
+_G.ABRefs = {}
+
 for i, wood in ipairs(woodTypes) do
     local card = Instance.new("Frame")
     card.Name = wood.name
@@ -184,7 +184,6 @@ for i, wood in ipairs(woodTypes) do
 
     local header = Instance.new("Frame")
     header.Size = UDim2.new(1, 0, 0, 22)
-    header.Position = UDim2.new(0, 0, 0, 0)
     header.BackgroundTransparency = 1
     header.BorderSizePixel = 0
     header.ZIndex = 3
@@ -223,52 +222,29 @@ for i, wood in ipairs(woodTypes) do
     needVal.TextColor3 = Color3.fromRGB(176, 176, 190)
     missVal.TextColor3 = Color3.fromRGB(34, 197, 94)
 
-    woodRefs[wood.name] = {
-        haveVal = haveVal,
-        needVal = needVal,
-        missVal = missVal,
-        missCell = missCell,
+    -- store refs so main script can access them
+    _G.ABRefs[wood.name] = {
+        Have = haveVal,
+        Need = needVal,
+        Missing = missVal,
+        MissCell = missCell,
     }
 end
 
-local AutoBuild = {}
-AutoBuild.Frame = win
-
-function AutoBuild:SetWood(name, have, need, missing)
-    local ref = woodRefs[name]
+-- helper function accessible globally
+_G.ABSetWood = function(name, have, need, missing)
+    local ref = _G.ABRefs[name]
     if not ref then return end
-    ref.haveVal.Text = tostring(have)
-    ref.needVal.Text = tostring(need)
-    ref.missVal.Text = tostring(missing)
+    ref.Have.Text = tostring(have)
+    ref.Need.Text = tostring(need)
+    ref.Missing.Text = tostring(missing)
     if missing > 0 then
-        ref.missCell.BackgroundColor3 = Color3.fromRGB(46, 26, 26)
-        ref.missVal.TextColor3 = Color3.fromRGB(248, 113, 113)
+        ref.MissCell.BackgroundColor3 = Color3.fromRGB(46, 26, 26)
+        ref.Missing.TextColor3 = Color3.fromRGB(248, 113, 113)
     else
-        ref.missCell.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
-        ref.missVal.TextColor3 = Color3.fromRGB(34, 197, 94)
+        ref.MissCell.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+        ref.Missing.TextColor3 = Color3.fromRGB(34, 197, 94)
     end
 end
 
-function AutoBuild:Show()
-    win.Visible = true
-    win.Size = UDim2.new(0, 380, 0, 0)
-    TweenService:Create(win, TweenInfo.new(0.35, Enum.EasingStyle.Exponential), {
-        BackgroundTransparency = 0,
-        Size = UDim2.new(0, 380, 0, 440)
-    }):Play()
-end
-
-function AutoBuild:Hide()
-    TweenService:Create(win, TweenInfo.new(0.3, Enum.EasingStyle.Exponential), {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 380, 0, 0)
-    }):Play()
-    task.wait(0.31)
-    win.Visible = false
-end
-
-function AutoBuild:Destroy()
-    AutoBuildGUI:Destroy()
-end
-
-return AutoBuild
+_G.ABFrame = autobuild
