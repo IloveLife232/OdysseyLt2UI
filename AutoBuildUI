@@ -102,7 +102,7 @@ body.Parent = win
 Instance.new("UICorner", body).CornerRadius = UDim.new(0, 10)
 
 local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0.333, -4, 0, 72)
+grid.CellSize = UDim2.new(0.5, -4, 0, 72)
 grid.CellPadding = UDim2.new(0, 5, 0, 5)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = body
@@ -271,25 +271,4 @@ function AutoBuild:Destroy()
     AutoBuildGUI:Destroy()
 end
 
--- test data
-AutoBuild:Show()
-
-AutoBuild:SetWood("Birch", 12, 10, 0)
-AutoBuild:SetWood("BlueSpruce", 2, 6, 4)
-AutoBuild:SetWood("CaveCrawler", 3, 8, 5)
-AutoBuild:SetWood("Cherry", 7, 5, 0)
-AutoBuild:SetWood("Fir", 0, 4, 4)
-AutoBuild:SetWood("Frost", 5, 5, 0)
-AutoBuild:SetWood("Generic", 2, 6, 4)
-AutoBuild:SetWood("GoldSwampy", 9, 4, 0)
-AutoBuild:SetWood("GreenSwampy", 1, 5, 4)
-AutoBuild:SetWood("Koa", 5, 3, 0)
-AutoBuild:SetWood("LoneCave", 0, 7, 7)
-AutoBuild:SetWood("Oak", 8, 8, 0)
-AutoBuild:SetWood("Palm", 3, 3, 0)
-AutoBuild:SetWood("Pine", 1, 4, 3)
-AutoBuild:SetWood("SnowGlow", 0, 2, 2)
-AutoBuild:SetWood("Spooky", 6, 6, 0)
-AutoBuild:SetWood("SpookyNeon", 0, 3, 3)
-AutoBuild:SetWood("Volcano", 4, 4, 0)
-AutoBuild:SetWood("Walnut", 2, 5, 3)
+return AutoBuild
