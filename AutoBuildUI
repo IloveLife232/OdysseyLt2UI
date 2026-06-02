@@ -1,286 +1,295 @@
-
 local AutoBuildGUI = Instance.new("ScreenGui")
 AutoBuildGUI.Name = "AutoBuildGUI"
-AutoBuildGUI.Parent = game:GetService("CoreGui")
-AutoBuildGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 AutoBuildGUI.ResetOnSpawn = false
+AutoBuildGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local Window = Instance.new("Frame")
-Window.Name = "Window"
-Window.Parent = AutoBuildGUI
-Window.BackgroundColor3 = Color3.fromRGB(26, 26, 28)
-Window.BorderSizePixel = 0
-Window.Position = UDim2.new(0.7, 0, 0.15, 0)
-Window.Size = UDim2.new(0, 280, 0, 360)
-Window.Visible = false
-Instance.new("UICorner", Window).CornerRadius = UDim.new(0, 12)
-local WinStroke = Instance.new("UIStroke", Window)
-WinStroke.Color = Color3.fromRGB(255,255,255)
-WinStroke.Transparency = 0.92
+if syn and syn.protect_gui then
+    syn.protect_gui(AutoBuildGUI)
+    AutoBuildGUI.Parent = game:GetService("CoreGui")
+elseif gethui then
+    AutoBuildGUI.Parent = gethui()
+else
+    AutoBuildGUI.Parent = game.Players.LocalPlayer.PlayerGui
+end
 
-local Titlebar = Instance.new("Frame")
-Titlebar.Name = "Titlebar"
-Titlebar.Parent = Window
-Titlebar.BackgroundColor3 = Color3.fromRGB(38, 38, 40)
-Titlebar.BorderSizePixel = 0
-Titlebar.Size = UDim2.new(1, 0, 0, 34)
-Instance.new("UICorner", Titlebar).CornerRadius = UDim.new(0, 12)
-local TitleStroke = Instance.new("UIStroke", Titlebar)
-TitleStroke.Color = Color3.fromRGB(255,255,255)
-TitleStroke.Transparency = 0.92
+local TweenService = game:GetService("TweenService")
 
-local TitleFix = Instance.new("Frame")
-TitleFix.BackgroundColor3 = Color3.fromRGB(38, 38, 40)
-TitleFix.BorderSizePixel = 0
-TitleFix.Position = UDim2.new(0, 0, 0.5, 0)
-TitleFix.Size = UDim2.new(1, 0, 0.5, 0)
-TitleFix.Parent = Titlebar
+local win = Instance.new("Frame")
+win.Name = "autobuild"
+win.Size = UDim2.new(0, 380, 0, 0)
+win.Position = UDim2.new(0.5, -190, 0.5, -220)
+win.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+win.BackgroundTransparency = 1
+win.BorderSizePixel = 0
+win.Visible = false
+win.Parent = AutoBuildGUI
+Instance.new("UICorner", win).CornerRadius = UDim.new(0, 10)
 
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Parent = Titlebar
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0, 14, 0, 0)
-TitleLabel.Size = UDim2.new(1, -60, 1, 0)
-TitleLabel.Font = Enum.Font.GothamMedium
-TitleLabel.Text = "Odyssey | Wood Tracker"
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextTransparency = 0.1
-TitleLabel.TextSize = 12
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+local winStroke = Instance.new("UIStroke")
+winStroke.Color = Color3.fromRGB(58, 58, 68)
+winStroke.Thickness = 1
+winStroke.Parent = win
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Parent = Titlebar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 95, 87)
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Position = UDim2.new(1, -22, 0.5, -5)
-CloseBtn.Size = UDim2.new(0, 10, 0, 10)
-CloseBtn.Text = ""
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
+local topbar = Instance.new("Frame")
+topbar.Size = UDim2.new(1, 0, 0, 44)
+topbar.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+topbar.BorderSizePixel = 0
+topbar.ZIndex = 3
+topbar.Parent = win
+Instance.new("UICorner", topbar).CornerRadius = UDim.new(0, 10)
 
-local MinBtn = Instance.new("TextButton")
-MinBtn.Parent = Titlebar
-MinBtn.BackgroundColor3 = Color3.fromRGB(254, 188, 46)
-MinBtn.BorderSizePixel = 0
-MinBtn.Position = UDim2.new(1, -36, 0.5, -5)
-MinBtn.Size = UDim2.new(0, 10, 0, 10)
-MinBtn.Text = ""
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(1, 0)
+local topbarLine = Instance.new("Frame")
+topbarLine.Size = UDim2.new(1, 0, 0, 1)
+topbarLine.Position = UDim2.new(0, 0, 1, -1)
+topbarLine.BackgroundColor3 = Color3.fromRGB(58, 58, 68)
+topbarLine.BorderSizePixel = 0
+topbarLine.ZIndex = 3
+topbarLine.Parent = topbar
 
-local Divider = Instance.new("Frame")
-Divider.Parent = Window
-Divider.BackgroundColor3 = Color3.fromRGB(255,255,255)
-Divider.BackgroundTransparency = 0.92
-Divider.BorderSizePixel = 0
-Divider.Position = UDim2.new(0, 0, 0, 34)
-Divider.Size = UDim2.new(1, 0, 0, 1)
+local iconBox = Instance.new("Frame")
+iconBox.Size = UDim2.new(0, 26, 0, 26)
+iconBox.Position = UDim2.new(0, 10, 0.5, -13)
+iconBox.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
+iconBox.BorderSizePixel = 0
+iconBox.ZIndex = 3
+iconBox.Parent = topbar
+Instance.new("UICorner", iconBox).CornerRadius = UDim.new(0, 6)
 
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Parent = Window
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.BorderSizePixel = 0
-ScrollFrame.Position = UDim2.new(0, 8, 0, 42)
-ScrollFrame.Size = UDim2.new(1, -16, 1, -50)
-ScrollFrame.ScrollBarThickness = 3
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255,255,255)
-ScrollFrame.ScrollBarImageTransparency = 0.7
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local iconImg = Instance.new("ImageLabel")
+iconImg.Size = UDim2.new(0, 16, 0, 16)
+iconImg.Position = UDim2.new(0.5, -8, 0.5, -8)
+iconImg.BackgroundTransparency = 1
+iconImg.Image = "rbxassetid://6031280882"
+iconImg.ImageColor3 = Color3.fromRGB(61, 155, 255)
+iconImg.ZIndex = 3
+iconImg.Parent = iconBox
 
-local Grid = Instance.new("UIGridLayout")
-Grid.Parent = ScrollFrame
-Grid.CellSize = UDim2.new(0.5, -4, 0, 84)
-Grid.CellPadding = UDim2.new(0, 6, 0, 6)
-Grid.SortOrder = Enum.SortOrder.LayoutOrder
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -56, 0, 16)
+titleLabel.Position = UDim2.new(0, 44, 0, 6)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextColor3 = Color3.fromRGB(232, 232, 238)
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 12
+titleLabel.Text = "Auto Build"
+titleLabel.ZIndex = 3
+titleLabel.Parent = topbar
 
-local WoodTypes = {
-    {Name = "Birch",       Color = Color3.fromRGB(205, 205, 205)},
-    {Name = "CaveCrawler", Color = Color3.fromRGB(16, 42, 220)},
-    {Name = "Cherry",      Color = Color3.fromRGB(163, 75, 75)},
-    {Name = "Generic",     Color = Color3.fromRGB(204, 142, 105)},
-    {Name = "GoldSwampy",  Color = Color3.fromRGB(226, 155, 64)},
-    {Name = "GreenSwampy", Color = Color3.fromRGB(52, 142, 64)},
-    {Name = "Koa",         Color = Color3.fromRGB(143, 76, 42)},
-    {Name = "Oak",         Color = Color3.fromRGB(234, 184, 146)},
-    {Name = "Palm",        Color = Color3.fromRGB(226, 220, 188)},
-    {Name = "Fir",         Color = Color3.fromRGB(215, 197, 154)},
-    {Name = "Spooky",      Color = Color3.fromRGB(170, 85, 0)},
-    {Name = "SpookyNeon",  Color = Color3.fromRGB(255, 128, 0)},
-    {Name = "Walnut",      Color = Color3.fromRGB(105, 64, 40)},
-    {Name = "LoneCave",    Color = Color3.fromRGB(248, 248, 248)},
-    {Name = "BlueSpruce",  Color = Color3.fromRGB(159, 173, 192)},
-    {Name = "Frost",       Color = Color3.fromRGB(159, 243, 233)},
-    {Name = "SnowGlow",    Color = Color3.fromRGB(255, 255, 0)},
-    {Name = "Volcano",     Color = Color3.fromRGB(255, 80, 0)},
-    {Name = "Pine",        Color = Color3.fromRGB(215, 197, 154)},
+local subLabel = Instance.new("TextLabel")
+subLabel.Size = UDim2.new(1, -56, 0, 13)
+subLabel.Position = UDim2.new(0, 44, 0, 25)
+subLabel.BackgroundTransparency = 1
+subLabel.TextColor3 = Color3.fromRGB(90, 90, 104)
+subLabel.TextXAlignment = Enum.TextXAlignment.Left
+subLabel.Font = Enum.Font.Gotham
+subLabel.TextSize = 10
+subLabel.Text = "wood requirements"
+subLabel.ZIndex = 3
+subLabel.Parent = topbar
+
+local body = Instance.new("ScrollingFrame")
+body.Size = UDim2.new(1, 0, 1, -44)
+body.Position = UDim2.new(0, 0, 0, 44)
+body.BackgroundColor3 = Color3.fromRGB(34, 34, 40)
+body.BorderSizePixel = 0
+body.ScrollBarThickness = 4
+body.ScrollBarImageColor3 = Color3.fromRGB(61, 155, 255)
+body.CanvasSize = UDim2.new(0, 0, 0, 0)
+body.AutomaticCanvasSize = Enum.AutomaticSize.Y
+body.ZIndex = 2
+body.Parent = win
+Instance.new("UICorner", body).CornerRadius = UDim.new(0, 10)
+
+local grid = Instance.new("UIGridLayout")
+grid.CellSize = UDim2.new(0.333, -4, 0, 72)
+grid.CellPadding = UDim2.new(0, 5, 0, 5)
+grid.SortOrder = Enum.SortOrder.LayoutOrder
+grid.Parent = body
+
+local bodyPad = Instance.new("UIPadding")
+bodyPad.PaddingTop = UDim.new(0, 8)
+bodyPad.PaddingBottom = UDim.new(0, 8)
+bodyPad.PaddingLeft = UDim.new(0, 8)
+bodyPad.PaddingRight = UDim.new(0, 8)
+bodyPad.Parent = body
+
+local woodTypes = {
+    {name="Birch", color=Color3.fromRGB(205,205,205)},
+    {name="BlueSpruce", color=Color3.fromRGB(159,173,192)},
+    {name="CaveCrawler", color=Color3.fromRGB(16,42,220)},
+    {name="Cherry", color=Color3.fromRGB(163,75,75)},
+    {name="Fir", color=Color3.fromRGB(215,197,154)},
+    {name="Frost", color=Color3.fromRGB(159,243,233)},
+    {name="Generic", color=Color3.fromRGB(204,142,105)},
+    {name="GoldSwampy", color=Color3.fromRGB(226,155,64)},
+    {name="GreenSwampy", color=Color3.fromRGB(52,142,64)},
+    {name="Koa", color=Color3.fromRGB(143,76,42)},
+    {name="LoneCave", color=Color3.fromRGB(248,248,248)},
+    {name="Oak", color=Color3.fromRGB(234,184,146)},
+    {name="Palm", color=Color3.fromRGB(226,220,188)},
+    {name="Pine", color=Color3.fromRGB(215,197,154)},
+    {name="SnowGlow", color=Color3.fromRGB(255,255,0)},
+    {name="Spooky", color=Color3.fromRGB(170,85,0)},
+    {name="SpookyNeon", color=Color3.fromRGB(255,128,0)},
+    {name="Volcano", color=Color3.fromRGB(255,0,0)},
+    {name="Walnut", color=Color3.fromRGB(105,64,40)},
 }
 
-local WoodLabels = {}
+local woodRefs = {}
 
-local function CreateWoodCard(woodData, order)
-    local Card = Instance.new("Frame")
-    Card.Name = woodData.Name
-    Card.BackgroundColor3 = Color3.fromRGB(32, 30, 38)
-    Card.BorderSizePixel = 0
-    Card.LayoutOrder = order
-    Card.Parent = ScrollFrame
-    Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
-    local CardStroke = Instance.new("UIStroke", Card)
-    CardStroke.Color = Color3.fromRGB(255,255,255)
-    CardStroke.Transparency = 0.92
+local function makeLabel(parent, size, pos, font, textSize, color, text, xAlign, zIndex)
+    local l = Instance.new("TextLabel")
+    l.Size = size
+    l.Position = pos
+    l.BackgroundTransparency = 1
+    l.Font = font
+    l.TextSize = textSize
+    l.TextColor3 = color
+    l.Text = text
+    l.TextXAlignment = xAlign or Enum.TextXAlignment.Left
+    l.ZIndex = zIndex or 2
+    l.Parent = parent
+    return l
+end
 
-    local Accent = Instance.new("Frame")
-    Accent.BackgroundColor3 = woodData.Color
-    Accent.BorderSizePixel = 0
-    Accent.Size = UDim2.new(0, 3, 1, 0)
-    Accent.Parent = Card
-    Instance.new("UICorner", Accent).CornerRadius = UDim.new(0, 8)
-    local AccentFix = Instance.new("Frame")
-    AccentFix.BackgroundColor3 = woodData.Color
-    AccentFix.BorderSizePixel = 0
-    AccentFix.Position = UDim2.new(0.5, 0, 0, 0)
-    AccentFix.Size = UDim2.new(0.5, 0, 1, 0)
-    AccentFix.Parent = Accent
+local function makeStatCell(parent, labelText)
+    local cell = Instance.new("Frame")
+    cell.Size = UDim2.new(0.333, -2, 0, 28)
+    cell.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+    cell.BorderSizePixel = 0
+    cell.ZIndex = 3
+    cell.Parent = parent
+    Instance.new("UICorner", cell).CornerRadius = UDim.new(0, 4)
 
-    local NameLabel = Instance.new("TextLabel")
-    NameLabel.Parent = Card
-    NameLabel.BackgroundTransparency = 1
-    NameLabel.Position = UDim2.new(0, 10, 0, 5)
-    NameLabel.Size = UDim2.new(1, -14, 0, 16)
-    NameLabel.Font = Enum.Font.GothamMedium
-    NameLabel.Text = woodData.Name
-    NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NameLabel.TextTransparency = 0.1
-    NameLabel.TextSize = 11
-    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    makeLabel(cell, UDim2.new(1,0,0,10), UDim2.new(0,0,0,2), Enum.Font.GothamBold, 7, Color3.fromRGB(90,90,104), labelText, Enum.TextXAlignment.Center, 3)
+    local val = makeLabel(cell, UDim2.new(1,0,0,14), UDim2.new(0,0,0,12), Enum.Font.GothamBold, 10, Color3.fromRGB(176,176,190), "0", Enum.TextXAlignment.Center, 3)
+    return cell, val
+end
 
-    local HaveLabel = Instance.new("TextLabel")
-    HaveLabel.Parent = Card
-    HaveLabel.BackgroundTransparency = 1
-    HaveLabel.Position = UDim2.new(0, 10, 0, 23)
-    HaveLabel.Size = UDim2.new(1, -14, 0, 13)
-    HaveLabel.Font = Enum.Font.Gotham
-    HaveLabel.Text = "Have: 0"
-    HaveLabel.TextColor3 = Color3.fromRGB(74, 222, 128)
-    HaveLabel.TextSize = 10
-    HaveLabel.TextXAlignment = Enum.TextXAlignment.Left
+for i, wood in ipairs(woodTypes) do
+    local card = Instance.new("Frame")
+    card.Name = wood.name
+    card.BackgroundColor3 = Color3.fromRGB(44, 44, 52)
+    card.BorderSizePixel = 0
+    card.LayoutOrder = i
+    card.ZIndex = 2
+    card.Parent = body
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 7)
 
-    local NeedLabel = Instance.new("TextLabel")
-    NeedLabel.Parent = Card
-    NeedLabel.BackgroundTransparency = 1
-    NeedLabel.Position = UDim2.new(0, 10, 0, 37)
-    NeedLabel.Size = UDim2.new(1, -14, 0, 13)
-    NeedLabel.Font = Enum.Font.Gotham
-    NeedLabel.Text = "Need: 0"
-    NeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NeedLabel.TextTransparency = 0.3
-    NeedLabel.TextSize = 10
-    NeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local cardStroke = Instance.new("UIStroke")
+    cardStroke.Color = Color3.fromRGB(58, 58, 68)
+    cardStroke.Thickness = 1
+    cardStroke.Parent = card
 
-    local MissingLabel = Instance.new("TextLabel")
-    MissingLabel.Parent = Card
-    MissingLabel.BackgroundTransparency = 1
-    MissingLabel.Position = UDim2.new(0, 10, 0, 51)
-    MissingLabel.Size = UDim2.new(1, -14, 0, 13)
-    MissingLabel.Font = Enum.Font.Gotham
-    MissingLabel.Text = "Missing: 0"
-    MissingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    MissingLabel.TextTransparency = 0.7
-    MissingLabel.TextSize = 10
-    MissingLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local header = Instance.new("Frame")
+    header.Size = UDim2.new(1, 0, 0, 22)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundTransparency = 1
+    header.BorderSizePixel = 0
+    header.ZIndex = 3
+    header.Parent = card
 
-    local BarTrack = Instance.new("Frame")
-    BarTrack.Parent = Card
-    BarTrack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    BarTrack.BackgroundTransparency = 0.9
-    BarTrack.BorderSizePixel = 0
-    BarTrack.Position = UDim2.new(0, 10, 0, 69)
-    BarTrack.Size = UDim2.new(1, -20, 0, 3)
-    Instance.new("UICorner", BarTrack).CornerRadius = UDim.new(1, 0)
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 6, 0, 6)
+    dot.Position = UDim2.new(0, 8, 0.5, -3)
+    dot.BackgroundColor3 = wood.color
+    dot.BorderSizePixel = 0
+    dot.ZIndex = 3
+    dot.Parent = header
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
-    local BarFill = Instance.new("Frame")
-    BarFill.Parent = BarTrack
-    BarFill.BackgroundColor3 = Color3.fromRGB(74, 222, 128)
-    BarFill.BorderSizePixel = 0
-    BarFill.Size = UDim2.new(0, 0, 1, 0)
-    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+    makeLabel(header, UDim2.new(1,-22,1,0), UDim2.new(0,20,0,0), Enum.Font.GothamBold, 10, Color3.fromRGB(232,232,238), wood.name, Enum.TextXAlignment.Left, 3)
 
-    WoodLabels[woodData.Name] = {
-        Have = HaveLabel,
-        Need = NeedLabel,
-        Missing = MissingLabel,
-        BarFill = BarFill
+    local statsRow = Instance.new("Frame")
+    statsRow.Size = UDim2.new(1, -16, 0, 28)
+    statsRow.Position = UDim2.new(0, 8, 0, 26)
+    statsRow.BackgroundTransparency = 1
+    statsRow.BorderSizePixel = 0
+    statsRow.ZIndex = 3
+    statsRow.Parent = card
+
+    local statsLayout = Instance.new("UIListLayout")
+    statsLayout.FillDirection = Enum.FillDirection.Horizontal
+    statsLayout.Padding = UDim.new(0, 3)
+    statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    statsLayout.Parent = statsRow
+
+    local _, haveVal = makeStatCell(statsRow, "H")
+    local _, needVal = makeStatCell(statsRow, "N")
+    local missCell, missVal = makeStatCell(statsRow, "M")
+
+    haveVal.TextColor3 = Color3.fromRGB(176, 176, 190)
+    needVal.TextColor3 = Color3.fromRGB(176, 176, 190)
+    missVal.TextColor3 = Color3.fromRGB(34, 197, 94)
+
+    woodRefs[wood.name] = {
+        haveVal = haveVal,
+        needVal = needVal,
+        missVal = missVal,
+        missCell = missCell,
     }
 end
 
-for i, wood in ipairs(WoodTypes) do
-    CreateWoodCard(wood, i)
-end
+local AutoBuild = {}
+AutoBuild.Frame = win
 
-local dragging, dragInput, mousePos, framePos
-Titlebar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        mousePos = input.Position
-        framePos = Window.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-Titlebar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - mousePos
-        Window.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    Window.Visible = false
-end)
-
-local minimized = false
-MinBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    ScrollFrame.Visible = not minimized
-    Divider.Visible = not minimized
-    Window.Size = minimized and UDim2.new(0, 280, 0, 34) or UDim2.new(0, 280, 0, 360)
-end)
-
-local AutoBuildUI = {}
-
-function AutoBuildUI:Show()
-    Window.Visible = true
-end
-
-function AutoBuildUI:Hide()
-    Window.Visible = false
-end
-
-function AutoBuildUI:Update(woodName, have, need, missing)
-    if WoodLabels[woodName] then
-        local labels = WoodLabels[woodName]
-        labels.Have.Text = "Have: " .. tostring(have)
-        labels.Need.Text = "Need: " .. tostring(need)
-        labels.Missing.Text = "Missing: " .. tostring(missing)
-        local pct = need > 0 and math.clamp(have / need, 0, 1) or 0
-        labels.BarFill.Size = UDim2.new(pct, 0, 1, 0)
-        if missing > 0 then
-            labels.Missing.TextColor3 = Color3.fromRGB(248, 113, 113)
-            labels.Missing.TextTransparency = 0
-            labels.BarFill.BackgroundColor3 = Color3.fromRGB(248, 113, 113)
-        else
-            labels.Missing.TextColor3 = Color3.fromRGB(255, 255, 255)
-            labels.Missing.TextTransparency = 0.7
-            labels.BarFill.BackgroundColor3 = Color3.fromRGB(74, 222, 128)
-        end
+function AutoBuild:SetWood(name, have, need, missing)
+    local ref = woodRefs[name]
+    if not ref then return end
+    ref.haveVal.Text = tostring(have)
+    ref.needVal.Text = tostring(need)
+    ref.missVal.Text = tostring(missing)
+    if missing > 0 then
+        ref.missCell.BackgroundColor3 = Color3.fromRGB(46, 26, 26)
+        ref.missVal.TextColor3 = Color3.fromRGB(248, 113, 113)
+    else
+        ref.missCell.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+        ref.missVal.TextColor3 = Color3.fromRGB(34, 197, 94)
     end
 end
 
-return AutoBuildUI
+function AutoBuild:Show()
+    win.Visible = true
+    win.Size = UDim2.new(0, 380, 0, 0)
+    TweenService:Create(win, TweenInfo.new(0.35, Enum.EasingStyle.Exponential), {
+        BackgroundTransparency = 0,
+        Size = UDim2.new(0, 380, 0, 440)
+    }):Play()
+end
+
+function AutoBuild:Hide()
+    TweenService:Create(win, TweenInfo.new(0.3, Enum.EasingStyle.Exponential), {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 380, 0, 0)
+    }):Play()
+    task.wait(0.31)
+    win.Visible = false
+end
+
+function AutoBuild:Destroy()
+    AutoBuildGUI:Destroy()
+end
+
+-- test data
+AutoBuild:Show()
+
+AutoBuild:SetWood("Birch", 12, 10, 0)
+AutoBuild:SetWood("BlueSpruce", 2, 6, 4)
+AutoBuild:SetWood("CaveCrawler", 3, 8, 5)
+AutoBuild:SetWood("Cherry", 7, 5, 0)
+AutoBuild:SetWood("Fir", 0, 4, 4)
+AutoBuild:SetWood("Frost", 5, 5, 0)
+AutoBuild:SetWood("Generic", 2, 6, 4)
+AutoBuild:SetWood("GoldSwampy", 9, 4, 0)
+AutoBuild:SetWood("GreenSwampy", 1, 5, 4)
+AutoBuild:SetWood("Koa", 5, 3, 0)
+AutoBuild:SetWood("LoneCave", 0, 7, 7)
+AutoBuild:SetWood("Oak", 8, 8, 0)
+AutoBuild:SetWood("Palm", 3, 3, 0)
+AutoBuild:SetWood("Pine", 1, 4, 3)
+AutoBuild:SetWood("SnowGlow", 0, 2, 2)
+AutoBuild:SetWood("Spooky", 6, 6, 0)
+AutoBuild:SetWood("SpookyNeon", 0, 3, 3)
+AutoBuild:SetWood("Volcano", 4, 4, 0)
+AutoBuild:SetWood("Walnut", 2, 5, 3)
