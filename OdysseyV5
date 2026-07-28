@@ -464,7 +464,7 @@ end
 -- ============================================================
 -- HOME TAB
 -- ============================================================
-local homePage = AddTab("H", "home", 1)
+local homePage = AddTab("🏠", "home", 1)
 
 -- Character panel
 local charPanel = AddPanel(homePage); Pad(charPanel,9,11,9,11)
@@ -683,7 +683,7 @@ end
 -- ============================================================
 -- SETTINGS TAB
 -- ============================================================
-local settingsPage = AddTab("ST", "settings", 99)
+local settingsPage = AddTab("⚙️", "settings", 99)
 
 local visPanel = AddPanel(settingsPage); Pad(visPanel,9,11,9,11)
 local visList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=visPanel})
