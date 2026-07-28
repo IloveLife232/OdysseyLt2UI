@@ -582,8 +582,7 @@ do
             srvValues["Players"].Text=#Players:GetPlayers().."/"..Players.MaxPlayers
         end)
         pcall(function()
-            local ping=math.floor((LocalPlayer:GetNetworkPing and LocalPlayer:GetNetworkPing() or 0)*1000)
-            srvValues["Ping"].Text=ping.."ms"
+Lbl("Update log",11,T.Text,Enum.Font.GothamBold).Size=UDim2.new(0.6,0,1,0); do local x=Lbl("Update log",11,T.Text,Enum.Font.GothamBold); x.Size=UDim2.new(0.6,0,1,0); x.Parent=logHeader end            srvValues["Ping"].Text=ping.."ms"
             srvValues["Ping"].TextColor3=ping<80 and T.Green or (ping<150 and T.Accent or T.Red)
         end)
         pcall(function()
