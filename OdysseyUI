@@ -1,0 +1,1078 @@
+-- Odyssey UI - LocalScript
+-- Place inside StarterPlayerScripts or StarterGui > LocalScript
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ============================================================
+-- THEME
+-- ============================================================
+local Theme = {
+    BG0        = Color3.fromRGB(8,  11, 16),
+    BG1        = Color3.fromRGB(13, 17, 23),
+    BG2        = Color3.fromRGB(17, 24, 32),
+    BG3        = Color3.fromRGB(22, 32, 46),
+    Border     = Color3.fromRGB(30, 45, 61),
+    Accent     = Color3.fromRGB(59, 130, 246),
+    Accent2    = Color3.fromRGB(124, 58, 237),
+    Green      = Color3.fromRGB(34, 197, 94),
+    Red        = Color3.fromRGB(239, 68, 68),
+    Yellow     = Color3.fromRGB(245, 158, 11),
+    Text       = Color3.fromRGB(205, 217, 229),
+    TextDim    = Color3.fromRGB(79, 104, 130),
+    TextMuted  = Color3.fromRGB(46, 66, 86),
+    White      = Color3.fromRGB(255, 255, 255),
+}
+
+-- ============================================================
+-- UTILITY HELPERS
+-- ============================================================
+local function Create(class, props, children)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+    if children then
+        for _, child in ipairs(children) do
+            child.Parent = obj
+        end
+    end
+    return obj
+end
+
+local function MakeDraggable(frame, handle)
+    handle = handle or frame
+    local dragging, dragInput, dragStart, startPos
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    handle.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+local function Stroke(parent, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color or Theme.Border
+    s.Thickness = thickness or 1
+    s.Parent = parent
+    return s
+end
+
+local function Corner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 4)
+    c.Parent = parent
+    return c
+end
+
+local function Padding(parent, top, right, bottom, left)
+    local p = Instance.new("UIPadding")
+    p.PaddingTop    = UDim.new(0, top    or 8)
+    p.PaddingRight  = UDim.new(0, right  or 8)
+    p.PaddingBottom = UDim.new(0, bottom or 8)
+    p.PaddingLeft   = UDim.new(0, left   or 8)
+    p.Parent = parent
+    return p
+end
+
+local function ListLayout(parent, direction, padding, align)
+    local l = Instance.new("UIListLayout")
+    l.FillDirection = direction or Enum.FillDirection.Vertical
+    l.Padding = UDim.new(0, padding or 6)
+    l.SortOrder = Enum.SortOrder.LayoutOrder
+    l.HorizontalAlignment = align or Enum.HorizontalAlignment.Left
+    l.Parent = parent
+    return l
+end
+
+local function Label(text, size, color, font, parent)
+    local l = Instance.new("TextLabel")
+    l.Text = text
+    l.TextSize = size or 11
+    l.TextColor3 = color or Theme.Text
+    l.Font = font or Enum.Font.GothamMedium
+    l.BackgroundTransparency = 1
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Size = UDim2.new(1, 0, 0, size and size + 4 or 16)
+    if parent then l.Parent = parent end
+    return l
+end
+
+-- ============================================================
+-- BUILD GUI ROOT
+-- ============================================================
+local ScreenGui = Create("ScreenGui", {
+    Name = "OdysseyUI",
+    ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    Parent = PlayerGui,
+})
+
+-- Main window
+local Main = Create("Frame", {
+    Name = "Main",
+    Size = UDim2.new(0, 560, 0, 600),
+    Position = UDim2.new(0.5, -280, 0.5, -300),
+    BackgroundColor3 = Theme.BG1,
+    BorderSizePixel = 0,
+    Parent = ScreenGui,
+})
+Corner(Main, 4)
+Stroke(Main, Theme.Border, 1)
+
+-- Top accent bar
+Create("Frame", {
+    Name = "TopBar",
+    Size = UDim2.new(1, 0, 0, 2),
+    BackgroundColor3 = Theme.Accent,
+    BorderSizePixel = 0,
+    Parent = Main,
+})
+
+-- Drag handle (top 30px)
+local DragBar = Create("Frame", {
+    Name = "DragBar",
+    Size = UDim2.new(1, 0, 0, 30),
+    BackgroundTransparency = 1,
+    Parent = Main,
+})
+MakeDraggable(Main, DragBar)
+
+-- Window title in drag bar
+Create("TextLabel", {
+    Text = "ODYSSEY  //  v1.0",
+    TextSize = 10,
+    Font = Enum.Font.Code,
+    TextColor3 = Theme.TextDim,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, -80, 1, 0),
+    Position = UDim2.new(0, 10, 0, 0),
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Parent = DragBar,
+})
+
+-- Close button
+local CloseBtn = Create("TextButton", {
+    Text = "✕",
+    TextSize = 11,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = Theme.Red,
+    BackgroundColor3 = Theme.BG2,
+    Size = UDim2.new(0, 22, 0, 22),
+    Position = UDim2.new(1, -28, 0, 4),
+    BorderSizePixel = 0,
+    Parent = DragBar,
+})
+Corner(CloseBtn, 3)
+CloseBtn.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+-- Minimize button
+local MinBtn = Create("TextButton", {
+    Text = "−",
+    TextSize = 14,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = Theme.TextDim,
+    BackgroundColor3 = Theme.BG2,
+    Size = UDim2.new(0, 22, 0, 22),
+    Position = UDim2.new(1, -54, 0, 4),
+    BorderSizePixel = 0,
+    Parent = DragBar,
+})
+Corner(MinBtn, 3)
+
+-- ============================================================
+-- BODY (sidebar + content)
+-- ============================================================
+local Body = Create("Frame", {
+    Name = "Body",
+    Size = UDim2.new(1, 0, 1, -32),
+    Position = UDim2.new(0, 0, 0, 32),
+    BackgroundTransparency = 1,
+    Parent = Main,
+})
+
+-- ============================================================
+-- SIDEBAR
+-- ============================================================
+local Sidebar = Create("Frame", {
+    Name = "Sidebar",
+    Size = UDim2.new(0, 44, 1, 0),
+    BackgroundColor3 = Theme.BG0,
+    BorderSizePixel = 0,
+    Parent = Body,
+})
+Stroke(Sidebar, Theme.Border, 1)
+
+-- Logo
+local Logo = Create("Frame", {
+    Name = "Logo",
+    Size = UDim2.new(0, 26, 0, 26),
+    Position = UDim2.new(0.5, -13, 0, 8),
+    BackgroundColor3 = Theme.Accent,
+    BorderSizePixel = 0,
+    Parent = Sidebar,
+})
+Corner(Logo, 3)
+Create("TextLabel", {
+    Text = "⚔",
+    TextSize = 13,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = Theme.White,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    TextXAlignment = Enum.TextXAlignment.Center,
+    Parent = Logo,
+})
+
+-- Sidebar nav icons list
+local NavList = Create("Frame", {
+    Name = "NavList",
+    Size = UDim2.new(1, 0, 1, -50),
+    Position = UDim2.new(0, 0, 0, 44),
+    BackgroundTransparency = 1,
+    Parent = Sidebar,
+})
+ListLayout(NavList, Enum.FillDirection.Vertical, 2)
+Padding(NavList, 4, 4, 4, 4)
+
+-- ============================================================
+-- CONTENT AREA
+-- ============================================================
+local ContentArea = Create("Frame", {
+    Name = "ContentArea",
+    Size = UDim2.new(1, -44, 1, 0),
+    Position = UDim2.new(0, 44, 0, 0),
+    BackgroundTransparency = 1,
+    Parent = Body,
+})
+
+local ContentScroll = Create("ScrollingFrame", {
+    Name = "ContentScroll",
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 3,
+    ScrollBarImageColor3 = Theme.Border,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    Parent = ContentArea,
+})
+Padding(ContentScroll, 12, 12, 12, 12)
+ListLayout(ContentScroll, Enum.FillDirection.Vertical, 8)
+
+-- Pages container (frames toggled visible/invisible)
+local Pages = {}
+local ActivePage = nil
+
+-- ============================================================
+-- COMPONENT HELPERS
+-- ============================================================
+
+-- Section header
+local function SectionHeader(title, parent)
+    local h = Create("TextLabel", {
+        Text = "// " .. title:upper(),
+        TextSize = 9,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.TextDim,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 14),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 0,
+        Parent = parent,
+    })
+    return h
+end
+
+-- Panel frame
+local function Panel(parent, height)
+    local p = Create("Frame", {
+        BackgroundColor3 = Theme.BG2,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, height or 80),
+        AutomaticSize = height and Enum.AutomaticSize.None or Enum.AutomaticSize.Y,
+        Parent = parent,
+    })
+    Corner(p, 3)
+    Stroke(p, Theme.Border, 1)
+    return p
+end
+
+-- Toggle row (returns the toggle button; connect .MouseButton1Click)
+local function ToggleRow(labelText, defaultOn, parent)
+    local row = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 26),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+
+    Create("TextLabel", {
+        Text = labelText,
+        TextSize = 11,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Text,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -38, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = row,
+    })
+
+    local enabled = defaultOn or false
+
+    local track = Create("Frame", {
+        Size = UDim2.new(0, 28, 0, 15),
+        Position = UDim2.new(1, -30, 0.5, -7),
+        BackgroundColor3 = enabled and Theme.Accent or Theme.BG0,
+        BorderSizePixel = 0,
+        Parent = row,
+    })
+    Corner(track, 2)
+    Stroke(track, enabled and Theme.Accent or Theme.Border, 1)
+
+    local thumb = Create("Frame", {
+        Size = UDim2.new(0, 9, 0, 9),
+        Position = enabled and UDim2.new(1, -11, 0.5, -4) or UDim2.new(0, 2, 0.5, -4),
+        BackgroundColor3 = enabled and Theme.White or Theme.TextMuted,
+        BorderSizePixel = 0,
+        Parent = track,
+    })
+    Corner(thumb, 2)
+
+    -- Click hitbox
+    local btn = Create("TextButton", {
+        Text = "",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Parent = row,
+    })
+
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        local tweenInfo = TweenInfo.new(0.12)
+        TweenService:Create(track, tweenInfo, {
+            BackgroundColor3 = enabled and Theme.Accent or Theme.BG0,
+        }):Play()
+        TweenService:Create(thumb, tweenInfo, {
+            Position = enabled and UDim2.new(1, -11, 0.5, -4) or UDim2.new(0, 2, 0.5, -4),
+            BackgroundColor3 = enabled and Theme.White or Theme.TextMuted,
+        }):Play()
+    end)
+
+    return row
+end
+
+-- Slider row
+local function SliderRow(labelText, minVal, maxVal, defaultVal, parent)
+    local row = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+
+    local lbl = Create("TextLabel", {
+        Text = labelText,
+        TextSize = 10,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Text,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.7, 0, 0, 14),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = row,
+    })
+
+    local valLbl = Create("TextLabel", {
+        Text = tostring(defaultVal),
+        TextSize = 10,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Accent,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.3, 0, 0, 14),
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = row,
+    })
+
+    -- Track
+    local track = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 3),
+        Position = UDim2.new(0, 0, 0, 20),
+        BackgroundColor3 = Theme.BG0,
+        BorderSizePixel = 0,
+        Parent = row,
+    })
+    Stroke(track, Theme.Border, 1)
+
+    local pct = (defaultVal - minVal) / (maxVal - minVal)
+
+    local fill = Create("Frame", {
+        Size = UDim2.new(pct, 0, 1, 0),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = track,
+    })
+
+    local thumb = Create("TextButton", {
+        Text = "",
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(pct, -5, 0.5, -5),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = track,
+    })
+    Corner(thumb, 2)
+
+    -- Dragging
+    local draggingSlider = false
+    thumb.MouseButton1Down:Connect(function() draggingSlider = true end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSlider = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if draggingSlider and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local relX = i.Position.X - track.AbsolutePosition.X
+            local p = math.clamp(relX / track.AbsoluteSize.X, 0, 1)
+            local val = math.floor(minVal + p * (maxVal - minVal))
+            valLbl.Text = tostring(val)
+            fill.Size = UDim2.new(p, 0, 1, 0)
+            thumb.Position = UDim2.new(p, -5, 0.5, -5)
+        end
+    end)
+
+    return row
+end
+
+-- Action button
+local function ActionBtn(text, parent)
+    local btn = Create("TextButton", {
+        Text = text,
+        TextSize = 10,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Text,
+        BackgroundColor3 = Theme.BG0,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 26),
+        Parent = parent,
+    })
+    Corner(btn, 2)
+    Stroke(btn, Theme.Border, 1)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {TextColor3 = Theme.Accent}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {TextColor3 = Theme.Text}):Play()
+    end)
+    return btn
+end
+
+-- Primary (gradient-like) button
+local function PrimaryBtn(text, parent)
+    local btn = Create("TextButton", {
+        Text = text,
+        TextSize = 10,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = Theme.White,
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 30),
+        Parent = parent,
+    })
+    Corner(btn, 3)
+    return btn
+end
+
+-- Stat tile
+local function StatTile(titleText, valueText, accentColor, parent)
+    local f = Create("Frame", {
+        Size = UDim2.new(0.5, -4, 0, 46),
+        BackgroundColor3 = Theme.BG2,
+        BorderSizePixel = 0,
+        Parent = parent,
+    })
+    Corner(f, 3)
+    Stroke(f, Theme.Border, 1)
+    -- Left accent
+    Create("Frame", {
+        Size = UDim2.new(0, 2, 1, -8),
+        Position = UDim2.new(0, 0, 0, 4),
+        BackgroundColor3 = accentColor or Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = f,
+    })
+    Create("TextLabel", {
+        Text = "// " .. titleText,
+        TextSize = 8,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.TextDim,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -10, 0, 12),
+        Position = UDim2.new(0, 8, 0, 6),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = f,
+    })
+    Create("TextLabel", {
+        Text = valueText,
+        TextSize = 17,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Text,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -10, 0, 22),
+        Position = UDim2.new(0, 8, 0, 20),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = f,
+    })
+    return f
+end
+
+-- Info row (for credits/server info)
+local function InfoRow(labelText, valueText, parent)
+    local row = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 24),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+    Create("TextLabel", {
+        Text = labelText,
+        TextSize = 9,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.TextDim,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.45, 0, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = row,
+    })
+    Create("TextLabel", {
+        Text = valueText,
+        TextSize = 10,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Text,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.55, 0, 1, 0),
+        Position = UDim2.new(0.45, 0, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = row,
+    })
+    return row
+end
+
+-- Placeholder page
+local function PlaceholderPage(iconText, msgText, parent)
+    local f = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 180),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+    Create("TextLabel", {
+        Text = iconText .. "\n" .. msgText,
+        TextSize = 11,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.TextMuted,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = f,
+    })
+    return f
+end
+
+-- ============================================================
+-- NAV ICON BUILDER
+-- ============================================================
+local NavButtons = {}
+
+local function NavIcon(icon, pageId, order, disabled)
+    local btn = Create("TextButton", {
+        Text = icon,
+        TextSize = 15,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = disabled and Theme.TextMuted or Theme.TextDim,
+        BackgroundColor3 = Theme.BG0,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 34),
+        LayoutOrder = order,
+        Parent = NavList,
+    })
+    Corner(btn, 3)
+
+    -- Active indicator bar
+    local bar = Create("Frame", {
+        Size = UDim2.new(0, 2, 0, 18),
+        Position = UDim2.new(0, 0, 0.5, -9),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Visible = false,
+        Parent = btn,
+    })
+
+    if not disabled and pageId then
+        table.insert(NavButtons, {btn = btn, bar = bar, pageId = pageId})
+        btn.MouseButton1Click:Connect(function()
+            -- Deactivate all
+            for _, nb in ipairs(NavButtons) do
+                nb.btn.BackgroundTransparency = 1
+                nb.btn.TextColor3 = Theme.TextDim
+                nb.bar.Visible = false
+                if Pages[nb.pageId] then
+                    Pages[nb.pageId].Visible = false
+                end
+            end
+            -- Activate this
+            btn.BackgroundTransparency = 0
+            btn.BackgroundColor3 = Theme.BG3
+            btn.TextColor3 = Theme.Accent
+            bar.Visible = true
+            if Pages[pageId] then
+                Pages[pageId].Visible = true
+            end
+        end)
+    end
+
+    return btn, bar
+end
+
+-- ============================================================
+-- BUILD NAV ICONS
+-- ============================================================
+NavIcon("⌂", "home",      1)
+NavIcon("👤","player",    2)
+NavIcon("</>","scripts",  3)
+NavIcon("☺", "character", 4)
+NavIcon("🌐","world",     5)
+NavIcon("□",  "slot",     6)
+NavIcon("💼","toolbox",   7)
+NavIcon("🔨","autobuild", 8)
+NavIcon("🛒","autobuy",   9)
+NavIcon("📦",nil,         10, true)  -- disabled
+NavIcon("🚗","vehicle",   11)
+NavIcon("🌲","wood",      12)
+NavIcon("⧉", "dupe",     13)
+
+-- Spacer
+Create("Frame", {
+    Size = UDim2.new(1, 0, 0, 1),
+    BackgroundTransparency = 1,
+    LayoutOrder = 98,
+    Parent = NavList,
+})
+
+NavIcon("⚙", "settings", 99)
+
+-- ============================================================
+-- PAGE BUILDER HELPER
+-- ============================================================
+local function NewPage(pageId)
+    local p = Create("Frame", {
+        Name = "Page_" .. pageId,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Visible = false,
+        Parent = ContentScroll,
+    })
+    ListLayout(p, Enum.FillDirection.Vertical, 8)
+    Pages[pageId] = p
+    return p
+end
+
+-- ============================================================
+-- HOME PAGE
+-- ============================================================
+do
+    local p = NewPage("home")
+
+    -- Header row
+    local headerRow = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 44),
+        BackgroundTransparency = 1,
+        Parent = p,
+    })
+
+    Create("TextLabel", {
+        Text = "Odyssey placeholder",
+        TextSize = 13,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = Theme.Text,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.6, 0, 0, 18),
+        Position = UDim2.new(0, 0, 0, 4),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = headerRow,
+    })
+    Create("TextLabel", {
+        Text = "@Odyssey_user",
+        TextSize = 9,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.TextDim,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0.6, 0, 0, 14),
+        Position = UDim2.new(0, 0, 0, 24),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = headerRow,
+    })
+
+    local badge = Create("TextLabel", {
+        Text = "INJECTED",
+        TextSize = 9,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Green,
+        BackgroundColor3 = Color3.fromRGB(18, 40, 25),
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 68, 0, 18),
+        Position = UDim2.new(1, -68, 0, 13),
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Parent = headerRow,
+    })
+    Corner(badge, 3)
+    Stroke(badge, Color3.fromRGB(34, 80, 50), 1)
+
+    -- Stat tiles row
+    local statsRow = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 46),
+        BackgroundTransparency = 1,
+        Parent = p,
+    })
+    StatTile("HEALTH", "100/100", Theme.Green, statsRow).Position = UDim2.new(0, 0, 0, 0)
+    local moneyTile = StatTile("MONEY", "42,150", Theme.Accent, statsRow)
+    moneyTile.Position = UDim2.new(0.5, 4, 0, 0)
+
+    -- Character panel
+    local charPanel = Panel(p)
+    Padding(charPanel, 10, 10, 10, 10)
+    local charList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = charPanel,
+    })
+    ListLayout(charList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Character Info", charList)
+    InfoRow("DISPLAY_NAME", "Odyssey placeholder", charList)
+    InfoRow("USERNAME",     "Odyssey placeholder", charList)
+    InfoRow("ACCOUNT_AGE",  "4 years",             charList)
+    InfoRow("USER_ID",      "—",                   charList)
+
+    -- Server panel
+    local srvPanel = Panel(p)
+    Padding(srvPanel, 10, 10, 10, 10)
+    local srvList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = srvPanel,
+    })
+    ListLayout(srvList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Server", srvList)
+    InfoRow("PLAYERS", "12/30",   srvList)
+    InfoRow("REGION",  "US-East", srvList)
+    InfoRow("PING",    "94ms",    srvList)
+    PrimaryBtn("[ COPY SERVER SCRIPT ]", srvList)
+
+    -- Compat check
+    local compatPanel = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundColor3 = Color3.fromRGB(10, 28, 16),
+        BorderSizePixel = 0,
+        Parent = p,
+    })
+    Corner(compatPanel, 3)
+    Stroke(compatPanel, Color3.fromRGB(30, 80, 45), 1)
+    Create("TextLabel", {
+        Text = "✓  COMPATIBILITY CHECK PASSED",
+        TextSize = 10,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Green,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Parent = compatPanel,
+    })
+
+    -- Discord row
+    local discordBtn = Create("TextButton", {
+        Text = "🔵  discord.gg/odyssey   ›",
+        TextSize = 10,
+        Font = Enum.Font.Code,
+        TextColor3 = Theme.Text,
+        BackgroundColor3 = Theme.BG2,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 30),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = p,
+    })
+    Corner(discordBtn, 3)
+    Stroke(discordBtn, Theme.Border, 1)
+    Padding(discordBtn, 0, 0, 0, 10)
+
+    -- LT2 Status panel
+    local lt2Panel = Panel(p)
+    Padding(lt2Panel, 10, 10, 10, 10)
+    local lt2List = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = lt2Panel,
+    })
+    ListLayout(lt2List, Enum.FillDirection.Vertical, 6)
+    SectionHeader("Lumber Tycoon 2 — Status", lt2List)
+    SliderRow("SEND_MONEY", 0, 100, 30, lt2List)
+    SliderRow("FERRY",      0, 100, 100, lt2List)
+    SliderRow("LOAD_SLOT",  0, 100, 14, lt2List)
+end
+
+-- ============================================================
+-- CHARACTER PAGE
+-- ============================================================
+do
+    local p = NewPage("character")
+
+    -- Modifications panel
+    local modPanel = Panel(p)
+    Padding(modPanel, 10, 10, 10, 10)
+    local modList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = modPanel,
+    })
+    ListLayout(modList, Enum.FillDirection.Vertical, 2)
+    SectionHeader("Modifications", modList)
+    ToggleRow("God mode",      true,  modList)
+    ToggleRow("Noclip",        false, modList)
+    ToggleRow("Fly",           false, modList)
+    ToggleRow("Infinite jump", true,  modList)
+    ToggleRow("Anti AFK",      true,  modList)
+
+    -- Camera panel
+    local camPanel = Panel(p)
+    Padding(camPanel, 10, 10, 10, 10)
+    local camList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = camPanel,
+    })
+    ListLayout(camList, Enum.FillDirection.Vertical, 2)
+    SectionHeader("Camera", camList)
+    ToggleRow("Freecam",       false, camList)
+    ToggleRow("3rd person lock", false, camList)
+    ToggleRow("Anti ragdoll",  true,  camList)
+    ToggleRow("Hide tool",     false, camList)
+
+    -- Movement panel
+    local movPanel = Panel(p)
+    Padding(movPanel, 10, 10, 10, 10)
+    local movList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = movPanel,
+    })
+    ListLayout(movList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Movement", movList)
+    SliderRow("Walk speed",  16,  200, 16,  movList)
+    SliderRow("Jump power",  50,  300, 50,  movList)
+    SliderRow("Hip height",  0,   10,  2,   movList)
+    SliderRow("Field of view", 30, 120, 70, movList)
+
+    -- Body scale panel
+    local scalePanel = Panel(p)
+    Padding(scalePanel, 10, 10, 10, 10)
+    local scaleList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = scalePanel,
+    })
+    ListLayout(scaleList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Body Scale", scaleList)
+    SliderRow("Height", 0.5, 2, 1, scaleList)
+    SliderRow("Width",  0.5, 2, 1, scaleList)
+
+    -- Saved positions panel
+    local posPanel = Panel(p)
+    Padding(posPanel, 10, 10, 10, 10)
+    local posList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = posPanel,
+    })
+    ListLayout(posList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Saved Positions", posList)
+
+    for _, name in ipairs({"Sawmill entrance", "Wood drop-off"}) do
+        local row = Create("Frame", {
+            Size = UDim2.new(1, 0, 0, 26),
+            BackgroundColor3 = Theme.BG0,
+            BorderSizePixel = 0,
+            Parent = posList,
+        })
+        Corner(row, 2)
+        Stroke(row, Theme.Border, 1)
+        Create("TextLabel", {
+            Text = "📍  " .. name,
+            TextSize = 10,
+            Font = Enum.Font.Code,
+            TextColor3 = Theme.Text,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, -10, 1, 0),
+            Position = UDim2.new(0, 6, 0, 0),
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = row,
+        })
+    end
+
+    -- Action buttons
+    local actPanel = Panel(p)
+    Padding(actPanel, 10, 10, 10, 10)
+    local actList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = actPanel,
+    })
+    ListLayout(actList, Enum.FillDirection.Vertical, 4)
+    ActionBtn("↺  Respawn",      actList)
+    ActionBtn("⌂  To spawn",     actList)
+    ActionBtn("🔖  Save loadout", actList)
+end
+
+-- ============================================================
+-- SETTINGS PAGE
+-- ============================================================
+do
+    local p = NewPage("settings")
+
+    local appPanel = Panel(p)
+    Padding(appPanel, 10, 10, 10, 10)
+    local appList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = appPanel,
+    })
+    ListLayout(appList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Appearance", appList)
+    SliderRow("Menu width",   300, 600, 400, appList)
+    SliderRow("Menu height",  300, 700, 500, appList)
+    SliderRow("Menu opacity", 0,   100, 85,  appList)
+
+    local dataPanel = Panel(p)
+    Padding(dataPanel, 10, 10, 10, 10)
+    local dataList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = dataPanel,
+    })
+    ListLayout(dataList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Data", dataList)
+    ActionBtn("↺  Reload",      dataList)
+    ActionBtn("⏻  Unload",      dataList)
+    ActionBtn("📂  Open folder", dataList)
+
+    local delBtn = ActionBtn("🗑  Delete folder", dataList)
+    delBtn.TextColor3 = Theme.Red
+    delBtn.BackgroundColor3 = Color3.fromRGB(30, 10, 10)
+    Stroke(delBtn, Color3.fromRGB(80, 20, 20), 1)
+
+    local credPanel = Panel(p)
+    Padding(credPanel, 10, 10, 10, 10)
+    local credList = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = credPanel,
+    })
+    ListLayout(credList, Enum.FillDirection.Vertical, 4)
+    SectionHeader("Credits", credList)
+    InfoRow(">", "Script by: Odyssey team",           credList)
+    InfoRow(">", "Testers: placeholder, placeholder",  credList)
+    InfoRow(">", "Thanks to placeholder",              credList)
+    InfoRow(">", "UI Library: Luna UI",                credList)
+end
+
+-- ============================================================
+-- PLACEHOLDER PAGES
+-- ============================================================
+local placeholders = {
+    player    = {"👤", "// NO DATA LOADED"},
+    scripts   = {"</>","// NO SCRIPTS"},
+    world     = {"🌐", "// WORLD NOT LOADED"},
+    slot      = {"□",  "// NO SLOT SELECTED"},
+    toolbox   = {"💼", "// TOOLBOX EMPTY"},
+    autobuild = {"🔨", "// AUTOBUILD IDLE"},
+    autobuy   = {"🛒", "// AUTOBUY IDLE"},
+    vehicle   = {"🚗", "// NO VEHICLE"},
+    wood      = {"🌲", "// WOOD MODULE IDLE"},
+    dupe      = {"⧉",  "// DUPE NOT READY"},
+}
+
+for id, info in pairs(placeholders) do
+    local p = NewPage(id)
+    PlaceholderPage(info[1], info[2], p)
+end
+
+-- ============================================================
+-- ACTIVATE HOME PAGE BY DEFAULT
+-- ============================================================
+for _, nb in ipairs(NavButtons) do
+    if nb.pageId == "home" then
+        nb.btn.BackgroundTransparency = 0
+        nb.btn.BackgroundColor3 = Theme.BG3
+        nb.btn.TextColor3 = Theme.Accent
+        nb.bar.Visible = true
+    end
+end
+if Pages["home"] then Pages["home"].Visible = true end
+
+-- ============================================================
+-- KEYBIND: RightShift to toggle UI
+-- ============================================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightShift then
+        Main.Visible = not Main.Visible
+    end
+end)
+
+-- ============================================================
+-- MINIMIZE
+-- ============================================================
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    Body.Visible = not minimized
+    Main.Size = minimized and UDim2.new(0, 560, 0, 32) or UDim2.new(0, 560, 0, 600)
+end)
+
+print("[Odyssey] UI loaded — Press RightShift to toggle")
