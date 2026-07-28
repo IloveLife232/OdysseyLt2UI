@@ -464,7 +464,7 @@ end
 -- ============================================================
 -- HOME TAB
 -- ============================================================
-local homePage = AddTab("🏠", "home", 1)
+local homePage = AddTab("H", "home", 1)
 
 -- Character panel
 local charPanel = AddPanel(homePage); Pad(charPanel,9,11,9,11)
@@ -564,12 +564,11 @@ local compatP=New("Frame",{Size=UDim2.new(1,0,0,28),BackgroundColor3=T.GreenDim,
 Corner(compatP,9); Stroke(compatP,Color3.fromRGB(50,90,40),1)
 local cl=Lbl("Compatibility check passed",10,T.Green,Enum.Font.Gotham); cl.Size=UDim2.new(1,-12,1,0); cl.Position=UDim2.new(0,10,0,0); cl.Parent=compatP
 
--- Discord
-local discP=New("Frame",{Size=UDim2.new(1,0,0,32),BackgroundColor3=T.BG2,BorderSizePixel=0,Parent=homePage})
-Corner(discP,9); Stroke(discP,T.Border,1)
-local dIco=New("Frame",{Size=UDim2.new(0,22,0,22),Position=UDim2.new(0,8,0.5,-11),BackgroundColor3=Color3.fromRGB(88,101,242),BorderSizePixel=0,Parent=discP}); Corner(dIco,6)
-local dL=Lbl("D",12,T.White,Enum.Font.GothamBold,Enum.TextXAlignment.Center); dL.Size=UDim2.new(1,0,1,0); dL.Parent=dIco
-local dl=Lbl("discord.gg/odyssey",11,T.Text); dl.Size=UDim2.new(1,-60,0,14); dl.Position=UDim2.new(0,36,0.5,-7); dl.Parent=discP
+-- Discord button
+local discBtn=Btn("Join Odyssey Discord Server",11,T.White,Color3.fromRGB(88,101,242),Enum.Font.GothamBold)
+discBtn.Size=UDim2.new(1,0,0,30); discBtn.Parent=homePage
+Corner(discBtn,9)
+AddTooltip(discBtn,"Join the Odyssey Discord server")
 
 -- LT2 status boxes
 local lt2Panel = AddPanel(homePage); Pad(lt2Panel,9,11,9,11)
@@ -656,22 +655,29 @@ pcall(function()
     end)
 end)
 
--- Update log
+-- ============================================================
+-- UPDATE LOG — edit version, date and entries below
+-- Types: "add" (green), "fix" (orange), "chg" (blue)
+-- ============================================================
+local LOG_VERSION = "v1.0.4"
+local LOG_DATE    = "Jul 2026"
+local LOG_ENTRIES = {
+    {"add", "Live health, money and ferry detection"},
+    {"add", "Server FPS, ping, job ID and place ID"},
+    {"add", "Reload slot cooldown detection"},
+    {"add", "Color picker with rainbow and undo"},
+    {"fix", "Fixed ferry timer showing wrong state"},
+}
+-- ============================================================
+
 local logPanel = AddPanel(homePage); Pad(logPanel,9,11,9,11)
 local logList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=logPanel})
 VList(logList,4)
 local logHeader=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=logList})
 local logTitle=Lbl("Update log",10,T.Text,Enum.Font.GothamBold); logTitle.Size=UDim2.new(0.6,0,1,0); logTitle.Parent=logHeader
-local logVer=Lbl("v1.0.4  |  Jul 2026",9,T.TextMuted,Enum.Font.Gotham,Enum.TextXAlignment.Right); logVer.Size=UDim2.new(0.4,0,1,0); logVer.Parent=logHeader
+local logVer=Lbl(LOG_VERSION.."  |  "..LOG_DATE,9,T.TextMuted,Enum.Font.Gotham,Enum.TextXAlignment.Right); logVer.Size=UDim2.new(0.4,0,1,0); logVer.Parent=logHeader
 local dotColors={add=T.Green,fix=T.Accent,chg=T.Blue}
-local logEntries={
-    {"add","Live health, money and ferry detection"},
-    {"add","Server FPS, ping, job ID and place ID"},
-    {"add","Reload slot cooldown detection"},
-    {"add","Color picker with rainbow and undo"},
-    {"fix","Fixed ferry timer showing wrong state"},
-}
-for i,entry in ipairs(logEntries) do
+for i,entry in ipairs(LOG_ENTRIES) do
     local eRow=New("Frame",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,LayoutOrder=i,Parent=logList})
     local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0.5,-3),BackgroundColor3=dotColors[entry[1]],BorderSizePixel=0,Parent=eRow}); Corner(dot,3)
     local etxt=Lbl(entry[2],10,T.TextDim); etxt.Size=UDim2.new(1,-40,1,0); etxt.Position=UDim2.new(0,12,0,0); etxt.Parent=eRow
@@ -683,7 +689,7 @@ end
 -- ============================================================
 -- SETTINGS TAB
 -- ============================================================
-local settingsPage = AddTab("⚙️", "settings", 99)
+local settingsPage = AddTab("ST", "settings", 99)
 
 local visPanel = AddPanel(settingsPage); Pad(visPanel,9,11,9,11)
 local visList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=visPanel})
