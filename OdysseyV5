@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
 local LocalPlayer = Players.LocalPlayer
@@ -21,13 +22,14 @@ local T = {
     Text      = Color3.fromRGB(240, 245, 228),
     TextDim   = Color3.fromRGB(160, 178, 140),
     TextMuted = Color3.fromRGB(100, 120, 88),
-    Red       = Color3.fromRGB(201, 107, 92),
+    Red       = Color3.fromRGB(210, 100, 85),
     Blue      = Color3.fromRGB(90, 144, 208),
     White     = Color3.fromRGB(255, 255, 255),
 }
 
 local ToggleKeybind = Enum.KeyCode.RightShift
 
+-- Auto detect game name
 local gameName = "Unknown Game"
 pcall(function()
     local info = MarketplaceService:GetProductInfo(game.PlaceId)
@@ -91,6 +93,12 @@ local function MakeDraggable(frame, handle)
             frame.Position=UDim2.new(spos.X.Scale,spos.X.Offset+d.X,spos.Y.Scale,spos.Y.Offset+d.Y)
         end
     end)
+end
+
+local function formatTime(s)
+    local mins = math.floor(s/60)
+    local secs = s%60
+    return string.format("%d:%02d", mins, secs)
 end
 
 -- ============================================================
@@ -214,8 +222,6 @@ local function SetPage(id)
     if Pages[id] then Pages[id].Visible=true end
 end
 
--- Add a new sidebar tab
--- Usage: local page = Odyssey.AddTab("label", "id", order)
 local function AddTab(label, id, order, disabled)
     local btn=Btn(label,10,disabled and T.TextMuted or T.TextDim,Color3.new(0,0,0),Enum.Font.GothamBold)
     btn.BackgroundTransparency=1
@@ -245,24 +251,19 @@ end
 
 -- ============================================================
 -- COMPONENT HELPERS
--- These functions let you easily add UI elements to any page
 -- ============================================================
-
--- Panel container
 local function AddPanel(parent)
     local f=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=parent})
     Corner(f,10); Stroke(f,T.Border,1)
     return f
 end
 
--- Section label inside a panel
 local function AddLabel(txt, parent, order)
     local l=Lbl(txt,9,T.TextDim,Enum.Font.Gotham)
     l.Size=UDim2.new(1,0,0,12); l.LayoutOrder=order or 0; l.Parent=parent
     return l
 end
 
--- Info row (key + value)
 local function AddInfoRow(key, val, parent, order)
     local f=New("Frame",{Size=UDim2.new(1,0,0,30),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
     local kl=Lbl(key,9,T.TextMuted); kl.Size=UDim2.new(1,0,0,12); kl.Position=UDim2.new(0,0,0,0); kl.Parent=f
@@ -270,7 +271,6 @@ local function AddInfoRow(key, val, parent, order)
     return f, vl
 end
 
--- Toggle switch
 local function AddToggle(labelTxt, on, parent, order, tip)
     local row=New("Frame",{Size=UDim2.new(1,0,0,24),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
     local lbl=Lbl(labelTxt,11,T.Text); lbl.Size=UDim2.new(1,-38,1,0); lbl.Parent=row
@@ -291,7 +291,6 @@ local function AddToggle(labelTxt, on, parent, order, tip)
     return row
 end
 
--- Slider
 local function AddSlider(labelTxt, minV, maxV, defV, parent, order, tip)
     local row=New("Frame",{Size=UDim2.new(1,0,0,36),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
     local lbl=Lbl(labelTxt,11,T.Text); lbl.Size=UDim2.new(0.7,0,0,14); lbl.Parent=row
@@ -316,7 +315,6 @@ local function AddSlider(labelTxt, minV, maxV, defV, parent, order, tip)
     return row
 end
 
--- Button
 local function AddButton(txt, parent, order, col, bgcol, tip)
     local b=Btn(txt,10,col or T.Text,bgcol or T.BG3)
     b.Size=UDim2.new(1,0,0,26); b.LayoutOrder=order or 0; b.Parent=parent
@@ -327,7 +325,6 @@ local function AddButton(txt, parent, order, col, bgcol, tip)
     return b
 end
 
--- Primary (orange) button
 local function AddPrimaryButton(txt, parent, order, tip)
     local b=Btn(txt,10,Color3.fromRGB(40,20,5),T.Accent,Enum.Font.GothamBold)
     b.Size=UDim2.new(1,0,0,30); b.LayoutOrder=order or 0; b.Parent=parent
@@ -336,33 +333,125 @@ local function AddPrimaryButton(txt, parent, order, tip)
     return b
 end
 
--- Color picker
 local function AddColorPicker(labelTxt, defaultColor, parent, order, tip)
-    local row=New("Frame",{Size=UDim2.new(1,0,0,28),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
-    local lbl=Lbl(labelTxt,11,T.Text); lbl.Size=UDim2.new(1,-80,1,0); lbl.Parent=row
-    local preview=New("Frame",{Size=UDim2.new(0,22,0,22),Position=UDim2.new(1,-72,0.5,-11),BackgroundColor3=defaultColor or T.Accent,BorderSizePixel=0,Parent=row})
-    Corner(preview,5); Stroke(preview,T.Border,1)
+    local expanded=false
+    local defaultCol=defaultColor or T.Accent
+    local currentCol=defaultCol
+
+    local container=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
+
+    local headerRow=New("Frame",{Size=UDim2.new(1,0,0,26),BackgroundTransparency=1,Parent=container})
+    local lbl=Lbl(labelTxt,11,T.Text); lbl.Size=UDim2.new(1,-80,1,0); lbl.Parent=headerRow
+    local hexLbl=Lbl("#E07A1F",9,T.TextDim,Enum.Font.Code); hexLbl.Size=UDim2.new(0,46,0,12); hexLbl.Position=UDim2.new(1,-74,0.5,-6); hexLbl.Parent=headerRow
+    local swatch=New("Frame",{Size=UDim2.new(0,20,0,20),Position=UDim2.new(1,-22,0.5,-10),BackgroundColor3=defaultCol,BorderSizePixel=0,Parent=headerRow})
+    Corner(swatch,5); Stroke(swatch,T.Border,1)
+
+    local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=T.BG3,BorderSizePixel=0,Visible=false,Parent=container})
+    Corner(body,8); Stroke(body,T.Border,1); Pad(body,7,7,7,7)
+    local bodyList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=body})
+    VList(bodyList,5)
+
+    -- Gradient box
+    local gradBox=New("Frame",{Size=UDim2.new(1,0,0,44),BackgroundColor3=defaultCol,BorderSizePixel=0,LayoutOrder=1,Parent=bodyList})
+    Corner(gradBox,5)
+    local gradWhite=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=0,BorderSizePixel=0,Parent=gradBox}); Corner(gradWhite,5)
+    local wg=Instance.new("UIGradient"); wg.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)}); wg.Rotation=0; wg.Parent=gradWhite
+    local gradBlack=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,Parent=gradBox}); Corner(gradBlack,5)
+    local bg2=Instance.new("UIGradient"); bg2.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)}); bg2.Rotation=90; bg2.Parent=gradBlack
+
+    -- Hue bar + hex input row
+    local hueRow=New("Frame",{Size=UDim2.new(1,0,0,10),BackgroundTransparency=1,LayoutOrder=2,Parent=bodyList})
+    local hueBar=New("Frame",{Size=UDim2.new(1,-74,1,0),BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,Parent=hueRow})
+    Corner(hueBar,5)
+    local hg=Instance.new("UIGradient"); hg.Color=ColorSequence.new({
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),
+        ColorSequenceKeypoint.new(0.17,Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.33,Color3.fromRGB(0,255,0)),
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(0.67,Color3.fromRGB(0,0,255)),
+        ColorSequenceKeypoint.new(0.83,Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0)),
+    }); hg.Parent=hueBar
+    local hueThumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=UDim2.new(0.55,-6,0.5,-6),BackgroundColor3=defaultCol,BorderSizePixel=0,Parent=hueBar})
+    Corner(hueThumb,6); Stroke(hueThumb,Color3.new(1,1,1),2)
     local hexBox=New("TextBox",{
-        Text="",PlaceholderText="#E07A1F",TextSize=10,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,
-        BackgroundColor3=T.BG3,BorderSizePixel=0,Font=Enum.Font.Code,
-        Size=UDim2.new(0,46,0,22),Position=UDim2.new(1,-48,0.5,-11),
-        TextXAlignment=Enum.TextXAlignment.Center,ClearTextOnFocus=false,Parent=row,
+        Text="#E07A1F",TextSize=10,TextColor3=T.Text,
+        BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.Code,
+        Size=UDim2.new(0,64,1,0),Position=UDim2.new(1,-64,0,0),
+        TextXAlignment=Enum.TextXAlignment.Center,ClearTextOnFocus=false,Parent=hueRow,
     })
     Corner(hexBox,5); Stroke(hexBox,T.Border,1)
-    if tip then AddTooltip(row,tip) end
     hexBox.Focused:Connect(function() Stroke(hexBox,T.Accent,1) end)
     hexBox.FocusLost:Connect(function()
         Stroke(hexBox,T.Border,1)
         local hex=hexBox.Text:gsub("#","")
         if #hex==6 then
             local r2=tonumber(hex:sub(1,2),16); local g2=tonumber(hex:sub(3,4),16); local b2=tonumber(hex:sub(5,6),16)
-            if r2 and g2 and b2 then preview.BackgroundColor3=Color3.fromRGB(r2,g2,b2) end
+            if r2 and g2 and b2 then
+                currentCol=Color3.fromRGB(r2,g2,b2)
+                swatch.BackgroundColor3=currentCol; gradBox.BackgroundColor3=currentCol; hueThumb.BackgroundColor3=currentCol
+                hexLbl.Text="#"..hex:upper()
+            end
         end
     end)
-    return row, preview
+
+    -- Bottom row: rainbow + undo
+    local bottomRow=New("Frame",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,LayoutOrder=3,Parent=bodyList})
+    local rbLbl=Lbl("Rainbow",10,T.TextDim); rbLbl.Size=UDim2.new(0,50,1,0); rbLbl.Parent=bottomRow
+    local rbEnabled=false
+    local rbTrack=New("Frame",{Size=UDim2.new(0,28,0,15),Position=UDim2.new(0,54,0.5,-7),BackgroundColor3=T.BG2,BorderSizePixel=0,Parent=bottomRow})
+    Corner(rbTrack,8); Stroke(rbTrack,T.Border,1)
+    local rg=Instance.new("UIGradient"); rg.Color=ColorSequence.new({
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),
+        ColorSequenceKeypoint.new(0.17,Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.33,Color3.fromRGB(0,255,0)),
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(0.67,Color3.fromRGB(0,0,255)),
+        ColorSequenceKeypoint.new(0.83,Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0)),
+    }); rg.Parent=rbTrack
+    local rbThumb=New("Frame",{Size=UDim2.new(0,11,0,11),Position=UDim2.new(0,1,0.5,-5),BackgroundColor3=T.White,BorderSizePixel=0,Parent=rbTrack})
+    Corner(rbThumb,6)
+    local rbHit=Btn("",0,T.Text,Color3.new(0,0,0)); rbHit.BackgroundTransparency=1; rbHit.Size=UDim2.new(0,82,1,0); rbHit.Parent=bottomRow
+    local rbConn
+    rbHit.MouseButton1Click:Connect(function()
+        rbEnabled=not rbEnabled
+        if rbEnabled then
+            rbThumb.Position=UDim2.new(1,-12,0.5,-5); rbThumb.BackgroundColor3=T.White
+            if rbConn then rbConn:Disconnect() end
+            rbConn=RunService.Heartbeat:Connect(function()
+                local col=Color3.fromHSV((tick()%5)/5,1,1)
+                swatch.BackgroundColor3=col; gradBox.BackgroundColor3=col; hueThumb.BackgroundColor3=col
+                hexBox.Text="rainbow"; hexLbl.Text="rainbow"
+            end)
+        else
+            rbThumb.Position=UDim2.new(0,1,0.5,-5); rbThumb.BackgroundColor3=T.White
+            if rbConn then rbConn:Disconnect(); rbConn=nil end
+        end
+    end)
+    local undoBtn=Btn("Undo",9,Color3.fromRGB(40,20,5),T.Accent,Enum.Font.GothamBold)
+    undoBtn.Size=UDim2.new(0,40,0,18); undoBtn.Position=UDim2.new(1,-40,0.5,-9); undoBtn.Parent=bottomRow
+    Corner(undoBtn,5)
+    undoBtn.MouseButton1Click:Connect(function()
+        rbEnabled=false
+        if rbConn then rbConn:Disconnect(); rbConn=nil end
+        rbThumb.Position=UDim2.new(0,1,0.5,-5)
+        currentCol=defaultCol
+        swatch.BackgroundColor3=currentCol; gradBox.BackgroundColor3=currentCol; hueThumb.BackgroundColor3=currentCol
+        local r2,g2,b2=math.floor(defaultCol.R*255),math.floor(defaultCol.G*255),math.floor(defaultCol.B*255)
+        hexBox.Text=string.format("#%02X%02X%02X",r2,g2,b2)
+        hexLbl.Text=string.format("#%02X%02X%02X",r2,g2,b2)
+    end)
+
+    -- Toggle expand on swatch click
+    local swatchHit=Btn("",0,T.Text,Color3.new(0,0,0)); swatchHit.BackgroundTransparency=1; swatchHit.Size=UDim2.new(0,20,0,20); swatchHit.Position=UDim2.new(1,-22,0.5,-10); swatchHit.Parent=headerRow
+    swatchHit.MouseButton1Click:Connect(function()
+        expanded=not expanded; body.Visible=expanded
+    end)
+    if tip then AddTooltip(headerRow,tip) end
+    return container, swatch
 end
 
--- LT2 status box
 local function AddStatusBox(title, status, statusColor, parent, order, tip)
     local f=New("Frame",{Size=UDim2.new(0.5,-4,0,44),BackgroundColor3=T.BG3,BorderSizePixel=0,LayoutOrder=order or 0,Parent=parent})
     Corner(f,8); Stroke(f,T.Border,1)
@@ -386,18 +475,6 @@ AddLabel("CHARACTER", charList, 0)
 local cg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=charList})
 local cgl=Instance.new("UIGridLayout"); cgl.CellSize=UDim2.new(0.5,-4,0,32); cgl.CellPadding=UDim2.new(0,8,0,4); cgl.Parent=cg
 
-local statsRow=New("Frame",{Size=UDim2.new(1,0,0,44),BackgroundTransparency=1,LayoutOrder=2,Parent=charList})
-local function StatTile(title,value,accentCol,parent,xpos)
-    local f=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=xpos or UDim2.new(0,0,0,0),BackgroundColor3=T.BG2,BorderSizePixel=0,Parent=parent})
-    Corner(f,9); Stroke(f,T.Border,1)
-    New("Frame",{Size=UDim2.new(0,3,0.5,0),Position=UDim2.new(0,0,0.25,0),BackgroundColor3=accentCol,BorderSizePixel=0,Parent=f})
-    local tl=Lbl(title,8,T.TextDim); tl.Size=UDim2.new(1,-10,0,11); tl.Position=UDim2.new(0,9,0,5); tl.Parent=f
-    local vl=Lbl(value,16,T.Text,Enum.Font.GothamBold); vl.Size=UDim2.new(1,-10,0,20); vl.Position=UDim2.new(0,9,0,18); vl.Parent=f
-    return f,vl
-end
-StatTile("HEALTH","100/100",T.Green,statsRow)
-StatTile("MONEY","0",T.Accent,statsRow,UDim2.new(0.5,4,0,0))
-
 local _,dispVal = AddInfoRow("Display name","...",cg)
 local _,userVal = AddInfoRow("Username","...",cg)
 local _,ageVal  = AddInfoRow("Account age","...",cg)
@@ -411,24 +488,75 @@ pcall(function()
     ageVal.Text = age < 365 and (age.." days") or (math.floor(age/365).." year(s)")
 end)
 
+-- Health + Money tiles
+local statsRow=New("Frame",{Size=UDim2.new(1,0,0,44),BackgroundTransparency=1,LayoutOrder=2,Parent=charList})
+local healthF=New("Frame",{Size=UDim2.new(0.5,-4,1,0),BackgroundColor3=T.BG2,BorderSizePixel=0,Parent=statsRow})
+Corner(healthF,8); Stroke(healthF,T.Border,1)
+New("Frame",{Size=UDim2.new(0,3,0.6,0),Position=UDim2.new(0,0,0.2,0),BackgroundColor3=T.Green,BorderSizePixel=0,Parent=healthF})
+local hLbl=Lbl("HEALTH",8,T.TextMuted); hLbl.Position=UDim2.new(0,9,0,5); hLbl.Size=UDim2.new(1,-10,0,11); hLbl.Parent=healthF
+local hVal=Lbl("100/100",14,T.Text,Enum.Font.GothamBold); hVal.Position=UDim2.new(0,9,0,18); hVal.Size=UDim2.new(1,-10,0,18); hVal.Parent=healthF
+
+local moneyF=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=UDim2.new(0.5,4,0,0),BackgroundColor3=T.BG2,BorderSizePixel=0,Parent=statsRow})
+Corner(moneyF,8); Stroke(moneyF,T.Border,1)
+New("Frame",{Size=UDim2.new(0,3,0.6,0),Position=UDim2.new(0,0,0.2,0),BackgroundColor3=T.Accent,BorderSizePixel=0,Parent=moneyF})
+local mLbl=Lbl("MONEY",8,T.TextMuted); mLbl.Position=UDim2.new(0,9,0,5); mLbl.Size=UDim2.new(1,-10,0,11); mLbl.Parent=moneyF
+local mVal=Lbl("0",14,T.Text,Enum.Font.GothamBold); mVal.Position=UDim2.new(0,9,0,18); mVal.Size=UDim2.new(1,-10,0,18); mVal.Parent=moneyF
+
+-- Game badge
 local gameRow=New("Frame",{Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,LayoutOrder=3,Parent=charList})
 local gameBadge=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=T.GreenDim,BorderSizePixel=0,Parent=gameRow})
 Corner(gameBadge,5); Stroke(gameBadge,Color3.fromRGB(50,90,40),1); Pad(gameBadge,0,7,0,7)
-local gl=Lbl("Roblox Game  |  "..gameName,10,T.Green,Enum.Font.GothamBold); gl.Size=UDim2.new(0,0,1,0); gl.AutomaticSize=Enum.AutomaticSize.X; gl.Parent=gameBadge
+local gl=Lbl("Roblox Game  |  "..gameName,10,T.Green,Enum.Font.GothamBold)
+gl.Size=UDim2.new(0,0,1,0); gl.AutomaticSize=Enum.AutomaticSize.X; gl.Parent=gameBadge
+
+-- Live health update
+RunService.Heartbeat:Connect(function()
+    pcall(function()
+        local char=LocalPlayer.Character
+        if char then
+            local hum=char:FindFirstChildWhichIsA("Humanoid")
+            if hum then
+                hVal.Text=math.floor(hum.Health).."/"..math.floor(hum.MaxHealth)
+                local pct=hum.Health/math.max(hum.MaxHealth,1)
+                hVal.TextColor3=pct>0.5 and T.Text or (pct>0.25 and T.Accent or T.Red)
+            end
+        end
+    end)
+end)
+
+-- Live money update
+pcall(function()
+    local ls=LocalPlayer:WaitForChild("leaderstats",5)
+    local money=ls:WaitForChild("Money",5)
+    mVal.Text=tostring(money.Value)
+    money.Changed:Connect(function(v) mVal.Text=tostring(v) end)
+end)
 
 -- Server panel
 local srvPanel = AddPanel(homePage); Pad(srvPanel,9,11,9,11)
 local srvList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=srvPanel})
 VList(srvList,7)
 AddLabel("SERVER", srvList, 0)
-local sRow=New("Frame",{Size=UDim2.new(1,0,0,32),BackgroundTransparency=1,LayoutOrder=1,Parent=srvList})
-local cols={{"12/30",T.Text},{"US-East",T.Text},{"94ms",T.Accent}}
-local keys={"Players","Region","Ping"}
-for i,v in ipairs(cols) do
-    local cf=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(0.33,-4,1,0),Position=UDim2.new((i-1)*0.333,0,0,0),Parent=sRow})
-    local kl2=Lbl(keys[i],8,T.TextMuted); kl2.Size=UDim2.new(1,0,0,12); kl2.Parent=cf
-    local vl2=Lbl(v[1],13,v[2],Enum.Font.GothamBold); vl2.Size=UDim2.new(1,0,0,16); vl2.Position=UDim2.new(0,0,0,14); vl2.Parent=cf
-end
+
+local srvGrid=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=srvList})
+local sgl=Instance.new("UIGridLayout"); sgl.CellSize=UDim2.new(0.5,-4,0,32); sgl.CellPadding=UDim2.new(0,8,0,4); sgl.Parent=srvGrid
+
+local _,playersVal = AddInfoRow("Players",#Players:GetPlayers().."/"..Players.MaxPlayers,srvGrid)
+local _,pingVal    = AddInfoRow("Ping","...",srvGrid)
+local _,fpsVal     = AddInfoRow("FPS","...",srvGrid)
+local _,jobVal     = AddInfoRow("Job ID",game.JobId~="" and game.JobId:sub(1,8) or "...",srvGrid)
+local _,placeVal   = AddInfoRow("Place ID",tostring(game.PlaceId),srvGrid)
+
+-- Live ping + fps
+RunService.Heartbeat:Connect(function(dt)
+    pcall(function()
+        local ping=math.floor((LocalPlayer:GetNetworkPing())*1000)
+        pingVal.Text=ping.."ms"
+        pingVal.TextColor3=ping<80 and T.Green or (ping<150 and T.Accent or T.Red)
+        fpsVal.Text=math.floor(1/dt)
+    end)
+end)
+
 AddPrimaryButton("Copy server script", srvList, 2, "Copies a join script for this server")
 
 -- Compat
@@ -443,17 +571,90 @@ local dIco=New("Frame",{Size=UDim2.new(0,22,0,22),Position=UDim2.new(0,8,0.5,-11
 local dL=Lbl("D",12,T.White,Enum.Font.GothamBold,Enum.TextXAlignment.Center); dL.Size=UDim2.new(1,0,1,0); dL.Parent=dIco
 local dl=Lbl("discord.gg/odyssey",11,T.Text); dl.Size=UDim2.new(1,-60,0,14); dl.Position=UDim2.new(0,36,0.5,-7); dl.Parent=discP
 
--- LT2 status
+-- LT2 status boxes
 local lt2Panel = AddPanel(homePage); Pad(lt2Panel,9,11,9,11)
 local lt2List=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=lt2Panel})
 VList(lt2List,6)
 AddLabel("LUMBER TYCOON 2", lt2List, 0)
 local boxGrid=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=lt2List})
 local bgl=Instance.new("UIGridLayout"); bgl.CellSize=UDim2.new(0.5,-4,0,44); bgl.CellPadding=UDim2.new(0,8,0,6); bgl.Parent=boxGrid
-AddStatusBox("FERRY STATUS","Ready",T.Green,boxGrid,1,"Ferry status")
-AddStatusBox("MONEY COOLDOWN","0:42",T.Accent,boxGrid,2,"Money cooldown")
-AddStatusBox("RELOAD SLOT","1:57",T.Accent,boxGrid,3,"Slot reload timer")
-AddStatusBox("AUTO SEND","Active",T.Green,boxGrid,4,"Auto send status")
+
+local _,ferryStatus = AddStatusBox("FERRY STATUS","...",T.TextDim,boxGrid,1,"Whether the ferry is docked or sailing")
+local _,ferryTimer  = AddStatusBox("FERRY TIMER","...",T.TextDim,boxGrid,2,"Time until ferry departs")
+local _,slotTimer   = AddStatusBox("RELOAD SLOT","Ready",T.Green,boxGrid,3,"Slot reload cooldown")
+local _,moneyBox    = AddStatusBox("MONEY","...",T.TextDim,boxGrid,4,"Your current lumber bucks")
+
+-- Ferry live detection
+pcall(function()
+    local ferry=workspace:WaitForChild("Ferry",10)
+    if not ferry then return end
+    local moving=ferry:WaitForChild("Moving",5)
+    local timeToDep=ferry:WaitForChild("TimeToDeparture",5)
+
+    local function updateFerry()
+        if moving.Value then
+            ferryStatus.Text="Departure"
+            ferryStatus.TextColor3=T.Accent
+            ferryTimer.Text="Sailing"
+            ferryTimer.TextColor3=T.Accent
+        else
+            ferryStatus.Text="Docked"
+            ferryStatus.TextColor3=T.Green
+            ferryTimer.Text=formatTime(timeToDep.Value)
+            ferryTimer.TextColor3=T.Green
+        end
+    end
+
+    updateFerry()
+    moving.Changed:Connect(function() updateFerry() end)
+    timeToDep.Changed:Connect(function() updateFerry() end)
+end)
+
+-- Money box live
+pcall(function()
+    local ls=LocalPlayer:WaitForChild("leaderstats",5)
+    local money=ls:WaitForChild("Money",5)
+    moneyBox.Text=tostring(money.Value)
+    money.Changed:Connect(function(v) moneyBox.Text=tostring(v) end)
+end)
+
+-- Reload slot cooldown from NoticeGUI
+pcall(function()
+    local noticeGUI=PlayerGui:WaitForChild("NoticeGUI",10)
+    local noticeOpen=noticeGUI:WaitForChild("NoticeOpen",5)
+    local noticeText=noticeGUI.Notice.Main.TextLabel
+    local slotCooldown=0
+    local slotActive=false
+
+    local function checkNotice()
+        local text=noticeText.Text
+        if text:find("load again") then
+            local seconds=text:match("Wait (%d+) seconds")
+            if seconds then
+                slotCooldown=tonumber(seconds)
+                slotActive=true
+                slotTimer.TextColor3=T.Accent
+            end
+        end
+    end
+
+    noticeOpen.Changed:Connect(function(v) if v then checkNotice() end end)
+    noticeText:GetPropertyChangedSignal("Text"):Connect(function()
+        if noticeOpen.Value then checkNotice() end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if slotActive and slotCooldown > 0 then
+            slotCooldown=slotCooldown-0.016
+            slotTimer.Text=formatTime(math.max(0,math.ceil(slotCooldown)))
+            if slotCooldown<=0 then
+                slotActive=false
+                slotTimer.Text="Ready"
+                slotTimer.TextColor3=T.Green
+            end
+        end
+    end)
+end)
 
 -- Update log
 local logPanel = AddPanel(homePage); Pad(logPanel,9,11,9,11)
@@ -461,9 +662,15 @@ local logList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticS
 VList(logList,4)
 local logHeader=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=logList})
 local logTitle=Lbl("Update log",10,T.Text,Enum.Font.GothamBold); logTitle.Size=UDim2.new(0.6,0,1,0); logTitle.Parent=logHeader
-local logVer=Lbl("v1.0.3  |  Jul 2026",9,T.TextMuted,Enum.Font.Gotham,Enum.TextXAlignment.Right); logVer.Size=UDim2.new(0.4,0,1,0); logVer.Parent=logHeader
+local logVer=Lbl("v1.0.4  |  Jul 2026",9,T.TextMuted,Enum.Font.Gotham,Enum.TextXAlignment.Right); logVer.Size=UDim2.new(0.4,0,1,0); logVer.Parent=logHeader
 local dotColors={add=T.Green,fix=T.Accent,chg=T.Blue}
-local logEntries={{"add","Added LT2 status boxes"},{"add","Added update log"},{"fix","Fixed ferry reset"},{"chg","Improved UI stability"}}
+local logEntries={
+    {"add","Live health, money and ferry detection"},
+    {"add","Server FPS, ping, job ID and place ID"},
+    {"add","Reload slot cooldown detection"},
+    {"add","Color picker with rainbow and undo"},
+    {"fix","Fixed ferry timer showing wrong state"},
+}
 for i,entry in ipairs(logEntries) do
     local eRow=New("Frame",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,LayoutOrder=i,Parent=logList})
     local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0.5,-3),BackgroundColor3=dotColors[entry[1]],BorderSizePixel=0,Parent=eRow}); Corner(dot,3)
@@ -474,7 +681,7 @@ for i,entry in ipairs(logEntries) do
 end
 
 -- ============================================================
--- SETTINGS TAB (keybind lives here, always)
+-- SETTINGS TAB
 -- ============================================================
 local settingsPage = AddTab("ST", "settings", 99)
 
@@ -501,6 +708,20 @@ UserInputService.InputBegan:Connect(function(i,gp)
     end
 end)
 
+local appPanel = AddPanel(settingsPage); Pad(appPanel,9,11,9,11)
+local appList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=appPanel})
+VList(appList,5)
+AddLabel("APPEARANCE", appList, 0)
+AddSlider("Menu opacity",0,100,85,appList,1,"UI transparency")
+AddColorPicker("Accent color",T.Accent,appList,2,"Pick your accent color")
+
+local dataPanel = AddPanel(settingsPage); Pad(dataPanel,9,11,9,11)
+local dataList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=dataPanel})
+VList(dataList,4)
+AddLabel("CREDITS", dataList, 0)
+for _,line in ipairs({"Script by: Odyssey team","Testers: placeholder","UI Library: Luna UI"}) do
+    local l=Lbl(line,10,T.TextDim); l.Size=UDim2.new(1,0,0,14); l.LayoutOrder=1; l.Parent=dataList
+end
 
 -- ============================================================
 -- START ON HOME
