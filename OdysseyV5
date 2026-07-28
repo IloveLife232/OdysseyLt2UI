@@ -9,7 +9,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local T = {
+T = {
     BG        = Color3.fromRGB(16, 22, 15),
     BG1       = Color3.fromRGB(12, 17, 11),
     BG2       = Color3.fromRGB(26, 35, 24),
@@ -39,32 +39,32 @@ end)
 -- ============================================================
 -- UTILS
 -- ============================================================
-local function New(class, props, children)
+function New(class, props, children)
     local o = Instance.new(class)
     for k,v in pairs(props) do o[k]=v end
     if children then for _,c in ipairs(children) do c.Parent=o end end
     return o
 end
-local function Corner(p, r)
+function Corner(p, r)
     local c = Instance.new("UICorner"); c.CornerRadius=UDim.new(0,r or 6); c.Parent=p
 end
-local function Stroke(p, col, th)
+function Stroke(p, col, th)
     local s = Instance.new("UIStroke"); s.Color=col or T.Border; s.Thickness=th or 1; s.Parent=p
 end
-local function Pad(p, t,r,b,l)
+function Pad(p, t,r,b,l)
     local u = Instance.new("UIPadding")
     u.PaddingTop=UDim.new(0,t or 8); u.PaddingRight=UDim.new(0,r or 8)
     u.PaddingBottom=UDim.new(0,b or 8); u.PaddingLeft=UDim.new(0,l or 8)
     u.Parent=p
 end
-local function VList(p, gap)
+function VList(p, gap)
     local l = Instance.new("UIListLayout")
     l.FillDirection=Enum.FillDirection.Vertical
     l.Padding=UDim.new(0,gap or 6)
     l.SortOrder=Enum.SortOrder.LayoutOrder
     l.Parent=p
 end
-local function Lbl(txt, sz, col, font, xa)
+function Lbl(txt, sz, col, font, xa)
     local l = Instance.new("TextLabel")
     l.Text=txt; l.TextSize=sz or 11; l.TextColor3=col or T.Text
     l.Font=font or Enum.Font.Gotham; l.BackgroundTransparency=1
@@ -72,14 +72,14 @@ local function Lbl(txt, sz, col, font, xa)
     l.AutomaticSize=Enum.AutomaticSize.XY
     return l
 end
-local function Btn(txt, sz, col, bg, font)
+function Btn(txt, sz, col, bg, font)
     local b = Instance.new("TextButton")
     b.Text=txt; b.TextSize=sz or 11; b.TextColor3=col or T.Text
     b.BackgroundColor3=bg or T.BG2; b.BorderSizePixel=0
     b.Font=font or Enum.Font.Gotham; b.AutoButtonColor=false
     return b
 end
-local function MakeDraggable(frame, handle)
+function MakeDraggable(frame, handle)
     local drag,start,spos=false
     handle.InputBegan:Connect(function(i)
         if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true; start=i.Position; spos=frame.Position end
@@ -95,7 +95,7 @@ local function MakeDraggable(frame, handle)
     end)
 end
 
-local function formatTime(s)
+function formatTime(s)
     local mins = math.floor(s/60)
     local secs = s%60
     return string.format("%d:%02d", mins, secs)
@@ -118,7 +118,7 @@ local TooltipLbl=New("TextLabel",{
     TextWrapped=true, TextXAlignment=Enum.TextXAlignment.Left,
     ZIndex=101, Parent=TooltipFrame,
 })
-local function AddTooltip(obj, text)
+function AddTooltip(obj, text)
     obj.MouseEnter:Connect(function() TooltipLbl.Text=text; TooltipFrame.Visible=true end)
     obj.MouseLeave:Connect(function() TooltipFrame.Visible=false end)
     UserInputService.InputChanged:Connect(function(i)
@@ -201,10 +201,10 @@ Pad(ContentScroll,10,12,10,12); VList(ContentScroll,7)
 -- ============================================================
 -- PAGE + NAV SYSTEM
 -- ============================================================
-local Pages={}
-local NavBtns={}
+Pages={}
+NavBtns={}
 
-local function SetPage(id)
+function SetPage(id)
     for _,nb in ipairs(NavBtns) do
         nb.btn.BackgroundTransparency=1
         nb.btn.TextColor3=T.TextDim
@@ -222,7 +222,7 @@ local function SetPage(id)
     if Pages[id] then Pages[id].Visible=true end
 end
 
-local function AddTab(label, id, order, disabled)
+function AddTab(label, id, order, disabled)
     local btn=Btn(label,10,disabled and T.TextMuted or T.TextDim,Color3.new(0,0,0),Enum.Font.GothamBold)
     btn.BackgroundTransparency=1
     btn.Size=UDim2.new(1,0,0,30)
@@ -252,26 +252,26 @@ end
 -- ============================================================
 -- COMPONENT HELPERS
 -- ============================================================
-local function AddPanel(parent)
+function AddPanel(parent)
     local f=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=parent})
     Corner(f,10); Stroke(f,T.Border,1)
     return f
 end
 
-local function AddLabel(txt, parent, order)
+function AddLabel(txt, parent, order)
     local l=Lbl(txt,9,T.TextDim,Enum.Font.Gotham)
     l.Size=UDim2.new(1,0,0,12); l.LayoutOrder=order or 0; l.Parent=parent
     return l
 end
 
-local function AddInfoRow(key, val, parent, order)
+function AddInfoRow(key, val, parent, order)
     local f=New("Frame",{Size=UDim2.new(1,0,0,30),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
     local kl=Lbl(key,9,T.TextMuted); kl.Size=UDim2.new(1,0,0,12); kl.Position=UDim2.new(0,0,0,0); kl.Parent=f
     local vl=Lbl(val,11,T.Text); vl.Size=UDim2.new(1,0,0,14); vl.Position=UDim2.new(0,0,0,13); vl.Parent=f
     return f, vl
 end
 
-local function AddToggle(labelTxt, on, parent, order, tip)
+function AddToggle(labelTxt, on, parent, order, tip)
     local row=New("Frame",{Size=UDim2.new(1,0,0,24),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
     local lbl=Lbl(labelTxt,11,T.Text); lbl.Size=UDim2.new(1,-38,1,0); lbl.Parent=row
     local enabled=on or false
@@ -291,7 +291,7 @@ local function AddToggle(labelTxt, on, parent, order, tip)
     return row
 end
 
-local function AddSlider(labelTxt, minV, maxV, defV, parent, order, tip)
+function AddSlider(labelTxt, minV, maxV, defV, parent, order, tip)
     local row=New("Frame",{Size=UDim2.new(1,0,0,36),BackgroundTransparency=1,LayoutOrder=order or 0,Parent=parent})
     local lbl=Lbl(labelTxt,11,T.Text); lbl.Size=UDim2.new(0.7,0,0,14); lbl.Parent=row
     local valLbl=Lbl(tostring(defV),10,T.Accent,Enum.Font.Gotham,Enum.TextXAlignment.Right); valLbl.Size=UDim2.new(0.3,0,0,14); valLbl.Parent=row
@@ -315,7 +315,7 @@ local function AddSlider(labelTxt, minV, maxV, defV, parent, order, tip)
     return row
 end
 
-local function AddButton(txt, parent, order, col, bgcol, tip)
+function AddButton(txt, parent, order, col, bgcol, tip)
     local b=Btn(txt,10,col or T.Text,bgcol or T.BG3)
     b.Size=UDim2.new(1,0,0,26); b.LayoutOrder=order or 0; b.Parent=parent
     Corner(b,7); Stroke(b,T.Border,1)
@@ -325,7 +325,7 @@ local function AddButton(txt, parent, order, col, bgcol, tip)
     return b
 end
 
-local function AddPrimaryButton(txt, parent, order, tip)
+function AddPrimaryButton(txt, parent, order, tip)
     local b=Btn(txt,10,Color3.fromRGB(40,20,5),T.Accent,Enum.Font.GothamBold)
     b.Size=UDim2.new(1,0,0,30); b.LayoutOrder=order or 0; b.Parent=parent
     Corner(b,8)
@@ -333,7 +333,7 @@ local function AddPrimaryButton(txt, parent, order, tip)
     return b
 end
 
-local function AddColorPicker(labelTxt, defaultColor, parent, order, tip)
+function AddColorPicker(labelTxt, defaultColor, parent, order, tip)
     local expanded=false
     local defaultCol=defaultColor or T.Accent
     local currentCol=defaultCol
@@ -452,7 +452,7 @@ local function AddColorPicker(labelTxt, defaultColor, parent, order, tip)
     return container, swatch
 end
 
-local function AddStatusBox(title, status, statusColor, parent, order, tip)
+function AddStatusBox(title, status, statusColor, parent, order, tip)
     local f=New("Frame",{Size=UDim2.new(0.5,-4,0,44),BackgroundColor3=T.BG3,BorderSizePixel=0,LayoutOrder=order or 0,Parent=parent})
     Corner(f,8); Stroke(f,T.Border,1)
     local kl=Lbl(title,8,T.TextMuted); kl.Size=UDim2.new(1,-8,0,11); kl.Position=UDim2.new(0,7,0,5); kl.Parent=f
