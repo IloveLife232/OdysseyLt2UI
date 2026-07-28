@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -26,6 +27,12 @@ local T = {
 }
 
 local ToggleKeybind = Enum.KeyCode.RightShift
+
+local gameName = "Unknown Game"
+pcall(function()
+    local info = MarketplaceService:GetProductInfo(game.PlaceId)
+    gameName = info and info.Name or "Unknown Game"
+end)
 
 -- ============================================================
 -- UTILS
@@ -407,7 +414,7 @@ end)
 local gameRow=New("Frame",{Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,LayoutOrder=3,Parent=charList})
 local gameBadge=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=T.GreenDim,BorderSizePixel=0,Parent=gameRow})
 Corner(gameBadge,5); Stroke(gameBadge,Color3.fromRGB(50,90,40),1); Pad(gameBadge,0,7,0,7)
-local gl=Lbl("Roblox Game  |  LT2",10,T.Green,Enum.Font.GothamBold); gl.Size=UDim2.new(0,0,1,0); gl.AutomaticSize=Enum.AutomaticSize.X; gl.Parent=gameBadge
+local gl=Lbl("Roblox Game  |  "..gameName,10,T.Green,Enum.Font.GothamBold); gl.Size=UDim2.new(0,0,1,0); gl.AutomaticSize=Enum.AutomaticSize.X; gl.Parent=gameBadge
 
 -- Server panel
 local srvPanel = AddPanel(homePage); Pad(srvPanel,9,11,9,11)
