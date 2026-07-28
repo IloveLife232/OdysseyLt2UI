@@ -582,7 +582,8 @@ do
             srvValues["Players"].Text=#Players:GetPlayers().."/"..Players.MaxPlayers
         end)
         pcall(function()
-Lbl("Update log",11,T.Text,Enum.Font.GothamBold).Size=UDim2.new(0.6,0,1,0); do local x=Lbl("Update log",11,T.Text,Enum.Font.GothamBold); x.Size=UDim2.new(0.6,0,1,0); x.Parent=logHeader end            srvValues["Ping"].Text=ping.."ms"
+            local ping=math.floor((LocalPlayer:GetNetworkPing and LocalPlayer:GetNetworkPing() or 0)*1000)
+            srvValues["Ping"].Text=ping.."ms"
             srvValues["Ping"].TextColor3=ping<80 and T.Green or (ping<150 and T.Accent or T.Red)
         end)
         pcall(function()
@@ -642,7 +643,7 @@ Lbl("Update log",11,T.Text,Enum.Font.GothamBold).Size=UDim2.new(0.6,0,1,0); do l
     local logL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=logP})
     VList(logL,5)
     local logHeader=New("Frame",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,LayoutOrder=0,Parent=logL})
-    Lbl("Update log",11,T.Text,Enum.Font.GothamBold).Size=UDim2.new(0.6,0,1,0); do local x=Lbl("Update log",11,T.Text,Enum.Font.GothamBold); x.Size=UDim2.new(0.6,0,1,0); x.Parent=logHeader end
+    local logTitle=Lbl("Update log",11,T.Text,Enum.Font.GothamBold); logTitle.Size=UDim2.new(0.6,0,1,0); logTitle.Parent=logHeader
     local logVer=Lbl("v1.0.5  |  Jul 2026",10,T.TextMuted,Enum.Font.Gotham,Enum.TextXAlignment.Right)
     logVer.Size=UDim2.new(0.4,0,1,0); logVer.Parent=logHeader
     local dotColors={add=T.Green,fix=T.Accent,chg=T.Blue}
