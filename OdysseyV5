@@ -733,3 +733,34 @@ end
 -- START ON HOME
 -- ============================================================
 SetPage("home")
+
+
+-- ============================================================
+-- RETURN API SO EXTERNAL SCRIPTS CAN USE THESE FUNCTIONS
+-- ============================================================
+return {
+    T = T,
+    New = New,
+    Corner = Corner,
+    Stroke = Stroke,
+    Pad = Pad,
+    VList = VList,
+    Lbl = Lbl,
+    Btn = Btn,
+    AddTooltip = AddTooltip,
+    AddTab = AddTab,
+    AddPanel = AddPanel,
+    AddLabel = AddLabel,
+    AddInfoRow = AddInfoRow,
+    AddToggle = AddToggle,
+    AddSlider = AddSlider,
+    AddButton = AddButton,
+    AddPrimaryButton = AddPrimaryButton,
+    AddColorPicker = AddColorPicker,
+    AddStatusBox = AddStatusBox,
+    SetPage = SetPage,
+    formatTime = formatTime,
+    Players = game:GetService("Players"),
+    RunService = game:GetService("RunService"),
+    LocalPlayer = game:GetService("Players").LocalPlayer,
+}
