@@ -1,9 +1,4 @@
 -- Odyssey UI Library v2
--- local Odyssey = loadstring(...)()
--- local Window = Odyssey:CreateWindow({Name="My Script"})
--- local Tab = Window:CreateTab({Name="Main", Icon="⚔"})
--- Tab:CreateButton({Name="Click me", Callback=function() end})
-
 local Odyssey = {}
 Odyssey.__index = Odyssey
 
@@ -311,10 +306,6 @@ function Tab:CreateButton(opts)
     btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=T.Accent}):Play() end)
     btn.MouseButton1Click:Connect(function() if cb then cb() end end)
     _div(self._list,self._order); self._order=self._order+1
-    if opts.Name and self._tabData and self._win then
-        local tname=self._tabData; local hl=function() TweenService:Create(btn,TweenInfo.new(0.3),{BackgroundColor3=T.AccentHov}):Play(); task.delay(0.5,function() TweenService:Create(btn,TweenInfo.new(0.3),{BackgroundColor3=T.Accent}):Play() end) end
-        table.insert(self._win._searchReg,{name=(opts.Name or ""):lower(), tabData=tname, highlight=hl})
-    end
     local api={}; function api:SetName(n) btn.Text=n end; function api:Destroy() row:Destroy() end; return api
 end
 
