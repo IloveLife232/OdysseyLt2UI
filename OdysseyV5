@@ -805,8 +805,17 @@ function Odyssey:CreateWindow(opts)
     local SideList=New("Frame",{Size=UDim2.new(1,0,1,-44),BackgroundTransparency=1,Parent=Sidebar}); VList(SideList,2); Pad(SideList,8,5,0,5)
     -- Bottom slot for settings icon
     local SideBottom=New("Frame",{Size=UDim2.new(1,0,0,44),Position=UDim2.new(0,0,1,-44),BackgroundTransparency=1,Parent=Sidebar}); Pad(SideBottom,0,5,8,5)
-    local ContentFrame=New("Frame",{Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,46,0,0),BackgroundTransparency=1,Parent=Body})
-    local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=T.Border,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,Parent=ContentFrame})
+    local ContentFrame=New("Frame",{Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,46,0,0),BackgroundTransparency=1,ClipsDescendants=true,Parent=Body})
+    local ContentScroll=New("ScrollingFrame",{
+        Size=UDim2.new(1,0,1,0),
+        BackgroundTransparency=1,BorderSizePixel=0,
+        ScrollBarThickness=4,ScrollBarImageColor3=T.Border,
+        ScrollingDirection=Enum.ScrollingDirection.Y,
+        CanvasSize=UDim2.new(0,0,0,0),
+        AutomaticCanvasSize=Enum.AutomaticSize.Y,
+        ElasticBehavior=Enum.ElasticBehavior.Never,
+        Parent=ContentFrame,
+    })
     Pad(ContentScroll,10,12,10,12); VList(ContentScroll,8)
 
     local toggleKey=Enum.KeyCode.RightShift
