@@ -81,7 +81,7 @@ local Themes = {
     },
 }
 
-local lt2ThemeEnabled = false
+local lt2ThemeEnabled = true
 local currentLT2BG = Color3.fromRGB(38,38,40)
 
 local function ApplyLT2Theme(bgColor, enabled)
@@ -109,11 +109,39 @@ local function ApplyLT2Theme(bgColor, enabled)
     end
 end
 
+-- Registry of themed UI elements for live recolor
+local ThemeRegistry = {
+    BG={}, BG1={}, BG2={}, BG3={}, Border={}, Accent={}, AccentDim={},
+    Green={}, GreenDim={}, Text={}, TextDim={}, TextMuted={},
+}
+local function RegisterEl(frame, key)
+    if not ThemeRegistry[key] then ThemeRegistry[key]={} end
+    table.insert(ThemeRegistry[key], frame)
+end
+
 local function ApplyTheme(name)
     local theme = Themes[name]
     if not theme then return end
+    -- Update T values
     for k,v in pairs(theme) do
         if k ~= "LT2BG" then T[k]=v end
+    end
+    -- Redraw all registered Odyssey UI elements
+    for key, frames in pairs(ThemeRegistry) do
+        local col = T[key]
+        if col then
+            for _, f in ipairs(frames) do
+                pcall(function()
+                    if f:IsA("Frame") or f:IsA("ScrollingFrame") then
+                        f.BackgroundColor3 = col
+                    elseif f:IsA("TextLabel") or f:IsA("TextButton") or f:IsA("TextBox") then
+                        f.TextColor3 = col
+                    elseif f:IsA("UIStroke") then
+                        f.Color = col
+                    end
+                end)
+            end
+        end
     end
     currentLT2BG = theme.LT2BG
     ApplyLT2Theme(theme.LT2BG, lt2ThemeEnabled)
@@ -125,12 +153,20 @@ Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(gui)
     ApplyLT2Theme(currentLT2BG, lt2ThemeEnabled)
 end)
 
+-- Apply default theme on load
+task.defer(function()
+    ApplyLT2Theme(currentLT2BG, lt2ThemeEnabled)
+end)
+
 -- ============================================================
 -- UTILS
 -- ============================================================
-local function New(class, props)
+local function New(class, props, themeKey)
     local o = Instance.new(class)
     for k,v in pairs(props) do o[k]=v end
+    if themeKey and ThemeRegistry then
+        RegisterEl(o, themeKey)
+    end
     return o
 end
 local function Corner(p,r) local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,r or 6); c.Parent=p end
@@ -190,8 +226,11 @@ end
 local Tab={}; Tab.__index=Tab
 
 local function _panel(parent)
-    local f=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=parent})
-    Corner(f,10); Stroke(f,T.Border,1); return f
+    local f=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=parent},"BG2")
+    Corner(f,10)
+    local s=Stroke(f,T.Border,1)
+    RegisterEl(s,"Border")
+    return f
 end
 
 local function _row(parent,order)
@@ -707,8 +746,8 @@ function Odyssey:CreateWindow(opts)
     pcall(function() local info=MarketplaceService:GetProductInfo(game.PlaceId); gameName=info and info.Name or "Unknown Game" end)
 
     local Gui=New("ScreenGui",{Name="OdysseyUI",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-    local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=T.BG,BorderSizePixel=0,Parent=Gui}); Corner(Main,14); Stroke(Main,T.Border,1)
-    local TopBar=New("Frame",{Name="TopBar",Size=UDim2.new(1,0,0,36),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Main}); Corner(TopBar,14)
+    local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=T.BG,BorderSizePixel=0,Parent=Gui},"BG"); Corner(Main,14); Stroke(Main,T.Border,1)
+    local TopBar=New("Frame",{Name="TopBar",Size=UDim2.new(1,0,0,36),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Main},"BG1"); Corner(TopBar,14)
     New("Frame",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,1,-14),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=TopBar}); Stroke(TopBar,T.Border,1)
     MakeDraggable(Main,TopBar)
     local LogoCircle=New("Frame",{Size=UDim2.new(0,24,0,24),Position=UDim2.new(0,8,0.5,-12),BackgroundColor3=T.Accent,BorderSizePixel=0,Parent=TopBar}); Corner(LogoCircle,7)
@@ -721,7 +760,7 @@ function Odyssey:CreateWindow(opts)
     local Body=New("Frame",{Name="Body",Size=UDim2.new(1,0,1,-36),Position=UDim2.new(0,0,0,36),BackgroundTransparency=1,Parent=Main})
     local minimized=false
     MinBtn.MouseButton1Click:Connect(function() minimized=not minimized; Body.Visible=not minimized; Main.Size=minimized and UDim2.new(0,520,0,36) or UDim2.new(0,520,0,480) end)
-    local Sidebar=New("Frame",{Name="Sidebar",Size=UDim2.new(0,46,1,0),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Body})
+    local Sidebar=New("Frame",{Name="Sidebar",Size=UDim2.new(0,46,1,0),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Body},"BG1")
     New("Frame",{Size=UDim2.new(0,14,0,14),Position=UDim2.new(0,0,1,-14),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Sidebar}); Corner(Sidebar,14)
     New("Frame",{Size=UDim2.new(0,14,1,0),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Sidebar})
     local SideList=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Parent=Sidebar}); VList(SideList,2); Pad(SideList,8,5,8,5)
@@ -784,7 +823,7 @@ function Odyssey:CreateWindow(opts)
     settingsTab:CreateToggle({
         Name="LT2 theme",
         Description="Apply Odyssey theme colors to LT2 game menus",
-        CurrentValue=false,
+        CurrentValue=true,
         Tooltip="Toggle LT2 menu recolor on or off",
         Callback=function(v)
             lt2ThemeEnabled=v
