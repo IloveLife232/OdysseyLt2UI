@@ -1,5 +1,8 @@
 -- Odyssey UI Library v2
-
+-- local Odyssey = loadstring(...)()
+-- local Window = Odyssey:CreateWindow({Name="My Script"})
+-- local Tab = Window:CreateTab({Name="Main", Icon="⚔"})
+-- Tab:CreateButton({Name="Click me", Callback=function() end})
 
 local Odyssey = {}
 Odyssey.__index = Odyssey
@@ -194,6 +197,16 @@ local function MakeDraggable(frame,handle)
     UserInputService.InputChanged:Connect(function(i) if drag and i.UserInputType==Enum.UserInputType.MouseMovement then local d=i.Position-start; frame.Position=UDim2.new(spos.X.Scale,spos.X.Offset+d.X,spos.Y.Scale,spos.Y.Offset+d.Y) end end)
 end
 local function formatTime(s) return string.format("%d:%02d",math.floor(s/60),s%60) end
+local function formatMoney(n)
+    n=math.floor(tonumber(n) or 0)
+    local s=tostring(n); local result=""
+    local len=#s
+    for i=1,len do
+        if i>1 and (len-i+1)%3==0 then result=result.."," end
+        result=result..s:sub(i,i)
+    end
+    return result
+end
 
 -- Detect executor
 local function getExecutor()
@@ -623,8 +636,8 @@ function Window:_buildHomeTab(gameName)
     pcall(function()
         local ls=LocalPlayer:WaitForChild("leaderstats",5)
         local money=ls:WaitForChild("Money",5)
-        mVal.Text=tostring(money.Value)
-        money.Changed:Connect(function(v) mVal.Text=tostring(v) end)
+        mVal.Text=formatMoney(money.Value)
+        money.Changed:Connect(function(v) mVal.Text=formatMoney(v) end)
     end)
     -- Server panel
     local srvP=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=tab._list}); Corner(srvP,10); Stroke(srvP,T.Border,1); Pad(srvP,10,12,10,12)
@@ -644,15 +657,14 @@ function Window:_buildHomeTab(gameName)
     local jobV=SrvCell("Job ID",game.JobId~="" and game.JobId:sub(1,8) or "...")
     local placeV=SrvCell("Place ID",tostring(game.PlaceId))
     local srvVerV=SrvCell("Server ver.",tostring(game.PlaceVersion))
-    local srvAgeV=SrvCell("Server age","...")
+    local srvAgeV=SrvCell("Time in server","...")
+    local joinTime=tick()
     RunService.Heartbeat:Connect(function(dt)
         pcall(function()
             local ping=math.floor(LocalPlayer:GetNetworkPing()*1000)
             pingV.Text=ping.."ms"; pingV.TextColor3=ping<80 and T.Green or (ping<150 and T.Accent or T.Red)
             fpsV.Text=tostring(math.floor(1/dt))
-            -- Use DistributedGameTime for actual server age
-            local age=math.floor(workspace.DistributedGameTime)
-            srvAgeV.Text=formatTime(age)
+            srvAgeV.Text=formatTime(math.floor(tick()-joinTime))
         end)
     end)
 
@@ -686,7 +698,7 @@ function Window:_buildHomeTab(gameName)
     -- LT2 money
     pcall(function()
         local ls=LocalPlayer:WaitForChild("leaderstats",5); local money=ls:WaitForChild("Money",5)
-        lt2MoneyV.Text=tostring(money.Value); money.Changed:Connect(function(v) lt2MoneyV.Text=tostring(v) end)
+        lt2MoneyV.Text=formatMoney(money.Value); money.Changed:Connect(function(v) lt2MoneyV.Text=formatMoney(v) end)
     end)
     -- Slot cooldown
     pcall(function()
@@ -802,6 +814,12 @@ function Odyssey:CreateWindow(opts)
     local gameName="Unknown Game"
     pcall(function() local info=MarketplaceService:GetProductInfo(game.PlaceId); gameName=info and info.Name or "Unknown Game" end)
 
+    -- Destroy any existing Odyssey UIs first
+    for _,v in ipairs(PlayerGui:GetChildren()) do
+        if v.Name=="OdysseyUI" or v.Name=="OdysseyTip" or v.Name=="OdysseyNotif" then
+            v:Destroy()
+        end
+    end
     local Gui=New("ScreenGui",{Name="OdysseyUI",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
     OdysseyGui = Gui
     local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=T.BG,BorderSizePixel=0,Parent=Gui},"BG"); Corner(Main,14); Stroke(Main,T.Border,1)
@@ -815,7 +833,7 @@ function Odyssey:CreateWindow(opts)
     if sub~="" then New("TextLabel",{Text=sub,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0,160,0,11),Position=UDim2.new(0,38,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar}) end
 
     local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-54,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(MinBtn,7); Stroke(MinBtn,T.Border,1); AddTooltip(MinBtn,"Minimize the UI")
-    local CloseBtn=New("TextButton",{Text="✕",TextSize=11,TextColor3=T.Red,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-26,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(CloseBtn,7); Stroke(CloseBtn,T.Border,1); AddTooltip(CloseBtn,"Close the UI")
+    local CloseBtn=New("TextButton",{Text="✕",TextSize=12,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=T.Red,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-26,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(CloseBtn,7); AddTooltip(CloseBtn,"Close the UI — press RightShift to reopen")
     CloseBtn.MouseButton1Click:Connect(function() Main.Visible=false end)
     local Body=New("Frame",{Name="Body",Size=UDim2.new(1,0,1,-36),Position=UDim2.new(0,0,0,36),BackgroundTransparency=1,Parent=Main})
     local minimized=false
@@ -885,9 +903,17 @@ function Odyssey:CreateWindow(opts)
     -- UI Visibility section
     settingsTab:CreateSection("UI VISIBILITY")
     local toggleUIBtn = settingsTab:CreateButton({
-        Name="Toggle UI",
-        Tooltip="Show or hide the Odyssey UI window",
-        Callback=function() Body.Visible=not Body.Visible end,
+        Name="Destroy UI",
+        Tooltip="Completely removes Odyssey from the game — re-run the script to bring it back",
+        Callback=function()
+            pcall(function()
+                for _,v in ipairs(PlayerGui:GetChildren()) do
+                    if v.Name=="OdysseyUI" or v.Name=="OdysseyTip" or v.Name=="OdysseyNotif" then
+                        v:Destroy()
+                    end
+                end
+            end)
+        end,
     })
     local kbRow2=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
     New("TextLabel",{Text="Toggle keybind",TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=kbRow2})
@@ -909,6 +935,7 @@ function Odyssey:CreateWindow(opts)
         Tooltip="Change the color theme of Odyssey and LT2 menus",
         Callback=function(v)
             ApplyTheme(v)
+            Odyssey.Flags["OdysseyTheme"]=v
         end,
     })
 
@@ -1009,7 +1036,15 @@ function Odyssey:CreateWindow(opts)
 
     -- Auto load on join
     if _G.OdysseyAutoLoad ~= false then
-        task.defer(loadConfig)
+        task.defer(function()
+            loadConfig()
+            -- Restore theme if saved
+            local savedTheme = Odyssey.Flags["OdysseyTheme"]
+            if savedTheme and Themes[savedTheme] then
+                ApplyTheme(savedTheme)
+                themeDD:Set({CurrentOption=savedTheme})
+            end
+        end)
     end
 
     -- Buttons: Save + Delete
