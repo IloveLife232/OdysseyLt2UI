@@ -1,4 +1,5 @@
 -- Odyssey UI Library v3
+
 local Odyssey = {}
 Odyssey.__index = Odyssey
 
@@ -232,6 +233,15 @@ end
 
 local function AddTooltip(obj,text,showIcon,iconParent)
     if not text or text=="" then return end
+    local function showTip()
+        TipLbl.Text=text
+        if OdysseyMainRef then
+            local mainPos=OdysseyMainRef.AbsolutePosition
+            local mainSize=OdysseyMainRef.AbsoluteSize
+            TipFrame.Position=UDim2.new(0,mainPos.X+mainSize.X+8,0,mainPos.Y+60)
+        end
+        TipFrame.Visible=true
+    end
     if showIcon and iconParent then
         local iconBtn=New("TextButton",{
             Text="i", TextSize=9, TextColor3=T.Accent,
@@ -243,11 +253,11 @@ local function AddTooltip(obj,text,showIcon,iconParent)
             ZIndex=5, Parent=iconParent,
         })
         Corner(iconBtn,8); Stroke(iconBtn,T.Border,1)
-        iconBtn.MouseEnter:Connect(function() TipLbl.Text=text; UpdateTipPosition(); TipFrame.Visible=true end)
+        iconBtn.MouseEnter:Connect(function() showTip() end)
         iconBtn.MouseLeave:Connect(function() TipFrame.Visible=false end)
         return
     end
-    obj.MouseEnter:Connect(function() TipLbl.Text=text; UpdateTipPosition(); TipFrame.Visible=true end)
+    obj.MouseEnter:Connect(function() showTip() end)
     obj.MouseLeave:Connect(function() TipFrame.Visible=false end)
 end
 
