@@ -119,27 +119,23 @@ local function RegisterEl(frame, key)
     table.insert(ThemeRegistry[key], frame)
 end
 
--- Map old color -> theme key for recoloring
-local ColorKeyMap = {}
-local function BuildColorMap(theme)
-    ColorKeyMap = {}
-    for k,v in pairs(theme) do
-        if k ~= "LT2BG" then
-            ColorKeyMap[v] = k
-        end
-    end
-end
-
 local OdysseyGui = nil -- set after GUI is created
+
+local function c3key(c) return math.floor(c.R*255).."_"..math.floor(c.G*255).."_"..math.floor(c.B*255) end
 
 local function ApplyTheme(name)
     local theme = Themes[name]
     if not theme then return end
 
-    -- Build map of old colors -> keys BEFORE updating T
-    BuildColorMap(T)
+    -- Build map of stringified old colors -> new colors BEFORE updating T
+    local colorMap = {}
+    for k,v in pairs(theme) do
+        if k ~= "LT2BG" and T[k] then
+            colorMap[c3key(T[k])] = v
+        end
+    end
 
-    -- Now update T values
+    -- Update T values
     for k,v in pairs(theme) do
         if k ~= "LT2BG" then T[k]=v end
     end
@@ -149,16 +145,16 @@ local function ApplyTheme(name)
         for _,obj in ipairs(OdysseyGui:GetDescendants()) do
             pcall(function()
                 if obj:IsA("Frame") or obj:IsA("ScrollingFrame") then
-                    local key = ColorKeyMap[obj.BackgroundColor3]
-                    if key and T[key] then obj.BackgroundColor3 = T[key] end
+                    local newCol = colorMap[c3key(obj.BackgroundColor3)]
+                    if newCol then obj.BackgroundColor3 = newCol end
                 elseif obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
-                    local bgKey = ColorKeyMap[obj.BackgroundColor3]
-                    if bgKey and T[bgKey] then obj.BackgroundColor3 = T[bgKey] end
-                    local txtKey = ColorKeyMap[obj.TextColor3]
-                    if txtKey and T[txtKey] then obj.TextColor3 = T[txtKey] end
+                    local newBG = colorMap[c3key(obj.BackgroundColor3)]
+                    if newBG then obj.BackgroundColor3 = newBG end
+                    local newTxt = colorMap[c3key(obj.TextColor3)]
+                    if newTxt then obj.TextColor3 = newTxt end
                 elseif obj:IsA("UIStroke") then
-                    local key = ColorKeyMap[obj.Color]
-                    if key and T[key] then obj.Color = T[key] end
+                    local newCol = colorMap[c3key(obj.Color)]
+                    if newCol then obj.Color = newCol end
                 end
             end)
         end
