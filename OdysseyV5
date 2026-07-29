@@ -214,22 +214,8 @@ local function getExecutor()
 end
 
 -- Tooltip system
-local TooltipGui=New("ScreenGui",{Name="OdysseyTip",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-local TipFrame=New("Frame",{Size=UDim2.new(0,190,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=T.BG1,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=TooltipGui})
-Corner(TipFrame,6); Stroke(TipFrame,T.Border,1); Pad(TipFrame,6,10,6,10)
-local TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
-
--- OdysseyMainRef is set after Main frame is created so tooltip can position relative to it
-local OdysseyMainRef = nil
-local function UpdateTipPosition()
-    if not OdysseyMainRef then return end
-    local mainPos = OdysseyMainRef.AbsolutePosition
-    local mainSize = OdysseyMainRef.AbsoluteSize
-    -- Place tooltip to the right of the UI window
-    local tipX = mainPos.X + mainSize.X + 8
-    local tipY = mainPos.Y + mainSize.Y/2 - 40
-    TipFrame.Position = UDim2.new(0, tipX, 0, tipY)
-end
+-- Tooltip vars (populated in CreateWindow)
+local TipFrame, TipLbl, OdysseyMainRef
 
 local function AddTooltip(obj,text,showIcon,iconParent)
     if not text or text=="" then return end
@@ -829,6 +815,12 @@ function Odyssey:CreateWindow(opts)
     OdysseyGui = Gui
     local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=T.BG,BorderSizePixel=0,Parent=Gui},"BG"); Corner(Main,14); Stroke(Main,T.Border,1)
     OdysseyMainRef = Main
+
+    -- Create tooltip frame now that we have Main reference
+    TipFrame=New("Frame",{Size=UDim2.new(0,200,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=T.BG1,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=Gui})
+    Corner(TipFrame,6); Stroke(TipFrame,T.Border,1); Pad(TipFrame,6,10,6,10)
+    TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
+
     local TopBar=New("Frame",{Name="TopBar",Size=UDim2.new(1,0,0,36),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Main},"BG1"); Corner(TopBar,14)
     New("Frame",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,1,-14),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=TopBar}); Stroke(TopBar,T.Border,1)
     MakeDraggable(Main,TopBar)
