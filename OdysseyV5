@@ -74,8 +74,26 @@ local TooltipGui=New("ScreenGui",{Name="OdysseyTip",ResetOnSpawn=false,ZIndexBeh
 local TipFrame=New("Frame",{Size=UDim2.new(0,200,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=T.BG1,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=TooltipGui})
 Corner(TipFrame,6); Stroke(TipFrame,T.Border,1); Pad(TipFrame,6,10,6,10)
 local TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
-local function AddTooltip(obj,text)
+local function AddTooltip(obj,text,showIcon,iconParent)
     if not text or text=="" then return end
+    -- Add circled i icon if requested
+    if showIcon and iconParent then
+        local iconBtn=New("TextButton",{
+            Text="i", TextSize=9, TextColor3=T.Accent,
+            BackgroundColor3=T.BG2, BorderSizePixel=0,
+            Font=Enum.Font.GothamBold,
+            Size=UDim2.new(0,16,0,16),
+            Position=UDim2.new(1,-18,0.5,-8),
+            AutoButtonColor=false,
+            ZIndex=5, Parent=iconParent,
+        })
+        Corner(iconBtn,8)
+        Stroke(iconBtn,T.Border,1)
+        iconBtn.MouseEnter:Connect(function() TipLbl.Text=text; TipFrame.Visible=true end)
+        iconBtn.MouseLeave:Connect(function() TipFrame.Visible=false end)
+        UserInputService.InputChanged:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseMovement and TipFrame.Visible then TipFrame.Position=UDim2.new(0,i.Position.X+14,0,i.Position.Y+14) end end)
+        return
+    end
     obj.MouseEnter:Connect(function() TipLbl.Text=text; TipFrame.Visible=true end)
     obj.MouseLeave:Connect(function() TipFrame.Visible=false end)
     UserInputService.InputChanged:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseMovement and TipFrame.Visible then TipFrame.Position=UDim2.new(0,i.Position.X+14,0,i.Position.Y+14) end end)
@@ -138,7 +156,7 @@ function Tab:CreateButton(opts)
     if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
     local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=11,TextColor3=Color3.fromRGB(40,20,5),BackgroundColor3=T.Accent,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,Parent=vl})
     Corner(btn,8)
-    if opts.Tooltip then AddTooltip(btn,opts.Tooltip) end
+    if opts.Tooltip then AddTooltip(btn,opts.Tooltip,true,btn) end
     btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=T.AccentHov}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=T.Accent}):Play() end)
     btn.MouseButton1Click:Connect(function() if cb then cb() end end)
@@ -160,7 +178,7 @@ function Tab:CreateToggle(opts)
     if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
     _div(self._list,self._order); self._order=self._order+1
     local hit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=topRow})
-    if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
+    if opts.Tooltip then AddTooltip(topRow,opts.Tooltip,true,topRow) end
     hit.MouseButton1Click:Connect(function()
         enabled=not enabled
         TweenService:Create(track,TweenInfo.new(0.12),{BackgroundColor3=enabled and T.Accent or T.BG3}):Play()
@@ -187,7 +205,7 @@ function Tab:CreateSlider(opts)
     local pct=(defV-minV)/(maxV-minV)
     local fill=New("Frame",{Size=UDim2.new(pct,0,1,0),BackgroundColor3=T.Accent,BorderSizePixel=0,Parent=trackF}); Corner(fill,3)
     local thumbBtn=New("TextButton",{Text="",Size=UDim2.new(0,14,0,14),Position=UDim2.new(pct,-7,0.5,-7),BackgroundColor3=T.Accent,BorderSizePixel=0,AutoButtonColor=false,Parent=trackF}); Corner(thumbBtn,7)
-    if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
+    if opts.Tooltip then AddTooltip(topRow,opts.Tooltip,true,topRow) end
     _div(self._list,self._order); self._order=self._order+1
     local dragging=false
     thumbBtn.MouseButton1Down:Connect(function() dragging=true end)
@@ -389,10 +407,23 @@ function Window:_buildHomeTab(gameName)
         end
     end)
 
-    -- Stat tiles (health + money)
-    local statsRow=New("Frame",{Size=UDim2.new(1,0,0,46),BackgroundTransparency=1,LayoutOrder=0,Parent=tab._list})
+    -- Welcome message
+    local welcomeP=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=0,Parent=tab._list}); Corner(welcomeP,10); Stroke(welcomeP,T.Border,1); Pad(welcomeP,10,12,10,12)
+    local wvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=welcomeP}); VList(wvl,4)
+    New("TextLabel",{Text="Welcome to Odyssey",TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=wvl})
+    New("TextLabel",{Text="Odyssey is a feature-rich Lua UI script built for Lumber Tycoon 2. It provides live game data, player tools and world controls — all in one clean interface.",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,LayoutOrder=1,Parent=wvl})
+    New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=T.Border,BorderSizePixel=0,LayoutOrder=2,Parent=wvl})
+    New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Blank",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
+
+    -- Combined character + health/money panel
+    local charP=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=tab._list}); Corner(charP,10); Stroke(charP,T.Border,1); Pad(charP,10,12,10,12)
+    local charL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=charP}); VList(charL,6)
+    New("TextLabel",{Text="CHARACTER",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=charL})
+
+    -- Health + Money tiles inside character panel
+    local statsRow=New("Frame",{Size=UDim2.new(1,0,0,46),BackgroundTransparency=1,LayoutOrder=1,Parent=charL})
     local function StatTile(title,val,accentCol,xpos)
-        local f=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=xpos,BackgroundColor3=T.BG2,BorderSizePixel=0,Parent=statsRow})
+        local f=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=xpos,BackgroundColor3=T.BG3,BorderSizePixel=0,Parent=statsRow})
         Corner(f,9); Stroke(f,T.Border,1)
         New("Frame",{Size=UDim2.new(0,3,0.6,0),Position=UDim2.new(0,0,0.2,0),BackgroundColor3=accentCol,BorderSizePixel=0,Parent=f})
         New("TextLabel",{Text=title,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,12),Position=UDim2.new(0,9,0,5),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
@@ -401,6 +432,34 @@ function Window:_buildHomeTab(gameName)
     end
     local hVal=StatTile("HEALTH","100/100",T.Green,UDim2.new(0,0,0,0))
     local mVal=StatTile("MONEY","0",T.Accent,UDim2.new(0.5,4,0,0))
+
+    -- Divider
+    New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=T.Border,BorderSizePixel=0,LayoutOrder=2,Parent=charL})
+
+    -- Info grid
+    local cg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=3,Parent=charL})
+    local cgl=Instance.new("UIGridLayout"); cgl.CellSize=UDim2.new(0.5,-6,0,34); cgl.CellPadding=UDim2.new(0,12,0,4); cgl.Parent=cg
+    local function InfoCell(key,val)
+        local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=cg})
+        New("TextLabel",{Text=key,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+        local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+        return vl
+    end
+    local dispV=InfoCell("Display name","..."); local userV=InfoCell("Username","...")
+    local ageV=InfoCell("Account age","..."); local idV=InfoCell("User ID","...")
+    local execV=InfoCell("Executor",execName)
+    pcall(function()
+        dispV.Text=LocalPlayer.DisplayName~="" and LocalPlayer.DisplayName or "N/A"
+        userV.Text=LocalPlayer.Name
+        idV.Text=tostring(LocalPlayer.UserId)
+        local age=LocalPlayer.AccountAge
+        ageV.Text=age<365 and (age.." days") or (math.floor(age/365).." year(s)")
+    end)
+
+    -- Game badge
+    local gbRow=New("Frame",{Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,LayoutOrder=4,Parent=charL})
+    local gb=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=T.GreenDim,BorderSizePixel=0,Parent=gbRow}); Corner(gb,5); Stroke(gb,Color3.fromRGB(50,90,40),1); Pad(gb,0,8,0,8)
+    New("TextLabel",{Text="Roblox Game  |  "..gameName,TextSize=10,TextColor3=T.Green,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=gb})
 
     -- Live health
     RunService.Heartbeat:Connect(function()
@@ -419,34 +478,6 @@ function Window:_buildHomeTab(gameName)
         mVal.Text=tostring(money.Value)
         money.Changed:Connect(function(v) mVal.Text=tostring(v) end)
     end)
-
-    -- Character panel
-    local charP=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=tab._list}); Corner(charP,10); Stroke(charP,T.Border,1); Pad(charP,10,12,10,12)
-    local charL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=charP}); VList(charL,5)
-    New("TextLabel",{Text="CHARACTER",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=charL})
-    local cg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=charL})
-    local cgl=Instance.new("UIGridLayout"); cgl.CellSize=UDim2.new(0.5,-6,0,34); cgl.CellPadding=UDim2.new(0,12,0,4); cgl.Parent=cg
-    local function InfoCell(key,val)
-        local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=cg})
-        New("TextLabel",{Text=key,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-        local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-        return vl
-    end
-    local dispV=InfoCell("Display name","..."); local userV=InfoCell("Username","...")
-    local ageV=InfoCell("Account age","..."); local idV=InfoCell("User ID","...")
-    local execV=InfoCell("Executor",execName)
-    pcall(function()
-        dispV.Text=LocalPlayer.DisplayName~="" and LocalPlayer.DisplayName or "N/A"
-        userV.Text=LocalPlayer.Name
-        idV.Text=tostring(LocalPlayer.UserId)
-        local age=LocalPlayer.AccountAge
-        ageV.Text=age<365 and (age.." days") or (math.floor(age/365).." year(s)")
-    end)
-    -- Game badge
-    local gbRow=New("Frame",{Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,LayoutOrder=2,Parent=charL})
-    local gb=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=T.GreenDim,BorderSizePixel=0,Parent=gbRow}); Corner(gb,5); Stroke(gb,Color3.fromRGB(50,90,40),1); Pad(gb,0,8,0,8)
-    New("TextLabel",{Text="Roblox Game  |  "..gameName,TextSize=10,TextColor3=T.Green,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=gb})
-
     -- Server panel
     local srvP=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=tab._list}); Corner(srvP,10); Stroke(srvP,T.Border,1); Pad(srvP,10,12,10,12)
     local srvL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=srvP}); VList(srvL,7)
