@@ -1,4 +1,9 @@
 -- Odyssey UI Library v2
+-- local Odyssey = loadstring(...)()
+-- local Window = Odyssey:CreateWindow({Name="My Script"})
+-- local Tab = Window:CreateTab({Name="Main", Icon="⚔"})
+-- Tab:CreateButton({Name="Click me", Callback=function() end})
+
 local Odyssey = {}
 Odyssey.__index = Odyssey
 
@@ -913,15 +918,25 @@ function Odyssey:CreateWindow(opts)
 
     -- Folder config section
     settingsTab:CreateSection("FOLDER CONFIG")
-    local configPath = "Odyssey/config.json"
+
+    -- Main path
     local pathRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
     local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=T.BG3,BorderSizePixel=0,Parent=pathRow}); Corner(pathBox,6); Stroke(pathBox,T.Border,1); Pad(pathBox,0,8,0,8)
-    New("TextLabel",{Text=configPath,TextSize=10,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
-    AddTooltip(pathBox,"Path where Odyssey saves your config",true,pathBox)
+    New("TextLabel",{Text="Odyssey/",TextSize=10,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
+    AddTooltip(pathBox,"Root folder where all Odyssey data is saved",true,pathBox)
 
-    settingsTab:CreateToggle({Name="Auto save on exit",CurrentValue=true,Description="Saves your settings when you leave",Tooltip="Toggle auto save",Callback=function(v) _G.OdysseyAutoSave=v end})
+    -- 3 subfolders
+    local subRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
+    local subGrid=Instance.new("UIGridLayout"); subGrid.CellSize=UDim2.new(0.333,-4,0,24); subGrid.CellPadding=UDim2.new(0,4,0,4); subGrid.Parent=subRow
+    for _,folder in ipairs({"OdysseyBuilds","OdysseyConfigs","OdysseySlotNames"}) do
+        local f=New("Frame",{BackgroundColor3=T.BG3,BorderSizePixel=0,Parent=subRow}); Corner(f,6); Stroke(f,T.Border,1); Pad(f,0,6,0,6)
+        New("TextLabel",{Text=folder,TextSize=9,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,TextScaled=true,Parent=f})
+        AddTooltip(f,"Subfolder: "..folder,true,f)
+    end
+
     settingsTab:CreateToggle({Name="Load config on join",CurrentValue=true,Description="Loads saved settings when you join",Tooltip="Toggle auto load",Callback=function(v) _G.OdysseyAutoLoad=v end})
 
+    -- Buttons: Save + Delete
     local cfgBtnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
     local cfgGrid=Instance.new("UIGridLayout"); cfgGrid.CellSize=UDim2.new(0.5,-4,0,28); cfgGrid.CellPadding=UDim2.new(0,8,0,6); cfgGrid.Parent=cfgBtnRow
 
@@ -935,14 +950,8 @@ function Odyssey:CreateWindow(opts)
         return b
     end
 
-    makeConfigBtn("Open folder",T.Accent,Color3.fromRGB(28,18,8),"Open the Odyssey config folder",function()
-        pcall(function() game:GetService("GuiService"):OpenScreenshotsFolder() end)
-    end)
-    makeConfigBtn("Reload config",T.Text,T.BG3,"Reload config from file",function()
-        win:Notify({Title="Config",Content="Config reloaded",Duration=3})
-    end)
-    makeConfigBtn("Export config",T.Text,T.BG3,"Export your config to a file",function()
-        win:Notify({Title="Config",Content="Config exported",Duration=3})
+    makeConfigBtn("Save config",T.Accent,Color3.fromRGB(28,18,8),"Save your current settings to file",function()
+        win:Notify({Title="Config",Content="Config saved!",Duration=3})
     end)
     local delBtn=makeConfigBtn("Delete config",T.Red,Color3.fromRGB(35,12,12),"Permanently delete saved config",function()
         win:Notify({Title="Config",Content="Config deleted",Duration=3})
