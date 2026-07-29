@@ -1,5 +1,4 @@
 -- Odyssey UI Library v3
-
 local Odyssey = {}
 Odyssey.__index = Odyssey
 
@@ -828,8 +827,8 @@ function Odyssey:CreateWindow(opts)
     New("TextLabel",{Text=name,TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,160,0,16),Position=UDim2.new(0,38,0.5,-8),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar})
     if sub~="" then New("TextLabel",{Text=sub,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0,160,0,11),Position=UDim2.new(0,38,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar}) end
 
-    local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-54,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(MinBtn,7); Stroke(MinBtn,T.Border,1); AddTooltip(MinBtn,"Minimize the UI")
-    local CloseBtn=New("TextButton",{Text="X",TextSize=11,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-26,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(CloseBtn,7); Stroke(CloseBtn,T.Border,1); AddTooltip(CloseBtn,"Close the UI — press RightShift to reopen")
+    local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-58,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(MinBtn,7); Stroke(MinBtn,T.Border,1); AddTooltip(MinBtn,"Minimize the UI")
+    local CloseBtn=New("TextButton",{Text="X",TextSize=12,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-30,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(CloseBtn,7); Stroke(CloseBtn,T.Border,1); AddTooltip(CloseBtn,"Close the UI — press RightShift to reopen")
     CloseBtn.MouseButton1Click:Connect(function() Main.Visible=false end)
     local Body=New("Frame",{Name="Body",Size=UDim2.new(1,0,1,-36),Position=UDim2.new(0,0,0,36),BackgroundTransparency=1,Parent=Main})
     local minimized=false
