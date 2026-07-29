@@ -41,6 +41,91 @@ local T = {
 Odyssey.Theme = T
 
 -- ============================================================
+-- THEME PRESETS
+-- ============================================================
+local Themes = {
+    ["🌲 Forest"] = {
+        BG=Color3.fromRGB(16,22,15), BG1=Color3.fromRGB(12,17,11), BG2=Color3.fromRGB(26,35,24), BG3=Color3.fromRGB(20,28,18),
+        Border=Color3.fromRGB(38,54,35), Accent=Color3.fromRGB(224,138,62), AccentDim=Color3.fromRGB(120,74,20), AccentHov=Color3.fromRGB(200,115,40),
+        Green=Color3.fromRGB(130,190,90), GreenDim=Color3.fromRGB(35,60,25),
+        Text=Color3.fromRGB(240,245,228), TextDim=Color3.fromRGB(160,178,140), TextMuted=Color3.fromRGB(100,120,88),
+        LT2BG=Color3.fromRGB(38,38,40),
+    },
+    ["🌙 Midnight"] = {
+        BG=Color3.fromRGB(14,14,20), BG1=Color3.fromRGB(9,9,15), BG2=Color3.fromRGB(26,26,46), BG3=Color3.fromRGB(18,18,34),
+        Border=Color3.fromRGB(42,42,62), Accent=Color3.fromRGB(124,92,252), AccentDim=Color3.fromRGB(70,50,160), AccentHov=Color3.fromRGB(100,75,220),
+        Green=Color3.fromRGB(160,140,255), GreenDim=Color3.fromRGB(26,26,60),
+        Text=Color3.fromRGB(226,224,255), TextDim=Color3.fromRGB(140,138,180), TextMuted=Color3.fromRGB(90,88,130),
+        LT2BG=Color3.fromRGB(20,20,32),
+    },
+    ["🌊 Ocean"] = {
+        BG=Color3.fromRGB(10,18,24), BG1=Color3.fromRGB(7,14,20), BG2=Color3.fromRGB(13,32,48), BG3=Color3.fromRGB(10,24,38),
+        Border=Color3.fromRGB(26,48,64), Accent=Color3.fromRGB(33,150,243), AccentDim=Color3.fromRGB(14,80,140), AccentHov=Color3.fromRGB(25,120,210),
+        Green=Color3.fromRGB(100,210,255), GreenDim=Color3.fromRGB(10,40,60),
+        Text=Color3.fromRGB(208,234,255), TextDim=Color3.fromRGB(120,172,210), TextMuted=Color3.fromRGB(70,120,160),
+        LT2BG=Color3.fromRGB(14,26,36),
+    },
+    ["🌹 Rose"] = {
+        BG=Color3.fromRGB(21,14,14), BG1=Color3.fromRGB(15,9,9), BG2=Color3.fromRGB(42,18,22), BG3=Color3.fromRGB(32,12,16),
+        Border=Color3.fromRGB(61,30,32), Accent=Color3.fromRGB(224,92,110), AccentDim=Color3.fromRGB(130,40,55), AccentHov=Color3.fromRGB(200,75,92),
+        Green=Color3.fromRGB(255,160,175), GreenDim=Color3.fromRGB(60,20,28),
+        Text=Color3.fromRGB(255,224,228), TextDim=Color3.fromRGB(180,140,148), TextMuted=Color3.fromRGB(120,88,96),
+        LT2BG=Color3.fromRGB(32,16,16),
+    },
+    ["🔥 Ember"] = {
+        BG=Color3.fromRGB(20,13,8), BG1=Color3.fromRGB(14,8,4), BG2=Color3.fromRGB(42,20,8), BG3=Color3.fromRGB(32,16,6),
+        Border=Color3.fromRGB(58,30,10), Accent=Color3.fromRGB(255,107,43), AccentDim=Color3.fromRGB(160,60,15), AccentHov=Color3.fromRGB(230,90,35),
+        Green=Color3.fromRGB(255,180,120), GreenDim=Color3.fromRGB(60,28,8),
+        Text=Color3.fromRGB(255,216,192), TextDim=Color3.fromRGB(180,148,120), TextMuted=Color3.fromRGB(120,96,72),
+        LT2BG=Color3.fromRGB(26,16,8),
+    },
+}
+
+local lt2ThemeEnabled = false
+local currentLT2BG = Color3.fromRGB(38,38,40)
+
+local function ApplyLT2Theme(bgColor, enabled)
+    if not enabled then return end
+    local TxtColor = Color3.fromRGB(255,255,255)
+    for _,v in next, Players.LocalPlayer.PlayerGui:GetChildren() do
+        if v.Name ~= "Chat" and v.Name ~= "TargetGui" and v.Name ~= "LoadingScreen" and v.Name ~= "Blueprints" and v.Name ~= "OdysseyUI" and v.Name ~= "OdysseyTip" and v.Name ~= "OdysseyNotif" then
+            for _,d in next, v:GetDescendants() do
+                if not d:FindFirstChild("UICorner") then
+                    if d:IsA("Frame") or d:IsA("TextButton") or d:IsA("ScrollingFrame") then
+                        Instance.new("UICorner",d).CornerRadius=UDim.new(0,6)
+                    end
+                end
+                if d.Name=="DropShadow" then d:Destroy() end
+                if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then
+                    d.BackgroundColor3=bgColor
+                end
+                if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
+                    d.TextColor3=TxtColor
+                    d.BackgroundColor3=bgColor
+                    d.Font=Enum.Font.GothamMedium
+                end
+            end
+        end
+    end
+end
+
+local function ApplyTheme(name)
+    local theme = Themes[name]
+    if not theme then return end
+    for k,v in pairs(theme) do
+        if k ~= "LT2BG" then T[k]=v end
+    end
+    currentLT2BG = theme.LT2BG
+    ApplyLT2Theme(theme.LT2BG, lt2ThemeEnabled)
+end
+
+-- Auto re-apply LT2 theme when new GUIs are added
+Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(gui)
+    task.wait(0.1)
+    ApplyLT2Theme(currentLT2BG, lt2ThemeEnabled)
+end)
+
+-- ============================================================
 -- UTILS
 -- ============================================================
 local function New(class, props)
@@ -662,6 +747,69 @@ function Odyssey:CreateWindow(opts)
         task.delay(nopts.Duration or 4,function() ng:Destroy() end)
     end
     function win:SetKeybind(key) toggleKey=key end
+
+    -- Build settings tab automatically
+    local settingsTab = win:CreateTab({Icon="⚙", Name="Settings", ShowTitle=true})
+
+    -- UI Visibility section
+    settingsTab:CreateSection("UI VISIBILITY")
+    local toggleUIBtn = settingsTab:CreateButton({
+        Name="Toggle UI",
+        Tooltip="Show or hide the Odyssey UI window",
+        Callback=function() Body.Visible=not Body.Visible end,
+    })
+    local kbRow2=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
+    New("TextLabel",{Text="Toggle keybind",TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=kbRow2})
+    local kbBox2=New("TextButton",{Text=toggleKey.Name,TextSize=10,TextColor3=T.Accent,BackgroundColor3=T.BG3,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=kbRow2}); Corner(kbBox2,7); Stroke(kbBox2,T.Border,1)
+    AddTooltip(kbRow2,"Click the box then press any key to set a new keybind",true,kbRow2)
+    local awaiting2=false
+    kbBox2.MouseButton1Click:Connect(function() awaiting2=true; kbBox2.Text="..."; kbBox2.TextColor3=T.TextDim end)
+    UserInputService.InputBegan:Connect(function(i,gp)
+        if awaiting2 and not gp then toggleKey=i.KeyCode; kbBox2.Text=i.KeyCode.Name; kbBox2.TextColor3=T.Accent; awaiting2=false end
+    end)
+
+    -- Theme section
+    settingsTab:CreateSection("THEME")
+    local themeNames={"🌲 Forest","🌙 Midnight","🌊 Ocean","🌹 Rose","🔥 Ember"}
+    local themeDD=settingsTab:CreateDropdown({
+        Name="UI Theme",
+        Options=themeNames,
+        CurrentOption="🌲 Forest",
+        Tooltip="Change the color theme of Odyssey and LT2 menus",
+        Callback=function(v)
+            ApplyTheme(v)
+        end,
+    })
+
+    settingsTab:CreateToggle({
+        Name="LT2 theme",
+        Description="Apply Odyssey theme colors to LT2 game menus",
+        CurrentValue=false,
+        Tooltip="Toggle LT2 menu recolor on or off",
+        Callback=function(v)
+            lt2ThemeEnabled=v
+            if v then
+                ApplyLT2Theme(currentLT2BG, true)
+            else
+                -- Reset LT2 to default
+                local defaultBG=Color3.fromRGB(38,38,40)
+                local TxtColor=Color3.fromRGB(255,255,255)
+                for _,gui in next, Players.LocalPlayer.PlayerGui:GetChildren() do
+                    if gui.Name~="Chat" and gui.Name~="OdysseyUI" and gui.Name~="OdysseyTip" and gui.Name~="OdysseyNotif" then
+                        for _,d in next, gui:GetDescendants() do
+                            if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then
+                                d.BackgroundColor3=defaultBG
+                            end
+                            if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
+                                d.TextColor3=TxtColor; d.BackgroundColor3=defaultBG
+                            end
+                        end
+                    end
+                end
+            end
+        end,
+    })
+
     function win:CreateUpdateLog(opts2) return Window.CreateUpdateLog(self,opts2) end
     function win:CreateDiscordButton(opts2) return Window.CreateDiscordButton(self,opts2) end
     function win:CreateTab(opts2) return Window.CreateTab(self,opts2) end
