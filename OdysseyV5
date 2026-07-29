@@ -209,12 +209,24 @@ end
 
 -- Tooltip system
 local TooltipGui=New("ScreenGui",{Name="OdysseyTip",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-local TipFrame=New("Frame",{Size=UDim2.new(0,200,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=T.BG1,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=TooltipGui})
+local TipFrame=New("Frame",{Size=UDim2.new(0,190,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=T.BG1,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=TooltipGui})
 Corner(TipFrame,6); Stroke(TipFrame,T.Border,1); Pad(TipFrame,6,10,6,10)
 local TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
+
+-- OdysseyMainRef is set after Main frame is created so tooltip can position relative to it
+local OdysseyMainRef = nil
+local function UpdateTipPosition()
+    if not OdysseyMainRef then return end
+    local mainPos = OdysseyMainRef.AbsolutePosition
+    local mainSize = OdysseyMainRef.AbsoluteSize
+    -- Place tooltip to the right of the UI window
+    local tipX = mainPos.X + mainSize.X + 8
+    local tipY = mainPos.Y + mainSize.Y/2 - 40
+    TipFrame.Position = UDim2.new(0, tipX, 0, tipY)
+end
+
 local function AddTooltip(obj,text,showIcon,iconParent)
     if not text or text=="" then return end
-    -- Add circled i icon if requested
     if showIcon and iconParent then
         local iconBtn=New("TextButton",{
             Text="i", TextSize=9, TextColor3=T.Accent,
@@ -225,16 +237,13 @@ local function AddTooltip(obj,text,showIcon,iconParent)
             AutoButtonColor=false,
             ZIndex=5, Parent=iconParent,
         })
-        Corner(iconBtn,8)
-        Stroke(iconBtn,T.Border,1)
-        iconBtn.MouseEnter:Connect(function() TipLbl.Text=text; TipFrame.Visible=true end)
+        Corner(iconBtn,8); Stroke(iconBtn,T.Border,1)
+        iconBtn.MouseEnter:Connect(function() TipLbl.Text=text; UpdateTipPosition(); TipFrame.Visible=true end)
         iconBtn.MouseLeave:Connect(function() TipFrame.Visible=false end)
-        UserInputService.InputChanged:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseMovement and TipFrame.Visible then TipFrame.Position=UDim2.new(0,i.Position.X+14,0,i.Position.Y+14) end end)
         return
     end
-    obj.MouseEnter:Connect(function() TipLbl.Text=text; TipFrame.Visible=true end)
+    obj.MouseEnter:Connect(function() TipLbl.Text=text; UpdateTipPosition(); TipFrame.Visible=true end)
     obj.MouseLeave:Connect(function() TipFrame.Visible=false end)
-    UserInputService.InputChanged:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseMovement and TipFrame.Visible then TipFrame.Position=UDim2.new(0,i.Position.X+14,0,i.Position.Y+14) end end)
 end
 
 -- ============================================================
@@ -302,6 +311,10 @@ function Tab:CreateButton(opts)
     btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=T.Accent}):Play() end)
     btn.MouseButton1Click:Connect(function() if cb then cb() end end)
     _div(self._list,self._order); self._order=self._order+1
+    if opts.Name and self._tabData and self._win then
+        local tname=self._tabData; local hl=function() TweenService:Create(btn,TweenInfo.new(0.3),{BackgroundColor3=T.AccentHov}):Play(); task.delay(0.5,function() TweenService:Create(btn,TweenInfo.new(0.3),{BackgroundColor3=T.Accent}):Play() end) end
+        table.insert(self._win._searchReg,{name=(opts.Name or ""):lower(), tabData=tname, highlight=hl})
+    end
     local api={}; function api:SetName(n) btn.Text=n end; function api:Destroy() row:Destroy() end; return api
 end
 
@@ -532,7 +545,8 @@ function Window:CreateTab(opts)
         btn.BackgroundTransparency=0; btn.BackgroundColor3=T.BG2; btn.TextColor3=T.Text; bar.Visible=true; page.Visible=true
     end)
     if #self._tabs==1 then btn.BackgroundTransparency=0; btn.BackgroundColor3=T.BG2; btn.TextColor3=T.Text; bar.Visible=true; page.Visible=true end
-    return setmetatable({_list=listF,_order=0},Tab)
+    local tabObj=setmetatable({_list=listF,_order=0,_tabData={btn=btn,bar=bar,page=page},_win=self},Tab)
+    return tabObj
 end
 
 function Window:_buildHomeTab(gameName)
@@ -651,7 +665,7 @@ function Window:_buildHomeTab(gameName)
     -- Copy server script button
     local copyBtn=New("TextButton",{Text="Copy server script",TextSize=11,TextColor3=Color3.fromRGB(40,20,5),BackgroundColor3=T.Accent,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,LayoutOrder=2,Parent=srvL})
     Corner(copyBtn,8)
-    AddTooltip(copyBtn,"Copies a script that joins this exact server — share with a friend to join you")
+    AddTooltip(copyBtn,"Copies a script that joins this exact server — share with a friend to join you",true,copyBtn)
     copyBtn.MouseEnter:Connect(function() TweenService:Create(copyBtn,TweenInfo.new(0.1),{BackgroundColor3=T.AccentHov}):Play() end)
     copyBtn.MouseLeave:Connect(function() TweenService:Create(copyBtn,TweenInfo.new(0.1),{BackgroundColor3=T.Accent}):Play() end)
     copyBtn.MouseButton1Click:Connect(function()
@@ -748,6 +762,7 @@ function Window:CreateDiscordButton(opts)
     Corner(btn,10)
     btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(70,82,200)}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=T.Discord}):Play() end)
+    AddTooltip(btn,"Click to copy the Discord invite link",true,btn)
     btn.MouseButton1Click:Connect(function() if opts.Callback then opts.Callback() end end)
 end
 
@@ -765,13 +780,19 @@ function Odyssey:CreateWindow(opts)
     local Gui=New("ScreenGui",{Name="OdysseyUI",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
     OdysseyGui = Gui
     local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=T.BG,BorderSizePixel=0,Parent=Gui},"BG"); Corner(Main,14); Stroke(Main,T.Border,1)
+    OdysseyMainRef = Main
     local TopBar=New("Frame",{Name="TopBar",Size=UDim2.new(1,0,0,36),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Main},"BG1"); Corner(TopBar,14)
     New("Frame",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,1,-14),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=TopBar}); Stroke(TopBar,T.Border,1)
     MakeDraggable(Main,TopBar)
     local LogoCircle=New("Frame",{Size=UDim2.new(0,24,0,24),Position=UDim2.new(0,8,0.5,-12),BackgroundColor3=T.Accent,BorderSizePixel=0,Parent=TopBar}); Corner(LogoCircle,7)
-    New("TextLabel",{Text="⚔",TextSize=12,TextColor3=T.BG,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=LogoCircle})
+    New("TextLabel",{Text="🌲",TextSize=12,TextColor3=T.BG,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=LogoCircle})
     New("TextLabel",{Text=name,TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,160,0,16),Position=UDim2.new(0,38,0.5,-8),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar})
     if sub~="" then New("TextLabel",{Text=sub,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0,160,0,11),Position=UDim2.new(0,38,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar}) end
+    -- Search bar
+    local SearchBox=New("TextBox",{PlaceholderText="Search...",Text="",TextSize=10,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(0,100,0,22),Position=UDim2.new(1,-160,0.5,-11),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,Parent=TopBar})
+    Corner(SearchBox,6); Stroke(SearchBox,T.Border,1); Pad(SearchBox,0,6,0,6)
+    SearchBox.Focused:Connect(function() Stroke(SearchBox,T.Accent,1) end)
+    SearchBox.FocusLost:Connect(function() Stroke(SearchBox,T.Border,1) end)
     local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-54,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(MinBtn,7); Stroke(MinBtn,T.Border,1); AddTooltip(MinBtn,"Minimize the UI")
     local CloseBtn=New("TextButton",{Text="✕",TextSize=11,TextColor3=T.Red,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-26,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(CloseBtn,7); Stroke(CloseBtn,T.Border,1); AddTooltip(CloseBtn,"Close the UI")
     CloseBtn.MouseButton1Click:Connect(function() Main.Visible=false end)
@@ -791,7 +812,31 @@ function Odyssey:CreateWindow(opts)
     local toggleKey=Enum.KeyCode.RightShift
     UserInputService.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==toggleKey then Main.Visible=not Main.Visible end end)
 
-    local win=setmetatable({_T=T,_sideList=SideList,_contentScroll=ContentScroll,_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey},Window)
+    -- Search registry: {name, tabRef, elementRef}
+    local SearchRegistry = {}
+    local function RegisterSearch(name, tabData, highlightFn)
+        table.insert(SearchRegistry, {name=name:lower(), tabData=tabData, highlight=highlightFn})
+    end
+
+    local win=setmetatable({_T=T,_sideList=SideList,_contentScroll=ContentScroll,_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey,_searchReg=SearchRegistry},Window)
+
+    -- Wire up search
+    SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local q=SearchBox.Text:lower()
+        if q=="" then return end
+        for _,entry in ipairs(SearchRegistry) do
+            if entry.name:find(q,1,true) then
+                -- Switch to that tab
+                for _,t in ipairs(win._tabs) do
+                    t.btn.BackgroundTransparency=1; t.btn.TextColor3=T.TextDim; t.bar.Visible=false; t.page.Visible=false
+                end
+                entry.tabData.btn.BackgroundTransparency=0; entry.tabData.btn.BackgroundColor3=T.BG2
+                entry.tabData.btn.TextColor3=T.Text; entry.tabData.bar.Visible=true; entry.tabData.page.Visible=true
+                if entry.highlight then entry.highlight() end
+                break
+            end
+        end
+    end)
 
     -- Build home tab automatically
     win:_buildHomeTab(gameName)
@@ -883,6 +928,21 @@ function Odyssey:CreateWindow(opts)
                 end
             end
         end,
+    })
+
+    -- Anti AFK in settings (auto on)
+    settingsTab:CreateSection("GAMEPLAY")
+    local antiAFKEnabled = true
+    local VU2 = game:GetService("VirtualUser")
+    Players.LocalPlayer.Idled:Connect(function()
+        if antiAFKEnabled then VU2:CaptureController(); VU2:ClickButton2(Vector2.new()) end
+    end)
+    settingsTab:CreateToggle({
+        Name="Anti AFK",
+        Description="Prevents the game from kicking you for being idle",
+        CurrentValue=true,
+        Tooltip="Keeps you active so you dont get kicked",
+        Callback=function(v) antiAFKEnabled=v end,
     })
 
     function win:CreateUpdateLog(opts2) return Window.CreateUpdateLog(self,opts2) end
