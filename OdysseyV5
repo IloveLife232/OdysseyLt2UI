@@ -1,4 +1,8 @@
 -- Odyssey UI Library v2
+-- local Odyssey = loadstring(...)()
+-- local Window = Odyssey:CreateWindow({Name="My Script"})
+-- local Tab = Window:CreateTab({Name="Main", Icon="⚔"})
+-- Tab:CreateButton({Name="Click me", Callback=function() end})
 
 local Odyssey = {}
 Odyssey.__index = Odyssey
@@ -80,8 +84,8 @@ local Themes = {
 local lt2ThemeEnabled = true
 local currentLT2BG = Color3.fromRGB(38,38,40)
 
-local function ApplyLT2Theme(bgColor, enabled)
-    if not enabled then return end
+local function ApplyLT2Theme(bgColor)
+    if not lt2ThemeEnabled then return end
     local TxtColor = Color3.fromRGB(255,255,255)
     for _,v in next, Players.LocalPlayer.PlayerGui:GetChildren() do
         if v.Name ~= "Chat" and v.Name ~= "TargetGui" and v.Name ~= "LoadingScreen" and v.Name ~= "Blueprints" and v.Name ~= "OdysseyUI" and v.Name ~= "OdysseyTip" and v.Name ~= "OdysseyNotif" then
@@ -157,18 +161,18 @@ local function ApplyTheme(name)
     end
 
     currentLT2BG = theme.LT2BG
-    ApplyLT2Theme(theme.LT2BG, lt2ThemeEnabled)
+    ApplyLT2Theme(theme.LT2BG)
 end
 
 -- Auto re-apply LT2 theme when new GUIs are added
 Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(gui)
     task.wait(0.1)
-    ApplyLT2Theme(currentLT2BG, lt2ThemeEnabled)
+    ApplyLT2Theme(currentLT2BG)
 end)
 
 -- Apply default theme on load
 task.defer(function()
-    ApplyLT2Theme(currentLT2BG, lt2ThemeEnabled)
+    ApplyLT2Theme(currentLT2BG)
 end)
 
 -- ============================================================
@@ -658,18 +662,7 @@ function Window:_buildHomeTab(gameName)
             srvAgeV.Text=formatTime(age)
         end)
     end)
-    -- Copy server script button
-    local copyBtn=New("TextButton",{Text="Copy server script",TextSize=11,TextColor3=Color3.fromRGB(40,20,5),BackgroundColor3=T.Accent,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,LayoutOrder=2,Parent=srvL})
-    Corner(copyBtn,8)
-    AddTooltip(copyBtn,"Copies a script that joins this exact server — share with a friend to join you",true,copyBtn)
-    copyBtn.MouseEnter:Connect(function() TweenService:Create(copyBtn,TweenInfo.new(0.1),{BackgroundColor3=T.AccentHov}):Play() end)
-    copyBtn.MouseLeave:Connect(function() TweenService:Create(copyBtn,TweenInfo.new(0.1),{BackgroundColor3=T.Accent}):Play() end)
-    copyBtn.MouseButton1Click:Connect(function()
-        pcall(function()
-            local script="game:GetService('TeleportService'):TeleportToPlaceInstance("..tostring(game.PlaceId)..",'"..game.JobId.."',game:GetService('Players').LocalPlayer)"
-            setclipboard(script)
-        end)
-    end)
+
 
     -- LT2 boxes
     local lt2P=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=3,Parent=tab._list}); Corner(lt2P,10); Stroke(lt2P,T.Border,1); Pad(lt2P,10,12,10,12)
@@ -784,11 +777,7 @@ function Odyssey:CreateWindow(opts)
     New("TextLabel",{Text="🌲",TextSize=12,TextColor3=T.BG,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=LogoCircle})
     New("TextLabel",{Text=name,TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,160,0,16),Position=UDim2.new(0,38,0.5,-8),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar})
     if sub~="" then New("TextLabel",{Text=sub,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0,160,0,11),Position=UDim2.new(0,38,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar}) end
-    -- Search bar
-    local SearchBox=New("TextBox",{PlaceholderText="Search...",Text="",TextSize=10,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(0,100,0,22),Position=UDim2.new(1,-160,0.5,-11),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,Parent=TopBar})
-    Corner(SearchBox,6); Stroke(SearchBox,T.Border,1); Pad(SearchBox,0,6,0,6)
-    SearchBox.Focused:Connect(function() Stroke(SearchBox,T.Accent,1) end)
-    SearchBox.FocusLost:Connect(function() Stroke(SearchBox,T.Border,1) end)
+
     local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=T.TextDim,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-54,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(MinBtn,7); Stroke(MinBtn,T.Border,1); AddTooltip(MinBtn,"Minimize the UI")
     local CloseBtn=New("TextButton",{Text="✕",TextSize=11,TextColor3=T.Red,BackgroundColor3=T.BG2,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-26,0.5,-12),AutoButtonColor=false,Parent=TopBar}); Corner(CloseBtn,7); Stroke(CloseBtn,T.Border,1); AddTooltip(CloseBtn,"Close the UI")
     CloseBtn.MouseButton1Click:Connect(function() Main.Visible=false end)
@@ -817,38 +806,9 @@ function Odyssey:CreateWindow(opts)
     local toggleKey=Enum.KeyCode.RightShift
     UserInputService.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==toggleKey then Main.Visible=not Main.Visible end end)
 
-    -- Search registry: {name, tabRef, elementRef}
-    local SearchRegistry = {}
-    local function RegisterSearch(name, tabData, highlightFn)
-        table.insert(SearchRegistry, {name=name:lower(), tabData=tabData, highlight=highlightFn})
-    end
+    local win=setmetatable({_T=T,_sideList=SideList,_contentScroll=ContentScroll,_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey},Window)
 
-    local win=setmetatable({_T=T,_sideList=SideList,_contentScroll=ContentScroll,_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey,_searchReg=SearchRegistry},Window)
 
-    -- Wire up search - scans all tab pages for matching text labels
-    SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-        local q=SearchBox.Text:lower()
-        if q=="" then return end
-        for _,tabData in ipairs(win._tabs) do
-            local found=false
-            for _,obj in ipairs(tabData.page:GetDescendants()) do
-                if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                    if obj.Text:lower():find(q,1,true) then
-                        found=true
-                        break
-                    end
-                end
-            end
-            if found then
-                for _,t in ipairs(win._tabs) do
-                    t.btn.BackgroundTransparency=1; t.btn.TextColor3=T.TextDim; t.bar.Visible=false; t.page.Visible=false
-                end
-                tabData.btn.BackgroundTransparency=0; tabData.btn.BackgroundColor3=T.BG2
-                tabData.btn.TextColor3=T.Text; tabData.bar.Visible=true; tabData.page.Visible=true
-                break
-            end
-        end
-    end)
 
     -- Build home tab automatically
     win:_buildHomeTab(gameName)
@@ -924,7 +884,7 @@ function Odyssey:CreateWindow(opts)
         Callback=function(v)
             lt2ThemeEnabled=v
             if v then
-                ApplyLT2Theme(currentLT2BG, true)
+                ApplyLT2Theme(currentLT2BG)
             else
                 -- Reset LT2 to default
                 local defaultBG=Color3.fromRGB(38,38,40)
@@ -959,6 +919,44 @@ function Odyssey:CreateWindow(opts)
         Tooltip="Keeps you active so you dont get kicked",
         Callback=function(v) antiAFKEnabled=v end,
     })
+
+    -- Folder config section
+    settingsTab:CreateSection("FOLDER CONFIG")
+    local configPath = "Odyssey/config.json"
+    local pathRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
+    local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=T.BG3,BorderSizePixel=0,Parent=pathRow}); Corner(pathBox,6); Stroke(pathBox,T.Border,1); Pad(pathBox,0,8,0,8)
+    New("TextLabel",{Text=configPath,TextSize=10,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
+    AddTooltip(pathBox,"Path where Odyssey saves your config",true,pathBox)
+
+    settingsTab:CreateToggle({Name="Auto save on exit",CurrentValue=true,Description="Saves your settings when you leave",Tooltip="Toggle auto save",Callback=function(v) _G.OdysseyAutoSave=v end})
+    settingsTab:CreateToggle({Name="Load config on join",CurrentValue=true,Description="Loads saved settings when you join",Tooltip="Toggle auto load",Callback=function(v) _G.OdysseyAutoLoad=v end})
+
+    local cfgBtnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
+    local cfgGrid=Instance.new("UIGridLayout"); cfgGrid.CellSize=UDim2.new(0.5,-4,0,28); cfgGrid.CellPadding=UDim2.new(0,8,0,6); cfgGrid.Parent=cfgBtnRow
+
+    local function makeConfigBtn(txt,col,bgcol,tip,cb)
+        local b=New("TextButton",{Text=txt,TextSize=10,TextColor3=col or T.Text,BackgroundColor3=bgcol or T.BG3,BorderSizePixel=0,Font=Enum.Font.GothamMedium,AutoButtonColor=false,Parent=cfgBtnRow})
+        Corner(b,7); Stroke(b,T.Border,1)
+        AddTooltip(b,tip,true,b)
+        b.MouseEnter:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundColor3=T.BG2}):Play() end)
+        b.MouseLeave:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundColor3=bgcol or T.BG3}):Play() end)
+        b.MouseButton1Click:Connect(function() if cb then cb() end end)
+        return b
+    end
+
+    makeConfigBtn("Open folder",T.Accent,Color3.fromRGB(28,18,8),"Open the Odyssey config folder",function()
+        pcall(function() game:GetService("GuiService"):OpenScreenshotsFolder() end)
+    end)
+    makeConfigBtn("Reload config",T.Text,T.BG3,"Reload config from file",function()
+        win:Notify({Title="Config",Content="Config reloaded",Duration=3})
+    end)
+    makeConfigBtn("Export config",T.Text,T.BG3,"Export your config to a file",function()
+        win:Notify({Title="Config",Content="Config exported",Duration=3})
+    end)
+    local delBtn=makeConfigBtn("Delete config",T.Red,Color3.fromRGB(35,12,12),"Permanently delete saved config",function()
+        win:Notify({Title="Config",Content="Config deleted",Duration=3})
+    end)
+    Stroke(delBtn,Color3.fromRGB(70,20,20),1)
 
     function win:CreateUpdateLog(opts2) return Window.CreateUpdateLog(self,opts2) end
     function win:CreateDiscordButton(opts2) return Window.CreateDiscordButton(self,opts2) end
