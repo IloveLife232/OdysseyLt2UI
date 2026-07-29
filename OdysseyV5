@@ -530,6 +530,10 @@ function Window:_buildHomeTab(gameName)
         RunService.Heartbeat:Connect(function(dt) if slotActive and slotCD>0 then slotCD=slotCD-dt; slotTimerV.Text=formatTime(math.max(0,math.ceil(slotCD))); if slotCD<=0 then slotActive=false; slotTimerV.Text="Ready"; slotTimerV.TextColor3=T.Green end end end)
     end)
 
+    -- store home list reference for discord/updatelog
+    self._homeList = tab._list
+    self._homeOrder = 10
+
     return tab
 end
 
@@ -547,8 +551,9 @@ function Window:SetKeybind(key) self._toggleKey=key end
 
 function Window:CreateUpdateLog(opts)
     opts=opts or {}
-    local tab=self:CreateTab({Icon="📋",Name="Log",ShowTitle=false})
-    local f=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=tab._list}); Corner(f,10); Stroke(f,T.Border,1); Pad(f,10,12,10,12)
+    local parent=self._homeList or self._contentScroll
+    self._homeOrder=(self._homeOrder or 10)+1
+    local f=New("Frame",{BackgroundColor3=T.BG2,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent}); Corner(f,10); Stroke(f,T.Border,1); Pad(f,10,12,10,12)
     local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f}); VList(vl,5)
     local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
     New("TextLabel",{Text="Update log",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.6,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
@@ -561,18 +566,17 @@ function Window:CreateUpdateLog(opts)
         local tf=New("Frame",{Size=UDim2.new(0,0,0,14),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=bc[e.Type] or T.BG3,BorderSizePixel=0,Position=UDim2.new(1,-30,0.5,-7),Parent=er}); Corner(tf,4); Pad(tf,0,5,0,5)
         New("TextLabel",{Text=e.Type or "?",TextSize=8,TextColor3=dc[e.Type] or T.TextDim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=tf})
     end
-    return tab
 end
 
 function Window:CreateDiscordButton(opts)
     opts=opts or {}
-    local tab=self:CreateTab({Icon="💬",Name="Discord",ShowTitle=false})
-    local btn=New("TextButton",{Text=opts.Label or "Join Discord Server",TextSize=11,TextColor3=T.White,BackgroundColor3=T.Discord,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,38),AutoButtonColor=false,Parent=tab._list})
+    local parent=self._homeList or self._contentScroll
+    self._homeOrder=(self._homeOrder or 10)+1
+    local btn=New("TextButton",{Text=opts.Label or "Join Discord Server",TextSize=11,TextColor3=T.White,BackgroundColor3=T.Discord,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,38),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
     Corner(btn,10)
     btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(70,82,200)}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=T.Discord}):Play() end)
     btn.MouseButton1Click:Connect(function() if opts.Callback then opts.Callback() end end)
-    return tab
 end
 
 -- ============================================================
