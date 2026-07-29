@@ -1,5 +1,4 @@
 -- Odyssey UI Library v3
-
 local Odyssey = {}
 Odyssey.__index = Odyssey
 
@@ -840,7 +839,7 @@ function Odyssey:CreateWindow(opts)
     New("Frame",{Size=UDim2.new(0,14,1,0),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Sidebar})
     local SideList=New("Frame",{Size=UDim2.new(1,0,1,-44),BackgroundTransparency=1,Parent=Sidebar}); VList(SideList,2); Pad(SideList,8,5,0,5)
     -- Bottom slot for settings icon
-    local SideBottom=New("Frame",{Size=UDim2.new(1,0,0,44),Position=UDim2.new(0,0,1,-44),BackgroundTransparency=1,Parent=Sidebar}); Pad(SideBottom,0,5,8,5)
+    local SideBottom=New("Frame",{Size=UDim2.new(1,0,0,44),Position=UDim2.new(0,0,1,-44),BackgroundTransparency=1,Parent=Sidebar}); Pad(SideBottom,4,5,8,5)
     local ContentFrame=New("Frame",{Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,46,0,0),BackgroundTransparency=1,ClipsDescendants=true,Parent=Body})
     local ContentScroll=New("ScrollingFrame",{
         Size=UDim2.new(1,0,1,0),
@@ -885,7 +884,7 @@ function Odyssey:CreateWindow(opts)
     local settingsTab=setmetatable({_list=settingsListF,_order=0,_tabData=settingsBtnData,_win=nil},Tab)
 
     -- Settings nav button at bottom
-    local settingsBtn=New("TextButton",{Text="⚙",TextSize=16,TextColor3=T.TextDim,BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=1,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,Parent=SideBottom})
+    local settingsBtn=New("TextButton",{Text="⚙",TextSize=14,TextColor3=T.TextDim,BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=1,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,1,0),AutoButtonColor=false,Parent=SideBottom})
     Corner(settingsBtn,7)
     AddTooltip(settingsBtn,"Settings")
     local settingsBar=New("Frame",{Size=UDim2.new(0,2,0,18),Position=UDim2.new(0,-2,0.5,-9),BackgroundColor3=T.Accent,BorderSizePixel=0,Visible=false,Parent=settingsBtn}); Corner(settingsBar,1)
