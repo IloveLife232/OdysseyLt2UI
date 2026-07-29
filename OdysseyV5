@@ -1,8 +1,5 @@
 -- Odyssey UI Library v2
--- local Odyssey = loadstring(...)()
--- local Window = Odyssey:CreateWindow({Name="My Script"})
--- local Tab = Window:CreateTab({Name="Main", Icon="⚔"})
--- Tab:CreateButton({Name="Click me", Callback=function() end})
+
 
 local Odyssey = {}
 Odyssey.__index = Odyssey
@@ -648,13 +645,13 @@ function Window:_buildHomeTab(gameName)
     local placeV=SrvCell("Place ID",tostring(game.PlaceId))
     local srvVerV=SrvCell("Server ver.",tostring(game.PlaceVersion))
     local srvAgeV=SrvCell("Server age","...")
-    local srvStartTime=tick()
     RunService.Heartbeat:Connect(function(dt)
         pcall(function()
             local ping=math.floor(LocalPlayer:GetNetworkPing()*1000)
             pingV.Text=ping.."ms"; pingV.TextColor3=ping<80 and T.Green or (ping<150 and T.Accent or T.Red)
             fpsV.Text=tostring(math.floor(1/dt))
-            local age=math.floor(tick()-srvStartTime)
+            -- Use DistributedGameTime for actual server age
+            local age=math.floor(workspace.DistributedGameTime)
             srvAgeV.Text=formatTime(age)
         end)
     end)
@@ -693,12 +690,55 @@ function Window:_buildHomeTab(gameName)
     end)
     -- Slot cooldown
     pcall(function()
-        local noticeGUI=PlayerGui:WaitForChild("NoticeGUI",10); local noticeOpen=noticeGUI:WaitForChild("NoticeOpen",5); local noticeText=noticeGUI.Notice.Main.TextLabel
+        local noticeGUI=PlayerGui:WaitForChild("NoticeGUI",10)
+        local noticeOpen=noticeGUI:WaitForChild("NoticeOpen",5)
+        local noticeText=noticeGUI.Notice.Main.TextLabel
         local slotCD=0; local slotActive=false
-        local function check() local t=noticeText.Text; if t:find("load again") then local s=t:match("Wait (%d+) seconds"); if s then slotCD=tonumber(s); slotActive=true; slotTimerV.TextColor3=T.Accent end end end
-        noticeOpen.Changed:Connect(function(v) if v then check() end end)
-        noticeText:GetPropertyChangedSignal("Text"):Connect(function() if noticeOpen.Value then check() end end)
-        RunService.Heartbeat:Connect(function(dt) if slotActive and slotCD>0 then slotCD=slotCD-dt; slotTimerV.Text=formatTime(math.max(0,math.ceil(slotCD))); if slotCD<=0 then slotActive=false; slotTimerV.Text="Ready"; slotTimerV.TextColor3=T.Green end end end)
+
+        local function startCooldown(seconds)
+            slotCD=seconds; slotActive=true
+            slotTimerV.TextColor3=T.Accent
+        end
+
+        -- Detect cooldown message from failed load attempt
+        local function checkNotice()
+            local t=noticeText.Text
+            if t:find("load again") then
+                local s=t:match("Wait (%d+) seconds")
+                if s then startCooldown(tonumber(s)) end
+            end
+        end
+
+        -- Detect successful slot load and start 60s cooldown automatically
+        local loadSaveGui=PlayerGui:WaitForChild("LoadSaveGUI",10)
+        if loadSaveGui then
+            local isOpen=loadSaveGui:WaitForChild("IsOpen",5)
+            local wasOpen=false
+            isOpen.Changed:Connect(function(v)
+                if not v and wasOpen then
+                    -- GUI just closed = slot was loaded, start 60s cooldown
+                    if not slotActive then
+                        startCooldown(60)
+                    end
+                end
+                wasOpen=v
+            end)
+        end
+
+        noticeOpen.Changed:Connect(function(v) if v then checkNotice() end end)
+        noticeText:GetPropertyChangedSignal("Text"):Connect(function() if noticeOpen.Value then checkNotice() end end)
+
+        RunService.Heartbeat:Connect(function(dt)
+            if slotActive and slotCD>0 then
+                slotCD=slotCD-dt
+                slotTimerV.Text=formatTime(math.max(0,math.ceil(slotCD)))
+                if slotCD<=0 then
+                    slotActive=false
+                    slotTimerV.Text="Ready"
+                    slotTimerV.TextColor3=T.Green
+                end
+            end
+        end)
     end)
 
     -- store home list reference for discord/updatelog
@@ -919,22 +959,58 @@ function Odyssey:CreateWindow(opts)
     -- Folder config section
     settingsTab:CreateSection("FOLDER CONFIG")
 
-    -- Main path
+    -- Path display only
     local pathRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
     local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=T.BG3,BorderSizePixel=0,Parent=pathRow}); Corner(pathBox,6); Stroke(pathBox,T.Border,1); Pad(pathBox,0,8,0,8)
     New("TextLabel",{Text="Odyssey/",TextSize=10,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
     AddTooltip(pathBox,"Root folder where all Odyssey data is saved",true,pathBox)
 
-    -- 3 subfolders
-    local subRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
-    local subGrid=Instance.new("UIGridLayout"); subGrid.CellSize=UDim2.new(0.333,-4,0,24); subGrid.CellPadding=UDim2.new(0,4,0,4); subGrid.Parent=subRow
-    for _,folder in ipairs({"OdysseyBuilds","OdysseyConfigs","OdysseySlotNames"}) do
-        local f=New("Frame",{BackgroundColor3=T.BG3,BorderSizePixel=0,Parent=subRow}); Corner(f,6); Stroke(f,T.Border,1); Pad(f,0,6,0,6)
-        New("TextLabel",{Text=folder,TextSize=9,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,TextScaled=true,Parent=f})
-        AddTooltip(f,"Subfolder: "..folder,true,f)
+    settingsTab:CreateToggle({Name="Load config on join",CurrentValue=true,Description="Loads saved settings when you join",Tooltip="Toggle auto load",Callback=function(v) _G.OdysseyAutoLoad=v end})
+
+    -- Config save/load helpers
+    local CONFIG_PATH = "OdysseyConfigs/config.json"
+    local FOLDERS = {"Odyssey","OdysseyBuilds","OdysseyConfigs","OdysseySlotNames"}
+
+    local function ensureFolders()
+        pcall(function()
+            for _,folder in ipairs(FOLDERS) do
+                if not isfolder(folder) then makefolder(folder) end
+            end
+        end)
     end
 
-    settingsTab:CreateToggle({Name="Load config on join",CurrentValue=true,Description="Loads saved settings when you join",Tooltip="Toggle auto load",Callback=function(v) _G.OdysseyAutoLoad=v end})
+    local OdysseyFlags = {} -- stores all registered flag values
+
+    local function saveConfig()
+        pcall(function()
+            ensureFolders()
+            local data={}
+            for k,v in pairs(Odyssey.Flags) do
+                local t=type(v)
+                if t=="boolean" or t=="number" or t=="string" then
+                    data[k]=v
+                end
+            end
+            writefile(CONFIG_PATH, game:GetService("HttpService"):JSONEncode(data))
+        end)
+    end
+
+    local function loadConfig()
+        pcall(function()
+            if isfile(CONFIG_PATH) then
+                local raw=readfile(CONFIG_PATH)
+                local data=game:GetService("HttpService"):JSONDecode(raw)
+                for k,v in pairs(data) do
+                    Odyssey.Flags[k]=v
+                end
+            end
+        end)
+    end
+
+    -- Auto load on join
+    if _G.OdysseyAutoLoad ~= false then
+        task.defer(loadConfig)
+    end
 
     -- Buttons: Save + Delete
     local cfgBtnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list}); settingsTab._order=settingsTab._order+1
@@ -950,10 +1026,14 @@ function Odyssey:CreateWindow(opts)
         return b
     end
 
-    makeConfigBtn("Save config",T.Accent,Color3.fromRGB(28,18,8),"Save your current settings to file",function()
-        win:Notify({Title="Config",Content="Config saved!",Duration=3})
+    makeConfigBtn("Save config",T.Accent,Color3.fromRGB(28,18,8),"Save all toggle, slider and bind settings to file",function()
+        saveConfig()
+        win:Notify({Title="Config",Content="Config saved to OdysseyConfigs!",Duration=3})
     end)
     local delBtn=makeConfigBtn("Delete config",T.Red,Color3.fromRGB(35,12,12),"Permanently delete saved config",function()
+        pcall(function()
+            if isfile(CONFIG_PATH) then delfile(CONFIG_PATH) end
+        end)
         win:Notify({Title="Config",Content="Config deleted",Duration=3})
     end)
     Stroke(delBtn,Color3.fromRGB(70,20,20),1)
