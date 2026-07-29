@@ -838,7 +838,7 @@ function Odyssey:CreateWindow(opts)
     local Sidebar=New("Frame",{Name="Sidebar",Size=UDim2.new(0,46,1,0),BackgroundColor3=T.BG1,BorderSizePixel=0,Parent=Body},"BG1")
     Corner(Sidebar,14)
     local SideList=New("Frame",{Size=UDim2.new(1,0,1,-50),BackgroundTransparency=1,Parent=Sidebar}); VList(SideList,2); Pad(SideList,8,5,0,5)
-    local SideBottom=New("Frame",{Size=UDim2.new(1,0,0,50),Position=UDim2.new(0,0,1,-50),BackgroundTransparency=1,Parent=Sidebar}); Pad(SideBottom,4,8,10,8)
+    local SideBottom=New("Frame",{Size=UDim2.new(1,0,0,50),Position=UDim2.new(0,0,1,-58),BackgroundTransparency=1,Parent=Sidebar}); Pad(SideBottom,4,8,4,8)
     local ContentFrame=New("Frame",{Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,46,0,0),BackgroundTransparency=1,ClipsDescendants=true,Parent=Body})
     local ContentScroll=New("ScrollingFrame",{
         Size=UDim2.new(1,0,1,0),
