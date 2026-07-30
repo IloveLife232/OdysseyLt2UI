@@ -47,23 +47,13 @@ local function ApplyLT2Theme(bgColor)
 			for _,d in next,v:GetDescendants() do pcall(function()
 				if not d:FindFirstChild("UICorner") then
 					if d:IsA("Frame") or d:IsA("TextButton") or d:IsA("ScrollingFrame") then
-						Instance.new("UICorner",d).CornerRadius=UDim.new(0,8)
+						Instance.new("UICorner",d).CornerRadius=UDim.new(0,6)
 					end
 				end
 				if d.Name=="DropShadow" then d:Destroy() end
-				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then
-					d.BackgroundColor3=bgColor
-					d.BackgroundTransparency=0.15
-					if not d:FindFirstChildWhichIsA("UIStroke") then
-						local s=Instance.new("UIStroke")
-						s.Color=Color3.fromRGB(255,255,255)
-						s.Thickness=1
-						s.Transparency=0.7
-						s.Parent=d
-					end
-				end
+				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then d.BackgroundColor3=bgColor end
 				if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
-					d.TextColor3=TxtColor; d.Font=Enum.Font.GothamMedium
+					d.TextColor3=TxtColor; d.BackgroundColor3=bgColor; d.Font=Enum.Font.GothamMedium
 				end
 			end) end
 		end
@@ -76,12 +66,24 @@ local TipFrame,TipLbl,OdysseyMainRef,OdysseyGradient
 local function ApplyTheme(name)
 	local theme=Themes[name]
 	if not theme then return end
+	local newSeq=ColorSequence.new({
+		ColorSequenceKeypoint.new(0,theme.c1),
+		ColorSequenceKeypoint.new(0.5,theme.c2),
+		ColorSequenceKeypoint.new(1,theme.c3),
+	})
+	-- Update the tracked gradient object directly
 	if OdysseyGradient then
-		OdysseyGradient.Color=ColorSequence.new({
-			ColorSequenceKeypoint.new(0,theme.c1),
-			ColorSequenceKeypoint.new(0.5,theme.c2),
-			ColorSequenceKeypoint.new(1,theme.c3),
-		})
+		pcall(function() OdysseyGradient.Color=newSeq end)
+	end
+	-- Fallback: also look up the gradient fresh from the Main frame in case the reference went stale
+	if OdysseyMainRef then
+		pcall(function()
+			local grad=OdysseyMainRef:FindFirstChildOfClass("UIGradient")
+			if grad then
+				grad.Color=newSeq
+				OdysseyGradient=grad
+			end
+		end)
 	end
 	currentLT2BG=theme.LT2BG
 	currentThemeColors={c1=theme.c1,c2=theme.c2,c3=theme.c3}
