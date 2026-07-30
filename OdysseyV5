@@ -42,9 +42,15 @@ local currentThemeColors={c1=Color3.fromRGB(10,90,180),c2=Color3.fromRGB(20,150,
 local function ApplyLT2Theme(bgColor)
 	if not lt2ThemeEnabled then return end
 	local TxtColor=Color3.fromRGB(255,255,255)
+	local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920,1080)
 	for _,v in next,Players.LocalPlayer.PlayerGui:GetChildren() do
 		if v.Name~="Chat" and v.Name~="OdysseyUI" and v.Name~="OdysseyTip" and v.Name~="OdysseyNotif" then
 			for _,d in next,v:GetDescendants() do pcall(function()
+				-- Skip large full-screen overlays (fades, transitions) to avoid blacking out the game
+				if d:IsA("GuiObject") then
+					local sz=d.AbsoluteSize
+					if sz.X>=viewport.X*0.85 and sz.Y>=viewport.Y*0.85 then return end
+				end
 				if not d:FindFirstChild("UICorner") then
 					if d:IsA("Frame") or d:IsA("TextButton") or d:IsA("ScrollingFrame") then
 						Instance.new("UICorner",d).CornerRadius=UDim.new(0,6)
