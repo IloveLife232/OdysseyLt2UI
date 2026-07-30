@@ -29,17 +29,16 @@ local T={
 Odyssey.Theme=T
 
 local Themes={
-	["Ocean"]={c1=Color3.fromRGB(20,180,120),c2=Color3.fromRGB(10,210,160),c3=Color3.fromRGB(20,150,230),LT2BG=Color3.fromRGB(20,90,110)},
-	["Sunset"]={c1=Color3.fromRGB(255,140,70),c2=Color3.fromRGB(240,60,140),c3=Color3.fromRGB(150,50,230),LT2BG=Color3.fromRGB(120,50,90)},
-	["Cosmic"]={c1=Color3.fromRGB(90,40,220),c2=Color3.fromRGB(140,60,255),c3=Color3.fromRGB(30,150,255),LT2BG=Color3.fromRGB(60,30,130)},
-	["Forest"]={c1=Color3.fromRGB(20,150,50),c2=Color3.fromRGB(40,210,110),c3=Color3.fromRGB(10,160,130),LT2BG=Color3.fromRGB(20,100,60)},
-	["Ember"]={c1=Color3.fromRGB(230,50,10),c2=Color3.fromRGB(255,140,20),c3=Color3.fromRGB(210,40,120),LT2BG=Color3.fromRGB(150,55,25)},
-	["Rose"]={c1=Color3.fromRGB(240,40,120),c2=Color3.fromRGB(255,120,170),c3=Color3.fromRGB(180,50,220),LT2BG=Color3.fromRGB(130,45,90)},
-	["Midnight"]={c1=Color3.fromRGB(30,20,90),c2=Color3.fromRGB(70,40,180),c3=Color3.fromRGB(110,50,220),LT2BG=Color3.fromRGB(45,30,90)},
+	["Ocean"]={c1=Color3.fromRGB(10,90,180),c2=Color3.fromRGB(20,150,220),c3=Color3.fromRGB(10,190,210),LT2BG=Color3.fromRGB(20,110,200)},
+	["Sunset"]={c1=Color3.fromRGB(255,140,60),c2=Color3.fromRGB(255,90,110),c3=Color3.fromRGB(220,60,150),LT2BG=Color3.fromRGB(230,90,120)},
+	["Forest"]={c1=Color3.fromRGB(20,120,40),c2=Color3.fromRGB(50,180,80),c3=Color3.fromRGB(15,150,110),LT2BG=Color3.fromRGB(30,150,70)},
+	["Ember"]={c1=Color3.fromRGB(200,30,10),c2=Color3.fromRGB(255,110,20),c3=Color3.fromRGB(255,170,40),LT2BG=Color3.fromRGB(230,90,25)},
+	["Cosmic"]={c1=Color3.fromRGB(80,30,190),c2=Color3.fromRGB(140,50,230),c3=Color3.fromRGB(40,110,255),LT2BG=Color3.fromRGB(100,50,220)},
 }
 
 local lt2ThemeEnabled=true
-local currentLT2BG=Color3.fromRGB(20,45,50)
+local currentLT2BG=Color3.fromRGB(20,110,200)
+local currentThemeColors={c1=Color3.fromRGB(10,90,180),c2=Color3.fromRGB(20,150,220),c3=Color3.fromRGB(10,190,210)}
 local function ApplyLT2Theme(bgColor)
 	if not lt2ThemeEnabled then return end
 	local TxtColor=Color3.fromRGB(255,255,255)
@@ -48,13 +47,23 @@ local function ApplyLT2Theme(bgColor)
 			for _,d in next,v:GetDescendants() do pcall(function()
 				if not d:FindFirstChild("UICorner") then
 					if d:IsA("Frame") or d:IsA("TextButton") or d:IsA("ScrollingFrame") then
-						Instance.new("UICorner",d).CornerRadius=UDim.new(0,6)
+						Instance.new("UICorner",d).CornerRadius=UDim.new(0,8)
 					end
 				end
 				if d.Name=="DropShadow" then d:Destroy() end
-				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then d.BackgroundColor3=bgColor end
+				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then
+					d.BackgroundColor3=bgColor
+					d.BackgroundTransparency=0.15
+					if not d:FindFirstChildWhichIsA("UIStroke") then
+						local s=Instance.new("UIStroke")
+						s.Color=Color3.fromRGB(255,255,255)
+						s.Thickness=1
+						s.Transparency=0.7
+						s.Parent=d
+					end
+				end
 				if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
-					d.TextColor3=TxtColor; d.BackgroundColor3=bgColor; d.Font=Enum.Font.GothamMedium
+					d.TextColor3=TxtColor; d.Font=Enum.Font.GothamMedium
 				end
 			end) end
 		end
@@ -75,6 +84,7 @@ local function ApplyTheme(name)
 		})
 	end
 	currentLT2BG=theme.LT2BG
+	currentThemeColors={c1=theme.c1,c2=theme.c2,c3=theme.c3}
 	ApplyLT2Theme(currentLT2BG)
 end
 
@@ -257,7 +267,7 @@ function Tab:CreateToggle(opts)
 	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
 	_div(self._list,self._order); self._order=self._order+1
 	local hit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=topRow})
-	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip,true,topRow) end
+	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
 	hit.MouseButton1Click:Connect(function()
 		enabled=not enabled
 		local ti=TweenInfo.new(0.15)
@@ -313,7 +323,7 @@ function Tab:CreateSlider(opts)
 	Corner(fill,3)
 	local thumbBtn=New("TextButton",{Text="",Size=UDim2.new(0,14,0,14),Position=UDim2.new(pct,-7,0.5,-7),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,AutoButtonColor=false,Parent=trackF})
 	Corner(thumbBtn,7)
-	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip,true,topRow) end
+	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
 	_div(self._list,self._order); self._order=self._order+1
 	local dragging=false
 	thumbBtn.MouseButton1Down:Connect(function() dragging=true end)
@@ -632,7 +642,7 @@ function Window:CreateTab(opts)
 end
 
 function Window:_buildHomeTab(gameName)
-	local tab=self:CreateTab({Icon="H",Name="Home",ShowTitle=false})
+	local tab=self:CreateTab({Icon="🏠",Name="Home",ShowTitle=false})
 	local execName="Unknown"
 	pcall(function()
 		if syn then execName="Synapse X"
@@ -646,8 +656,8 @@ function Window:_buildHomeTab(gameName)
 	Corner(welcomeP,12); GlassStroke(welcomeP,0.7); Pad(welcomeP,11,14,11,14)
 	local wvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=welcomeP})
 	VList(wvl,4)
-	New("TextLabel",{Text="Welcome to Odyssey",TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=wvl})
-	New("TextLabel",{Text="A feature-rich Lua UI script built for Lumber Tycoon 2.",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,LayoutOrder=1,Parent=wvl})
+	New("TextLabel",{Text="Welcome back to Odyssey 🌲",TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=wvl})
+	New("TextLabel",{Text="Your all-in-one companion for Lumber Tycoon 2 — live stats, tools, and more.",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,LayoutOrder=1,Parent=wvl})
 	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.75,BorderSizePixel=0,LayoutOrder=2,Parent=wvl})
 	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Blank",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
 
@@ -831,12 +841,17 @@ end
 function Window:Notify(nopts)
 	nopts=nopts or {}
 	local ng=New("ScreenGui",{Name="OdysseyNotif",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-	local f=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Position=UDim2.new(1,-275,1,-10),AnchorPoint=Vector2.new(0,1),Parent=ng})
-	Corner(f,13); GlassStroke(f,0.6); Pad(f,10,12,10,12)
+	local f=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.new(1,-275,1,-10),AnchorPoint=Vector2.new(0,1),Parent=ng})
+	Corner(f,13); GlassStroke(f,0.5); Pad(f,10,12,10,12)
+	local ngrad=Instance.new("UIGradient")
+	ngrad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,currentThemeColors.c1),ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),ColorSequenceKeypoint.new(1,currentThemeColors.c3)})
+	ngrad.Rotation=120
+	ngrad.Parent=f
+	f.BackgroundTransparency=0.15
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
 	VList(vl,4)
-	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	New("TextLabel",{Text=nopts.Content or "",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
+	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=12,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+	New("TextLabel",{Text=nopts.Content or "",TextSize=10,TextColor3=Color3.fromRGB(230,240,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
 	task.delay(nopts.Duration or 4,function() ng:Destroy() end)
 end
 
@@ -868,9 +883,10 @@ function Window:CreateDiscordButton(opts)
 	opts=opts or {}
 	local parent=self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
-	local btn=New("TextButton",{Text=opts.Label or "Join Discord Server",TextSize=11,TextColor3=T.White,BackgroundColor3=Color3.fromRGB(88,101,242),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,36),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
-	Corner(btn,11); GlassStroke(btn,0.5)
-	AddTooltip(btn,"Click to copy the Discord invite link",true,btn)
+	local btn=New("TextButton",{Text="💬  "..(opts.Label or "Join Discord Server"),TextSize=11,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,36),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
+	Corner(btn,11); GlassStroke(btn,0.7)
+	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.7}):Play() end)
+	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.85}):Play() end)
 	btn.MouseButton1Click:Connect(function() if opts.Callback then opts.Callback() end end)
 end
 function Odyssey:CreateWindow(opts)
@@ -896,9 +912,9 @@ function Odyssey:CreateWindow(opts)
 	OdysseyMainRef=Main
 	OdysseyGradient=Instance.new("UIGradient")
 	OdysseyGradient.Color=ColorSequence.new({
-		ColorSequenceKeypoint.new(0,Color3.fromRGB(20,180,120)),
-		ColorSequenceKeypoint.new(0.5,Color3.fromRGB(10,210,160)),
-		ColorSequenceKeypoint.new(1,Color3.fromRGB(20,150,230)),
+		ColorSequenceKeypoint.new(0,Color3.fromRGB(10,90,180)),
+		ColorSequenceKeypoint.new(0.5,Color3.fromRGB(20,150,220)),
+		ColorSequenceKeypoint.new(1,Color3.fromRGB(10,190,210)),
 	})
 	OdysseyGradient.Rotation=120
 	OdysseyGradient.Parent=Main
@@ -907,7 +923,7 @@ function Odyssey:CreateWindow(opts)
 	MakeDraggable(Main,TopBar)
 	local LogoCircle=New("Frame",{Size=UDim2.new(0,32,0,32),Position=UDim2.new(0,14,0.5,-16),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.1,BorderSizePixel=0,Parent=TopBar})
 	Corner(LogoCircle,16); GlassStroke(LogoCircle,0.4)
-	New("TextLabel",{Text="T",TextSize=15,TextColor3=Color3.fromRGB(20,20,20),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=LogoCircle})
+	New("TextLabel",{Text="🌲",TextSize=15,TextColor3=Color3.fromRGB(20,20,20),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=LogoCircle})
 	New("TextLabel",{Text=name,TextSize=15,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,180,0,18),Position=UDim2.new(0,54,0.5,-14),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar})
 
 	local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,26,0,26),Position=UDim2.new(1,-64,0.5,-13),AutoButtonColor=false,Parent=TopBar})
@@ -952,7 +968,7 @@ function Odyssey:CreateWindow(opts)
 	local settingsBtnData={btn=nil,page=settingsPage}
 	local settingsTab=setmetatable({_list=settingsListF,_order=0,_tabData=settingsBtnData,_win=win},Tab)
 
-	local settingsOrb=New("TextButton",{Text="S",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=999,AutoButtonColor=false,Parent=OrbScroll})
+	local settingsOrb=New("TextButton",{Text="⚙",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=999,AutoButtonColor=false,Parent=OrbScroll})
 	Corner(settingsOrb,22); GlassStroke(settingsOrb,0.75); AddTooltip(settingsOrb,"Settings")
 	settingsBtnData.btn=settingsOrb
 	settingsTab._win=win
