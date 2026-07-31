@@ -1,4 +1,4 @@
-
+-- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -1092,6 +1092,7 @@ function Odyssey:CreateWindow(opts)
 			if not t then return end
 			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,t.c1),ColorSequenceKeypoint.new(0.5,t.c2),ColorSequenceKeypoint.new(1,t.c3)})
 			currentLT2BG=t.LT2BG or t.c2
+			if t.accent then T.Accent=t.accent; T.AccentHov=t.accent end
 		end
 
 		if OdysseyMainRef then
@@ -1124,6 +1125,21 @@ function Odyssey:CreateWindow(opts)
 		end,
 	})
 
+	settingsTab:CreateToggle({
+		Name="LT2 theme",
+		Description="Apply theme colors to LT2 game menus",
+		CurrentValue=true,
+		Tooltip="Toggle LT2 menu recolor",
+		Callback=function(v)
+			lt2ThemeEnabled=v
+			if v then
+				task.spawn(function() ApplyLT2Theme(currentLT2BG) end)
+			else
+				task.spawn(function() RevertLT2Theme() end)
+			end
+		end,
+	})
+
 	-- ===== CUSTOM THEME CREATOR =====
 	local CUSTOM_THEME_FOLDER="OdysseyConfigs/CustomThemes"
 	local function ensureCustomThemeFolder()
@@ -1136,6 +1152,7 @@ function Odyssey:CreateWindow(opts)
 	local customC1=Color3.fromRGB(255,255,255)
 	local customC2=Color3.fromRGB(180,180,180)
 	local customC3=Color3.fromRGB(100,100,100)
+	local customAccent=Color3.fromRGB(255,255,255)
 	local customNameValue="MyTheme"
 
 	settingsTab:CreateSection("CUSTOM THEME")
@@ -1145,48 +1162,36 @@ function Odyssey:CreateWindow(opts)
 		Callback=function(v) if v~="" then customNameValue=v end end,
 	})
 
-	-- Live gradient preview showing exactly what the UI will look like
-	local previewRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,50),LayoutOrder=settingsTab._order,Parent=settingsTab._list})
-	settingsTab._order=settingsTab._order+1
-	local previewBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=customC1,BorderSizePixel=0,Parent=previewRow})
-	Corner(previewBox,10); GlassStroke(previewBox,0.6)
-	local previewGrad=Instance.new("UIGradient")
-	previewGrad.Rotation=120
-	previewGrad.Parent=previewBox
-	local previewLbl=New("TextLabel",{Text="Preview",TextSize=9,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=previewBox})
-
-	local function updatePreview()
-		previewGrad.Color=ColorSequence.new({
-			ColorSequenceKeypoint.new(0,customC1),
-			ColorSequenceKeypoint.new(0.5,customC2),
-			ColorSequenceKeypoint.new(1,customC3),
-		})
-	end
-	updatePreview()
-
 	settingsTab:CreateColorPicker({
 		Name="Gradient Start",
 		Color=customC1,
-		Callback=function(v) customC1=v; updatePreview() end,
+		Callback=function(v) customC1=v end,
 	})
 	settingsTab:CreateColorPicker({
 		Name="Gradient Middle",
 		Color=customC2,
-		Callback=function(v) customC2=v; updatePreview() end,
+		Callback=function(v) customC2=v end,
 	})
 	settingsTab:CreateColorPicker({
 		Name="Gradient End",
 		Color=customC3,
-		Callback=function(v) customC3=v; updatePreview() end,
+		Callback=function(v) customC3=v end,
+	})
+	settingsTab:CreateColorPicker({
+		Name="Accent Color",
+		Color=customAccent,
+		Tooltip="Controls buttons, sliders, toggles and text highlights",
+		Callback=function(v) customAccent=v end,
 	})
 
-	local function saveCustomTheme(themeName,c1,c2,c3)
+	local function saveCustomTheme(themeName,c1,c2,c3,accent)
 		pcall(function()
 			ensureCustomThemeFolder()
 			local data={
 				c1={c1.R*255,c1.G*255,c1.B*255},
 				c2={c2.R*255,c2.G*255,c2.B*255},
 				c3={c3.R*255,c3.G*255,c3.B*255},
+				accent={accent.R*255,accent.G*255,accent.B*255},
 			}
 			writefile(CUSTOM_THEME_FOLDER.."/"..themeName..".json",game:GetService("HttpService"):JSONEncode(data))
 		end)
@@ -1200,11 +1205,13 @@ function Odyssey:CreateWindow(opts)
 				if themeName and not Themes[themeName] then
 					local ok,data=pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(fname)) end)
 					if ok and data and data.c1 and data.c2 and data.c3 then
+						local accentCol = data.accent and Color3.fromRGB(data.accent[1],data.accent[2],data.accent[3]) or Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3])
 						Themes[themeName]={
 							c1=Color3.fromRGB(data.c1[1],data.c1[2],data.c1[3]),
 							c2=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3]),
 							c3=Color3.fromRGB(data.c3[1],data.c3[2],data.c3[3]),
 							LT2BG=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3]),
+							accent=accentCol,
 						}
 						table.insert(themeNames,themeName)
 						table.sort(themeNames)
@@ -1220,8 +1227,8 @@ function Odyssey:CreateWindow(opts)
 		Tooltip="Adds your 3 chosen colors as a new selectable theme",
 		Callback=function()
 			if customNameValue=="" then return end
-			Themes[customNameValue]={c1=customC1,c2=customC2,c3=customC3,LT2BG=customC2}
-			saveCustomTheme(customNameValue,customC1,customC2,customC3)
+			Themes[customNameValue]={c1=customC1,c2=customC2,c3=customC3,LT2BG=customC2,accent=customAccent}
+			saveCustomTheme(customNameValue,customC1,customC2,customC3,customAccent)
 			table.insert(themeNames,customNameValue)
 			table.sort(themeNames)
 			themeDD:Set({Options=themeNames})
@@ -1229,22 +1236,24 @@ function Odyssey:CreateWindow(opts)
 		end,
 	})
 
-	loadCustomThemesFromFolder()
-	if #themeNames>10 then themeDD:Set({Options=themeNames}) end
-	settingsTab:CreateToggle({
-		Name="LT2 theme",
-		Description="Apply theme colors to LT2 game menus",
-		CurrentValue=true,
-		Tooltip="Toggle LT2 menu recolor",
-		Callback=function(v)
-			lt2ThemeEnabled=v
-			if v then
-				task.spawn(function() ApplyLT2Theme(currentLT2BG) end)
-			else
-				task.spawn(function() RevertLT2Theme() end)
-			end
+	settingsTab:CreateButton({
+		Name="Copy custom theme code",
+		Description="Copies a Lua table snippet of your current custom colors to your clipboard",
+		Tooltip="Paste this into the theme table to share or reuse it",
+		Callback=function()
+			local function toRGB(c) return math.floor(c.R*255)..","..math.floor(c.G*255)..","..math.floor(c.B*255) end
+			local code = "[\""..customNameValue.."\"]={c1=Color3.fromRGB("..toRGB(customC1)..
+				"),c2=Color3.fromRGB("..toRGB(customC2)..
+				"),c3=Color3.fromRGB("..toRGB(customC3)..
+				"),LT2BG=Color3.fromRGB("..toRGB(customC2)..
+				"),accent=Color3.fromRGB("..toRGB(customAccent).."),},"
+			pcall(function() setclipboard(code) end)
+			win:Notify({Title="Copied",Content="Custom theme code copied to clipboard!",Duration=3})
 		end,
 	})
+
+	loadCustomThemesFromFolder()
+	if #themeNames>10 then themeDD:Set({Options=themeNames}) end
 
 	settingsTab:CreateSection("GAMEPLAY")
 	local antiAFKEnabled=true
