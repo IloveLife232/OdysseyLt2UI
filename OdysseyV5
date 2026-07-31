@@ -1,4 +1,4 @@
--- Odyssey UI Library v4 (Orb Nav + Gradient)
+
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -221,7 +221,7 @@ local function AddTooltip(obj,text,showIcon,iconParent)
 		TipFrame.Visible=true
 	end
 	if showIcon and iconParent then
-		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=UDim2.new(1,-17,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
+		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
 		Corner(ib,8)
 		GlassStroke(ib,0.6)
 		ib.MouseEnter:Connect(function() showTip() end)
