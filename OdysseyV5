@@ -1,4 +1,4 @@
-
+-- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -19,7 +19,7 @@ local T={
 	GreenDim=Color3.fromRGB(35,90,60),
 	Text=Color3.fromRGB(255,255,255),
 	TextDim=Color3.fromRGB(220,235,230),
-	TextMuted=Color3.fromRGB(190,215,208),
+	TextMuted=Color3.fromRGB(220,225,235),
 	Red=Color3.fromRGB(255,120,110),
 	Yellow=Color3.fromRGB(255,210,110),
 	Blue=Color3.fromRGB(150,200,255),
@@ -306,7 +306,6 @@ function Tab:CreateToggle(opts)
 	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
 	_div(self._list,self._order); self._order=self._order+1
 	local hit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=topRow})
-	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
 	hit.MouseButton1Click:Connect(function()
 		enabled=not enabled
 		local ti=TweenInfo.new(0.15)
@@ -362,7 +361,6 @@ function Tab:CreateSlider(opts)
 	Corner(fill,3)
 	local thumbBtn=New("TextButton",{Text="",Size=UDim2.new(0,14,0,14),Position=UDim2.new(pct,-7,0.5,-7),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,AutoButtonColor=false,Parent=trackF})
 	Corner(thumbBtn,7)
-	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
 	_div(self._list,self._order); self._order=self._order+1
 	local dragging=false
 	thumbBtn.MouseButton1Down:Connect(function() dragging=true end)
@@ -1331,7 +1329,7 @@ function Odyssey:CreateWindow(opts)
 	makeConfigBtn("Delete config","Permanently delete saved config",function() pcall(function() if isfile(CONFIG_PATH) then delfile(CONFIG_PATH) end end); win:Notify({Title="Config",Content="Config deleted",Duration=3}) end)
 
 	settingsTab:CreateSection("CREDITS")
-	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: Odyssey team\nUI Library: Odyssey Lib v4\nTesters: placeholder"})
+	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: IHateSchool & Vaxeal\nUI Library: Odyssey Lib v3\nTesters: Pete <3, Nazab, Gludy, Skat3"})
 
 	function win:Notify(nopts2) Window.Notify(self,nopts2) end
 	function win:SetKeybind(key) toggleKey=key end
