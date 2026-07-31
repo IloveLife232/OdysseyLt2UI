@@ -1,3 +1,4 @@
+
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -42,10 +43,10 @@ local Themes={
 -- Custom themes loaded from file get merged into this table at runtime
 
 local lt2ThemeEnabled=true
-local currentLT2BG=Color3.fromRGB(100,50,220)
-local currentThemeColors={c1=Color3.fromRGB(80,30,190),c2=Color3.fromRGB(140,50,230),c3=Color3.fromRGB(40,110,255)}
+local currentLT2BG=Color3.fromRGB(70,90,130)
+local currentThemeColors={c1=Color3.fromRGB(74,108,174),c2=Color3.fromRGB(90,90,140),c3=Color3.fromRGB(50,50,78)}
 -- Tracks original colors so we can restore them when LT2 theme is turned off
-local OriginalColors=setmetatable({},{__mode="k"})
+local OriginalColors={}
 
 local function ApplyLT2Theme(bgColor)
 	if not lt2ThemeEnabled then return end
@@ -946,14 +947,14 @@ function Odyssey:CreateWindow(opts)
 	Corner(TipFrame,10); GlassStroke(TipFrame,0.6); Pad(TipFrame,6,10,6,10)
 	TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
 
-	local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=Color3.fromRGB(80,30,190),BorderSizePixel=0,Parent=Gui})
+	local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=Color3.fromRGB(90,90,140),BorderSizePixel=0,Parent=Gui})
 	Corner(Main,20)
 	OdysseyMainRef=Main
 	OdysseyGradient=Instance.new("UIGradient")
 	OdysseyGradient.Color=ColorSequence.new({
-		ColorSequenceKeypoint.new(0,Color3.fromRGB(80,30,190)),
-		ColorSequenceKeypoint.new(0.5,Color3.fromRGB(140,50,230)),
-		ColorSequenceKeypoint.new(1,Color3.fromRGB(40,110,255)),
+		ColorSequenceKeypoint.new(0,Color3.fromRGB(74,108,174)),
+		ColorSequenceKeypoint.new(0.5,Color3.fromRGB(90,90,140)),
+		ColorSequenceKeypoint.new(1,Color3.fromRGB(50,50,78)),
 	})
 	OdysseyGradient.Rotation=120
 	OdysseyGradient.Parent=Main
@@ -1111,11 +1112,11 @@ function Odyssey:CreateWindow(opts)
 		ApplyLT2Theme(currentLT2BG)
 	end
 
-	local themeNames={"Ocean","Forest","Cosmic","Blossom","Crimson","Gold","Slate","Mint","Citrus","Electric"}
+	local themeNames={"Blossom","Citrus","Cosmic","Crimson","Electric","Forest","Gold","Mint","Ocean","Slate"}
 	local themeDD=settingsTab:CreateDropdown({
 		Name="UI Theme",
 		Options=themeNames,
-		CurrentOption="Cosmic",
+		CurrentOption="Slate",
 		Tooltip="Change the gradient theme",
 		Callback=function(v)
 			ApplyThemeDirect(v)
@@ -1143,20 +1144,40 @@ function Odyssey:CreateWindow(opts)
 		PlaceholderText="Enter a name...",
 		Callback=function(v) if v~="" then customNameValue=v end end,
 	})
+
+	-- Live gradient preview showing exactly what the UI will look like
+	local previewRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,50),LayoutOrder=settingsTab._order,Parent=settingsTab._list})
+	settingsTab._order=settingsTab._order+1
+	local previewBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=customC1,BorderSizePixel=0,Parent=previewRow})
+	Corner(previewBox,10); GlassStroke(previewBox,0.6)
+	local previewGrad=Instance.new("UIGradient")
+	previewGrad.Rotation=120
+	previewGrad.Parent=previewBox
+	local previewLbl=New("TextLabel",{Text="Preview",TextSize=9,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=previewBox})
+
+	local function updatePreview()
+		previewGrad.Color=ColorSequence.new({
+			ColorSequenceKeypoint.new(0,customC1),
+			ColorSequenceKeypoint.new(0.5,customC2),
+			ColorSequenceKeypoint.new(1,customC3),
+		})
+	end
+	updatePreview()
+
 	settingsTab:CreateColorPicker({
-		Name="Color 1",
+		Name="Gradient Start",
 		Color=customC1,
-		Callback=function(v) customC1=v end,
+		Callback=function(v) customC1=v; updatePreview() end,
 	})
 	settingsTab:CreateColorPicker({
-		Name="Color 2",
+		Name="Gradient Middle",
 		Color=customC2,
-		Callback=function(v) customC2=v end,
+		Callback=function(v) customC2=v; updatePreview() end,
 	})
 	settingsTab:CreateColorPicker({
-		Name="Color 3",
+		Name="Gradient End",
 		Color=customC3,
-		Callback=function(v) customC3=v end,
+		Callback=function(v) customC3=v; updatePreview() end,
 	})
 
 	local function saveCustomTheme(themeName,c1,c2,c3)
@@ -1186,6 +1207,7 @@ function Odyssey:CreateWindow(opts)
 							LT2BG=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3]),
 						}
 						table.insert(themeNames,themeName)
+						table.sort(themeNames)
 					end
 				end
 			end
@@ -1201,6 +1223,7 @@ function Odyssey:CreateWindow(opts)
 			Themes[customNameValue]={c1=customC1,c2=customC2,c3=customC3,LT2BG=customC2}
 			saveCustomTheme(customNameValue,customC1,customC2,customC3)
 			table.insert(themeNames,customNameValue)
+			table.sort(themeNames)
 			themeDD:Set({Options=themeNames})
 			win:Notify({Title="Custom Theme",Content="\""..customNameValue.."\" saved and added!",Duration=3})
 		end,
