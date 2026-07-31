@@ -1,4 +1,3 @@
--- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -39,6 +38,9 @@ local Themes={
 local lt2ThemeEnabled=true
 local currentLT2BG=Color3.fromRGB(20,110,200)
 local currentThemeColors={c1=Color3.fromRGB(10,90,180),c2=Color3.fromRGB(20,150,220),c3=Color3.fromRGB(10,190,210)}
+-- Tracks original colors so we can restore them when LT2 theme is turned off
+local OriginalColors=setmetatable({},{__mode="k"})
+
 local function ApplyLT2Theme(bgColor)
 	if not lt2ThemeEnabled then return end
 	local TxtColor=Color3.fromRGB(255,255,255)
@@ -57,18 +59,41 @@ local function ApplyLT2Theme(bgColor)
 					end
 				end
 				if d.Name=="DropShadow" then d:Destroy() end
-				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then d.BackgroundColor3=bgColor end
+				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then
+					-- Save the original color the first time we ever touch this element
+					if not OriginalColors[d] then
+						OriginalColors[d]={bg=d.BackgroundColor3}
+					end
+					d.BackgroundColor3=bgColor
+				end
 				if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
+					if not OriginalColors[d] then
+						OriginalColors[d]={bg=d.BackgroundColor3,text=d.TextColor3}
+					elseif OriginalColors[d].text==nil then
+						OriginalColors[d].text=d.TextColor3
+					end
 					d.TextColor3=TxtColor; d.BackgroundColor3=bgColor; d.Font=Enum.Font.GothamMedium
 				end
 			end) end
 		end
 	end
 end
+
+local function RevertLT2Theme()
+	for d,orig in pairs(OriginalColors) do
+		pcall(function()
+			if d and d.Parent then
+				if orig.bg then d.BackgroundColor3=orig.bg end
+				if orig.text then d.TextColor3=orig.text end
+			end
+		end)
+	end
+end
+
 Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function() task.wait(0.1); if lt2ThemeEnabled then ApplyLT2Theme(currentLT2BG) end end)
 task.defer(function() if lt2ThemeEnabled then ApplyLT2Theme(currentLT2BG) end end)
 
-local TipFrame,TipLbl,OdysseyMainRef,OdysseyGradient
+local TipFrame,TipLbl,OdysseyMainRef,OdysseyGradient,OdysseyGuiRef
 local function ApplyTheme(name)
 	local theme=Themes[name]
 	if not theme then return end
@@ -77,19 +102,28 @@ local function ApplyTheme(name)
 		ColorSequenceKeypoint.new(0.5,theme.c2),
 		ColorSequenceKeypoint.new(1,theme.c3),
 	})
-	-- Update the tracked gradient object directly
-	if OdysseyGradient then
-		pcall(function() OdysseyGradient.Color=newSeq end)
-	end
-	-- Fallback: also look up the gradient fresh from the Main frame in case the reference went stale
-	if OdysseyMainRef then
+	local updated=false
+	-- Search the whole GUI tree for every "Main" frame's gradient and update all of them
+	-- (guards against stale references or duplicate windows)
+	if OdysseyGuiRef then
 		pcall(function()
-			local grad=OdysseyMainRef:FindFirstChildOfClass("UIGradient")
-			if grad then
-				grad.Color=newSeq
-				OdysseyGradient=grad
+			for _,obj in ipairs(OdysseyGuiRef:GetDescendants()) do
+				if obj:IsA("UIGradient") and obj.Parent and obj.Parent.Name=="Main" then
+					obj.Color=newSeq
+					updated=true
+				end
 			end
 		end)
+	end
+	-- Fallback to tracked references if the search above found nothing
+	if not updated then
+		if OdysseyGradient then pcall(function() OdysseyGradient.Color=newSeq end) end
+		if OdysseyMainRef then
+			pcall(function()
+				local grad=OdysseyMainRef:FindFirstChildOfClass("UIGradient")
+				if grad then grad.Color=newSeq end
+			end)
+		end
 	end
 	currentLT2BG=theme.LT2BG
 	currentThemeColors={c1=theme.c1,c2=theme.c2,c3=theme.c3}
@@ -650,7 +684,7 @@ function Window:CreateTab(opts)
 end
 
 function Window:_buildHomeTab(gameName)
-	local tab=self:CreateTab({Icon="🏠",Name="Home",ShowTitle=false})
+	local tab=self:CreateTab({Icon="⌂",Name="Home",ShowTitle=false})
 	local execName="Unknown"
 	pcall(function()
 		if syn then execName="Synapse X"
@@ -911,6 +945,7 @@ function Odyssey:CreateWindow(opts)
 	end
 
 	local Gui=New("ScreenGui",{Name="OdysseyUI",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
+	OdysseyGuiRef=Gui
 	TipFrame=New("Frame",{Size=UDim2.new(0,200,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=Gui})
 	Corner(TipFrame,10); GlassStroke(TipFrame,0.6); Pad(TipFrame,6,10,6,10)
 	TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
@@ -1037,19 +1072,7 @@ function Odyssey:CreateWindow(opts)
 			if v then
 				task.spawn(function() ApplyLT2Theme(currentLT2BG) end)
 			else
-				task.spawn(function()
-					local defaultBG=Color3.fromRGB(38,38,40)
-					for _,gui in next,Players.LocalPlayer.PlayerGui:GetChildren() do
-						if gui.Name~="Chat" and gui.Name~="OdysseyUI" and gui.Name~="OdysseyTip" and gui.Name~="OdysseyNotif" then
-							for _,d in next,gui:GetDescendants() do
-								pcall(function()
-									if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then d.BackgroundColor3=defaultBG end
-									if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then d.TextColor3=Color3.fromRGB(255,255,255); d.BackgroundColor3=defaultBG end
-								end)
-							end
-						end
-					end
-				end)
+				task.spawn(function() RevertLT2Theme() end)
 			end
 		end,
 	})
