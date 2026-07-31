@@ -1,3 +1,4 @@
+-- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -1050,53 +1051,75 @@ function Odyssey:CreateWindow(opts)
 	end)
 
 	settingsTab:CreateSection("THEME")
-	local themeRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list})
-	settingsTab._order=settingsTab._order+1
-	local themeGrid=Instance.new("UIGridLayout")
-	themeGrid.CellSize=UDim2.new(0.333,-4,0,32)
-	themeGrid.CellPadding=UDim2.new(0,6,0,6)
-	themeGrid.Parent=themeRow
 
-	local themeBtns={}
-	local function selectThemeVisual(activeName)
-		for tname,tbtn in pairs(themeBtns) do
-			if tname==activeName then
-				tbtn.BackgroundTransparency=0.1
-			else
-				tbtn.BackgroundTransparency=0.85
-			end
+	-- BULLETPROOF theme apply: directly builds and assigns the gradient inline,
+	-- no shared function/table indirection between theme name and its colors.
+	local function ApplyThemeDirect(themeName)
+		local seq
+		if themeName=="Ocean" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(10,90,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(20,150,220)),ColorSequenceKeypoint.new(1,Color3.fromRGB(10,190,210))})
+			currentLT2BG=Color3.fromRGB(20,110,200)
+		elseif themeName=="Forest" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(20,120,40)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(50,180,80)),ColorSequenceKeypoint.new(1,Color3.fromRGB(15,150,110))})
+			currentLT2BG=Color3.fromRGB(30,150,70)
+		elseif themeName=="Cosmic" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(80,30,190)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(140,50,230)),ColorSequenceKeypoint.new(1,Color3.fromRGB(40,110,255))})
+			currentLT2BG=Color3.fromRGB(100,50,220)
+		elseif themeName=="Blossom" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,92,160)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(200,80,220)),ColorSequenceKeypoint.new(1,Color3.fromRGB(122,60,240))})
+			currentLT2BG=Color3.fromRGB(180,70,200)
+		elseif themeName=="Crimson" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(140,10,30)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(200,20,80)),ColorSequenceKeypoint.new(1,Color3.fromRGB(160,30,160))})
+			currentLT2BG=Color3.fromRGB(170,25,90)
+		elseif themeName=="Gold" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,210,60)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(255,160,32)),ColorSequenceKeypoint.new(1,Color3.fromRGB(232,100,30))})
+			currentLT2BG=Color3.fromRGB(240,150,40)
+		elseif themeName=="Slate" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(74,108,174)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(90,90,140)),ColorSequenceKeypoint.new(1,Color3.fromRGB(50,50,78))})
+			currentLT2BG=Color3.fromRGB(70,90,130)
+		elseif themeName=="Mint" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(40,210,150)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(30,180,200)),ColorSequenceKeypoint.new(1,Color3.fromRGB(60,150,230))})
+			currentLT2BG=Color3.fromRGB(35,190,180)
+		elseif themeName=="Citrus" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(240,230,20)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(240,90,60)),ColorSequenceKeypoint.new(1,Color3.fromRGB(230,20,110))})
+			currentLT2BG=Color3.fromRGB(240,110,70)
+		elseif themeName=="Electric" then
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(0,210,255)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(58,92,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(138,30,255))})
+			currentLT2BG=Color3.fromRGB(48,110,255)
+		else
+			-- Custom theme fallback: look up from Themes table
+			local t=Themes[themeName]
+			if not t then return end
+			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,t.c1),ColorSequenceKeypoint.new(0.5,t.c2),ColorSequenceKeypoint.new(1,t.c3)})
+			currentLT2BG=t.LT2BG or t.c2
 		end
+
+		if OdysseyMainRef then
+			pcall(function()
+				for _,old in ipairs(OdysseyMainRef:GetChildren()) do
+					if old:IsA("UIGradient") then old:Destroy() end
+				end
+				local grad=Instance.new("UIGradient")
+				grad.Color=seq
+				grad.Rotation=120
+				grad.Parent=OdysseyMainRef
+				OdysseyGradient=grad
+			end)
+		end
+		ApplyLT2Theme(currentLT2BG)
 	end
 
-	local function makeThemeBtn(themeName)
-		local b=New("TextButton",{Text=themeName,TextSize=10,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,AutoButtonColor=false,Parent=themeRow})
-		Corner(b,9); GlassStroke(b,0.65)
-		b.MouseButton1Click:Connect(function()
-			ApplyTheme(themeName)
-			Odyssey.Flags["OdysseyTheme"]=themeName
-			selectThemeVisual(themeName)
-		end)
-		themeBtns[themeName]=b
-		return b
-	end
-
-	makeThemeBtn("Ocean")
-	makeThemeBtn("Forest")
-	makeThemeBtn("Cosmic")
-	makeThemeBtn("Blossom")
-	makeThemeBtn("Crimson")
-	makeThemeBtn("Gold")
-	makeThemeBtn("Slate")
-	makeThemeBtn("Mint")
-	makeThemeBtn("Citrus")
-	makeThemeBtn("Electric")
-	selectThemeVisual("Cosmic")
-
-	-- Keep a lightweight fake "themeDD" object so the rest of the code (auto-load) still works
-	local themeDD={}
-	function themeDD:Set(o)
-		if o.CurrentOption then selectThemeVisual(o.CurrentOption) end
-	end
+	local themeNames={"Ocean","Forest","Cosmic","Blossom","Crimson","Gold","Slate","Mint","Citrus","Electric"}
+	local themeDD=settingsTab:CreateDropdown({
+		Name="UI Theme",
+		Options=themeNames,
+		CurrentOption="Cosmic",
+		Tooltip="Change the gradient theme",
+		Callback=function(v)
+			ApplyThemeDirect(v)
+			Odyssey.Flags["OdysseyTheme"]=v
+		end,
+	})
 
 	-- ===== CUSTOM THEME CREATOR =====
 	local CUSTOM_THEME_FOLDER="OdysseyConfigs/CustomThemes"
@@ -1160,7 +1183,7 @@ function Odyssey:CreateWindow(opts)
 							c3=Color3.fromRGB(data.c3[1],data.c3[2],data.c3[3]),
 							LT2BG=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3]),
 						}
-						makeThemeBtn(themeName)
+						table.insert(themeNames,themeName)
 					end
 				end
 			end
@@ -1169,18 +1192,20 @@ function Odyssey:CreateWindow(opts)
 
 	settingsTab:CreateButton({
 		Name="Save custom theme",
-		Description="Saves your custom colors as a new theme and adds it to the list above",
-		Tooltip="Adds a new theme button using your 3 chosen colors",
+		Description="Saves your custom colors as a new theme and adds it to the dropdown above",
+		Tooltip="Adds your 3 chosen colors as a new selectable theme",
 		Callback=function()
 			if customNameValue=="" then return end
 			Themes[customNameValue]={c1=customC1,c2=customC2,c3=customC3,LT2BG=customC2}
 			saveCustomTheme(customNameValue,customC1,customC2,customC3)
-			makeThemeBtn(customNameValue)
+			table.insert(themeNames,customNameValue)
+			themeDD:Set({Options=themeNames})
 			win:Notify({Title="Custom Theme",Content="\""..customNameValue.."\" saved and added!",Duration=3})
 		end,
 	})
 
 	loadCustomThemesFromFolder()
+	if #themeNames>10 then themeDD:Set({Options=themeNames}) end
 	settingsTab:CreateToggle({
 		Name="LT2 theme",
 		Description="Apply theme colors to LT2 game menus",
@@ -1250,7 +1275,7 @@ function Odyssey:CreateWindow(opts)
 			loadConfig()
 			local savedTheme=Odyssey.Flags["OdysseyTheme"]
 			if savedTheme and Themes[savedTheme] then
-				ApplyTheme(savedTheme)
+				ApplyThemeDirect(savedTheme)
 				themeDD:Set({CurrentOption=savedTheme})
 			end
 		end)
