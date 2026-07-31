@@ -29,15 +29,21 @@ Odyssey.Theme=T
 
 local Themes={
 	["Ocean"]={c1=Color3.fromRGB(10,90,180),c2=Color3.fromRGB(20,150,220),c3=Color3.fromRGB(10,190,210),LT2BG=Color3.fromRGB(20,110,200)},
-	["Sunset"]={c1=Color3.fromRGB(255,140,60),c2=Color3.fromRGB(255,90,110),c3=Color3.fromRGB(220,60,150),LT2BG=Color3.fromRGB(230,90,120)},
 	["Forest"]={c1=Color3.fromRGB(20,120,40),c2=Color3.fromRGB(50,180,80),c3=Color3.fromRGB(15,150,110),LT2BG=Color3.fromRGB(30,150,70)},
-	["Ember"]={c1=Color3.fromRGB(200,30,10),c2=Color3.fromRGB(255,110,20),c3=Color3.fromRGB(255,170,40),LT2BG=Color3.fromRGB(230,90,25)},
 	["Cosmic"]={c1=Color3.fromRGB(80,30,190),c2=Color3.fromRGB(140,50,230),c3=Color3.fromRGB(40,110,255),LT2BG=Color3.fromRGB(100,50,220)},
+	["Blossom"]={c1=Color3.fromRGB(255,92,160),c2=Color3.fromRGB(200,80,220),c3=Color3.fromRGB(122,60,240),LT2BG=Color3.fromRGB(180,70,200)},
+	["Crimson"]={c1=Color3.fromRGB(140,10,30),c2=Color3.fromRGB(200,20,80),c3=Color3.fromRGB(160,30,160),LT2BG=Color3.fromRGB(170,25,90)},
+	["Gold"]={c1=Color3.fromRGB(255,210,60),c2=Color3.fromRGB(255,160,32),c3=Color3.fromRGB(232,100,30),LT2BG=Color3.fromRGB(240,150,40)},
+	["Slate"]={c1=Color3.fromRGB(74,108,174),c2=Color3.fromRGB(90,90,140),c3=Color3.fromRGB(50,50,78),LT2BG=Color3.fromRGB(70,90,130)},
+	["Mint"]={c1=Color3.fromRGB(40,210,150),c2=Color3.fromRGB(30,180,200),c3=Color3.fromRGB(60,150,230),LT2BG=Color3.fromRGB(35,190,180)},
+	["Citrus"]={c1=Color3.fromRGB(240,230,20),c2=Color3.fromRGB(240,90,60),c3=Color3.fromRGB(230,20,110),LT2BG=Color3.fromRGB(240,110,70)},
+	["Electric"]={c1=Color3.fromRGB(0,210,255),c2=Color3.fromRGB(58,92,255),c3=Color3.fromRGB(138,30,255),LT2BG=Color3.fromRGB(48,110,255)},
 }
+-- Custom themes loaded from file get merged into this table at runtime
 
 local lt2ThemeEnabled=true
-local currentLT2BG=Color3.fromRGB(20,110,200)
-local currentThemeColors={c1=Color3.fromRGB(10,90,180),c2=Color3.fromRGB(20,150,220),c3=Color3.fromRGB(10,190,210)}
+local currentLT2BG=Color3.fromRGB(100,50,220)
+local currentThemeColors={c1=Color3.fromRGB(80,30,190),c2=Color3.fromRGB(140,50,230),c3=Color3.fromRGB(40,110,255)}
 -- Tracks original colors so we can restore them when LT2 theme is turned off
 local OriginalColors=setmetatable({},{__mode="k"})
 
@@ -102,28 +108,18 @@ local function ApplyTheme(name)
 		ColorSequenceKeypoint.new(0.5,theme.c2),
 		ColorSequenceKeypoint.new(1,theme.c3),
 	})
-	local updated=false
-	-- Search the whole GUI tree for every "Main" frame's gradient and update all of them
-	-- (guards against stale references or duplicate windows)
-	if OdysseyGuiRef then
+	-- Destroy and recreate the gradient fresh to force a real repaint (mutating .Color alone can fail to refresh)
+	if OdysseyMainRef then
 		pcall(function()
-			for _,obj in ipairs(OdysseyGuiRef:GetDescendants()) do
-				if obj:IsA("UIGradient") and obj.Parent and obj.Parent.Name=="Main" then
-					obj.Color=newSeq
-					updated=true
-				end
+			for _,old in ipairs(OdysseyMainRef:GetChildren()) do
+				if old:IsA("UIGradient") then old:Destroy() end
 			end
+			local grad=Instance.new("UIGradient")
+			grad.Color=newSeq
+			grad.Rotation=120
+			grad.Parent=OdysseyMainRef
+			OdysseyGradient=grad
 		end)
-	end
-	-- Fallback to tracked references if the search above found nothing
-	if not updated then
-		if OdysseyGradient then pcall(function() OdysseyGradient.Color=newSeq end) end
-		if OdysseyMainRef then
-			pcall(function()
-				local grad=OdysseyMainRef:FindFirstChildOfClass("UIGradient")
-				if grad then grad.Color=newSeq end
-			end)
-		end
 	end
 	currentLT2BG=theme.LT2BG
 	currentThemeColors={c1=theme.c1,c2=theme.c2,c3=theme.c3}
@@ -950,14 +946,14 @@ function Odyssey:CreateWindow(opts)
 	Corner(TipFrame,10); GlassStroke(TipFrame,0.6); Pad(TipFrame,6,10,6,10)
 	TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
 
-	local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=Color3.fromRGB(20,180,120),BorderSizePixel=0,Parent=Gui})
+	local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=Color3.fromRGB(80,30,190),BorderSizePixel=0,Parent=Gui})
 	Corner(Main,20)
 	OdysseyMainRef=Main
 	OdysseyGradient=Instance.new("UIGradient")
 	OdysseyGradient.Color=ColorSequence.new({
-		ColorSequenceKeypoint.new(0,Color3.fromRGB(10,90,180)),
-		ColorSequenceKeypoint.new(0.5,Color3.fromRGB(20,150,220)),
-		ColorSequenceKeypoint.new(1,Color3.fromRGB(10,190,210)),
+		ColorSequenceKeypoint.new(0,Color3.fromRGB(80,30,190)),
+		ColorSequenceKeypoint.new(0.5,Color3.fromRGB(140,50,230)),
+		ColorSequenceKeypoint.new(1,Color3.fromRGB(40,110,255)),
 	})
 	OdysseyGradient.Rotation=120
 	OdysseyGradient.Parent=Main
@@ -1054,14 +1050,137 @@ function Odyssey:CreateWindow(opts)
 	end)
 
 	settingsTab:CreateSection("THEME")
-	local themeNames={"Ocean","Sunset","Cosmic","Forest","Ember"}
-	local themeDD=settingsTab:CreateDropdown({
-		Name="UI Theme",
-		Options=themeNames,
-		CurrentOption="Ocean",
-		Tooltip="Change the gradient theme",
-		Callback=function(v) ApplyTheme(v); Odyssey.Flags["OdysseyTheme"]=v end,
+	local themeRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=settingsTab._order,Parent=settingsTab._list})
+	settingsTab._order=settingsTab._order+1
+	local themeGrid=Instance.new("UIGridLayout")
+	themeGrid.CellSize=UDim2.new(0.333,-4,0,32)
+	themeGrid.CellPadding=UDim2.new(0,6,0,6)
+	themeGrid.Parent=themeRow
+
+	local themeBtns={}
+	local function selectThemeVisual(activeName)
+		for tname,tbtn in pairs(themeBtns) do
+			if tname==activeName then
+				tbtn.BackgroundTransparency=0.1
+			else
+				tbtn.BackgroundTransparency=0.85
+			end
+		end
+	end
+
+	local function makeThemeBtn(themeName)
+		local b=New("TextButton",{Text=themeName,TextSize=10,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,AutoButtonColor=false,Parent=themeRow})
+		Corner(b,9); GlassStroke(b,0.65)
+		b.MouseButton1Click:Connect(function()
+			ApplyTheme(themeName)
+			Odyssey.Flags["OdysseyTheme"]=themeName
+			selectThemeVisual(themeName)
+		end)
+		themeBtns[themeName]=b
+		return b
+	end
+
+	makeThemeBtn("Ocean")
+	makeThemeBtn("Forest")
+	makeThemeBtn("Cosmic")
+	makeThemeBtn("Blossom")
+	makeThemeBtn("Crimson")
+	makeThemeBtn("Gold")
+	makeThemeBtn("Slate")
+	makeThemeBtn("Mint")
+	makeThemeBtn("Citrus")
+	makeThemeBtn("Electric")
+	selectThemeVisual("Cosmic")
+
+	-- Keep a lightweight fake "themeDD" object so the rest of the code (auto-load) still works
+	local themeDD={}
+	function themeDD:Set(o)
+		if o.CurrentOption then selectThemeVisual(o.CurrentOption) end
+	end
+
+	-- ===== CUSTOM THEME CREATOR =====
+	local CUSTOM_THEME_FOLDER="OdysseyConfigs/CustomThemes"
+	local function ensureCustomThemeFolder()
+		pcall(function()
+			if not isfolder("OdysseyConfigs") then makefolder("OdysseyConfigs") end
+			if not isfolder(CUSTOM_THEME_FOLDER) then makefolder(CUSTOM_THEME_FOLDER) end
+		end)
+	end
+
+	local customC1=Color3.fromRGB(255,255,255)
+	local customC2=Color3.fromRGB(180,180,180)
+	local customC3=Color3.fromRGB(100,100,100)
+	local customNameValue="MyTheme"
+
+	settingsTab:CreateSection("CUSTOM THEME")
+	settingsTab:CreateInput({
+		Name="Theme name",
+		PlaceholderText="Enter a name...",
+		Callback=function(v) if v~="" then customNameValue=v end end,
 	})
+	settingsTab:CreateColorPicker({
+		Name="Color 1",
+		Color=customC1,
+		Callback=function(v) customC1=v end,
+	})
+	settingsTab:CreateColorPicker({
+		Name="Color 2",
+		Color=customC2,
+		Callback=function(v) customC2=v end,
+	})
+	settingsTab:CreateColorPicker({
+		Name="Color 3",
+		Color=customC3,
+		Callback=function(v) customC3=v end,
+	})
+
+	local function saveCustomTheme(themeName,c1,c2,c3)
+		pcall(function()
+			ensureCustomThemeFolder()
+			local data={
+				c1={c1.R*255,c1.G*255,c1.B*255},
+				c2={c2.R*255,c2.G*255,c2.B*255},
+				c3={c3.R*255,c3.G*255,c3.B*255},
+			}
+			writefile(CUSTOM_THEME_FOLDER.."/"..themeName..".json",game:GetService("HttpService"):JSONEncode(data))
+		end)
+	end
+
+	local function loadCustomThemesFromFolder()
+		pcall(function()
+			ensureCustomThemeFolder()
+			for _,fname in ipairs(listfiles(CUSTOM_THEME_FOLDER)) do
+				local themeName=fname:match("([^/\\]+)%.json$")
+				if themeName and not Themes[themeName] then
+					local ok,data=pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(fname)) end)
+					if ok and data and data.c1 and data.c2 and data.c3 then
+						Themes[themeName]={
+							c1=Color3.fromRGB(data.c1[1],data.c1[2],data.c1[3]),
+							c2=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3]),
+							c3=Color3.fromRGB(data.c3[1],data.c3[2],data.c3[3]),
+							LT2BG=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3]),
+						}
+						makeThemeBtn(themeName)
+					end
+				end
+			end
+		end)
+	end
+
+	settingsTab:CreateButton({
+		Name="Save custom theme",
+		Description="Saves your custom colors as a new theme and adds it to the list above",
+		Tooltip="Adds a new theme button using your 3 chosen colors",
+		Callback=function()
+			if customNameValue=="" then return end
+			Themes[customNameValue]={c1=customC1,c2=customC2,c3=customC3,LT2BG=customC2}
+			saveCustomTheme(customNameValue,customC1,customC2,customC3)
+			makeThemeBtn(customNameValue)
+			win:Notify({Title="Custom Theme",Content="\""..customNameValue.."\" saved and added!",Duration=3})
+		end,
+	})
+
+	loadCustomThemesFromFolder()
 	settingsTab:CreateToggle({
 		Name="LT2 theme",
 		Description="Apply theme colors to LT2 game menus",
