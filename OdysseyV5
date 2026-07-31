@@ -1,4 +1,3 @@
--- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -1096,6 +1095,9 @@ function Odyssey:CreateWindow(opts)
 
 		if OdysseyMainRef then
 			pcall(function()
+				-- Set solid background color FIRST as a guaranteed-visible base color
+				OdysseyMainRef.BackgroundColor3=seq.Keypoints[2].Value
+				-- Then layer the gradient on top for the multi-color effect
 				for _,old in ipairs(OdysseyMainRef:GetChildren()) do
 					if old:IsA("UIGradient") then old:Destroy() end
 				end
