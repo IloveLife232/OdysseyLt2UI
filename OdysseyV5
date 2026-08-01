@@ -62,6 +62,7 @@ local currentLT2BG=Color3.fromRGB(70,90,130)
 local currentThemeColors={c1=Color3.fromRGB(74,108,174),c2=Color3.fromRGB(90,90,140),c3=Color3.fromRGB(50,50,78)}
 -- Tracks original colors so we can restore them when LT2 theme is turned off
 local OriginalColors={}
+local ProgressBarGradients={}
 
 local function ApplyLT2Theme(bgColor)
 	if not lt2ThemeEnabled then return end
@@ -424,6 +425,16 @@ function Tab:CreateSlider(opts)
 	if flag then Odyssey.Flags[flag]=defV end
 	return api
 end
+
+-- Universal progress bar — automatically follows whatever theme gradient is active.
+-- Tab:CreateProgressBar({
+--     Name = "Wood Collected",
+--     Range = {0, 1000},        -- optional, defaults to {0,100}
+--     CurrentValue = 640,
+--     ShowPercent = false,      -- true shows "64%" instead of "640/1000"
+--     Description = "64% to next sell milestone", -- shown via info icon
+--     Flag = "OdysseyWoodProgress",
+-- })
 
 function Tab:CreateInput(opts)
 	opts=opts or {}
@@ -1065,6 +1076,66 @@ end
 
 function Window:SetKeybind(key) self._toggleKey=key end
 
+-- Standalone floating progress bar — its own glass panel, separate from the tabbed
+-- window, positioned bottom-left of the screen. Automatically follows whatever
+-- theme is active, and can be relabeled/reused across a sequence of tasks.
+-- local pb = Window:CreateProgressWidget({Name="Selling Wood...", CurrentValue=0})
+-- pb:Set({Value=50})
+-- pb:Set({Name="Selling Planks...", Value=0})
+-- pb:Destroy() -- removes it when done
+function Window:CreateProgressWidget(opts)
+	opts=opts or {}
+	local range=opts.Range or {0,100}
+	local minV,maxV=range[1],range[2]
+	local val=math.clamp(opts.CurrentValue or minV,minV,maxV)
+	local showPercent=opts.ShowPercent
+
+	local pg=New("ScreenGui",{Name="OdysseyProgress",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
+	local box=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0,16,1,-16),AnchorPoint=Vector2.new(0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=pg})
+	Corner(box,14); GlassStroke(box,0.5); Pad(box,12,14,12,14)
+	box.BackgroundTransparency=0.05
+	local grad=Instance.new("UIGradient")
+	grad.Color=ColorSequence.new({
+		ColorSequenceKeypoint.new(0,currentThemeColors.c1),
+		ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),
+		ColorSequenceKeypoint.new(1,currentThemeColors.c3),
+	})
+	grad.Rotation=120
+	grad.Parent=box
+	ProgressBarGradients[grad]=true
+
+	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=box})
+	VList(vl,7)
+	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
+	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.6,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
+	local function pctText()
+		local p=math.floor(((val-minV)/(maxV-minV))*100+0.5)
+		if showPercent then return p.."%" end
+		return math.floor(val).."/"..math.floor(maxV)
+	end
+	local valLbl=New("TextLabel",{Text=pctText(),TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.4,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
+	local track=New("Frame",{Size=UDim2.new(1,0,0,8),BackgroundColor3=Color3.fromRGB(0,0,0),BackgroundTransparency=0.68,BorderSizePixel=0,Parent=vl})
+	Corner(track,5)
+	local pct0=(val-minV)/(maxV-minV)
+	local fill=New("Frame",{Size=UDim2.new(pct0,0,1,0),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=track})
+	Corner(fill,5)
+
+	local api={}
+	function api:Set(o)
+		if o.Name~=nil then nameLbl.Text=o.Name end
+		if o.Range~=nil then minV=o.Range[1]; maxV=o.Range[2] end
+		if o.Value~=nil then
+			val=math.clamp(o.Value,minV,maxV)
+			local p=(val-minV)/(maxV-minV)
+			TweenService:Create(fill,TweenInfo.new(0.2),{Size=UDim2.new(p,0,1,0)}):Play()
+			valLbl.Text=pctText()
+		end
+	end
+	function api:GetValue() return val end
+	function api:Destroy() ProgressBarGradients[grad]=nil; pg:Destroy() end
+	return api
+end
+
 function Window:CreateUpdateLog(opts)
 	opts=opts or {}
 	local parent=self._homeList or self._contentScroll
@@ -1294,6 +1365,12 @@ function Odyssey:CreateWindow(opts)
 				grad.Rotation=120
 				grad.Parent=OdysseyMainRef
 				OdysseyGradient=grad
+			end)
+		end
+		-- Keep every progress bar's fill in sync with the new theme
+		for grad,_ in pairs(ProgressBarGradients) do
+			pcall(function()
+				if grad and grad.Parent then grad.Color=seq end
 			end)
 		end
 		ApplyLT2Theme(currentLT2BG)
