@@ -1,3 +1,4 @@
+-- Odyssey UI Library v3
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -10,7 +11,8 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
-
+-- Load real Material/Lucide-style icons from Roblox's marketplace (asset id 15279939717)
+-- Falls back to nil silently if it can't load, and text icons are used instead
 local Lucide
 pcall(function()
 	local obj = game:GetObjects("rbxassetid://15279939717")[1]
@@ -53,11 +55,12 @@ local Themes={
 	["Citrus"]={c1=Color3.fromRGB(240,230,20),c2=Color3.fromRGB(240,90,60),c3=Color3.fromRGB(230,20,110),LT2BG=Color3.fromRGB(240,110,70)},
 	["Electric"]={c1=Color3.fromRGB(0,210,255),c2=Color3.fromRGB(58,92,255),c3=Color3.fromRGB(138,30,255),LT2BG=Color3.fromRGB(48,110,255)},
 }
-
+-- Custom themes loaded from file get merged into this table at runtime
 
 local lt2ThemeEnabled=true
 local currentLT2BG=Color3.fromRGB(70,90,130)
 local currentThemeColors={c1=Color3.fromRGB(74,108,174),c2=Color3.fromRGB(90,90,140),c3=Color3.fromRGB(50,50,78)}
+-- Tracks original colors so we can restore them when LT2 theme is turned off
 local OriginalColors={}
 
 local function ApplyLT2Theme(bgColor)
@@ -298,9 +301,9 @@ function Tab:CreateButton(opts)
 	local row=_row(self._list,self._order); self._order=self._order+1
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
 	VList(vl,4)
-	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
 	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=11,TextColor3=Color3.fromRGB(20,20,20),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,Parent=vl})
 	Corner(btn,10)
+	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=10,TextColor3=Color3.fromRGB(230,235,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
 	if opts.Tooltip then AddTooltip(btn,opts.Tooltip,true,btn) end
 	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
 	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.05}):Play() end)
@@ -578,21 +581,78 @@ function Tab:CreateColorPicker(opts)
 	local hg=Instance.new("UIGradient")
 	hg.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),ColorSequenceKeypoint.new(0.17,Color3.fromRGB(255,255,0)),ColorSequenceKeypoint.new(0.33,Color3.fromRGB(0,255,0)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(0,255,255)),ColorSequenceKeypoint.new(0.67,Color3.fromRGB(0,0,255)),ColorSequenceKeypoint.new(0.83,Color3.fromRGB(255,0,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0))})
 	hg.Parent=hueBar
-	local hueThumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=UDim2.new(0,-6,0.5,-6),BackgroundColor3=defCol,BorderSizePixel=0,Parent=hueBar})
+
+	local curH,curS,curV=Color3.toHSV(defCol)
+
+	local hueThumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=UDim2.new(curH,-6,0.5,-6),BackgroundColor3=Color3.fromHSV(curH,1,1),BorderSizePixel=0,Parent=hueBar})
 	Corner(hueThumb,6); GlassStroke(hueThumb,0.3)
+	local svThumb=New("Frame",{Size=UDim2.new(0,10,0,10),Position=UDim2.new(curS,-5,1-curV,-5),BackgroundColor3=defCol,BorderSizePixel=0,ZIndex=3,Parent=gradBox})
+	Corner(svThumb,5); GlassStroke(svThumb,0.2)
+	gradBox.BackgroundColor3=Color3.fromHSV(curH,1,1)
 	local hexBox=New("TextBox",{Text="#FFFFFF",TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Code,Size=UDim2.new(0,64,1,0),Position=UDim2.new(1,-64,0,0),TextXAlignment=Enum.TextXAlignment.Center,ClearTextOnFocus=false,Parent=hueRow})
 	Corner(hexBox,5); GlassStroke(hexBox,0.65)
+	do
+		local ir,ig,ib=math.floor(defCol.R*255),math.floor(defCol.G*255),math.floor(defCol.B*255)
+		local initHex=string.format("#%02X%02X%02X",ir,ig,ib)
+		hexBox.Text=initHex
+		hexLbl.Text=initHex
+	end
+
+	local function updateFromHSV()
+		currentCol=Color3.fromHSV(curH,curS,curV)
+		local pureHue=Color3.fromHSV(curH,1,1)
+		gradBox.BackgroundColor3=pureHue
+		swatch.BackgroundColor3=currentCol
+		hueThumb.BackgroundColor3=pureHue
+		svThumb.BackgroundColor3=currentCol
+		local r2,g2,b2=math.floor(currentCol.R*255),math.floor(currentCol.G*255),math.floor(currentCol.B*255)
+		local hex=string.format("#%02X%02X%02X",r2,g2,b2)
+		hexBox.Text=hex
+		hexLbl.Text=hex
+		if cb then cb(currentCol) end
+		if flag then Odyssey.Flags[flag]=currentCol end
+	end
+
+	local draggingHue,draggingSV=false,false
+	hueBar.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then draggingHue=true end end)
+	gradBox.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then draggingSV=true end end)
+	UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.MouseButton1 then draggingHue=false; draggingSV=false end
+	end)
+	UserInputService.InputChanged:Connect(function(i)
+		if i.UserInputType~=Enum.UserInputType.MouseMovement then return end
+		if draggingHue then
+			local p=math.clamp((i.Position.X-hueBar.AbsolutePosition.X)/hueBar.AbsoluteSize.X,0,1)
+			curH=p
+			hueThumb.Position=UDim2.new(p,-6,0.5,-6)
+			updateFromHSV()
+		elseif draggingSV then
+			local px=math.clamp((i.Position.X-gradBox.AbsolutePosition.X)/gradBox.AbsoluteSize.X,0,1)
+			local py=math.clamp((i.Position.Y-gradBox.AbsolutePosition.Y)/gradBox.AbsoluteSize.Y,0,1)
+			curS=px
+			curV=1-py
+			svThumb.Position=UDim2.new(px,-5,py,-5)
+			updateFromHSV()
+		end
+	end)
+
 	hexBox.FocusLost:Connect(function()
 		local h=hexBox.Text:gsub("#","")
 		if #h==6 then
 			local r2,g2,b2=tonumber(h:sub(1,2),16),tonumber(h:sub(3,4),16),tonumber(h:sub(5,6),16)
 			if r2 and g2 and b2 then
 				currentCol=Color3.fromRGB(r2,g2,b2)
+				curH,curS,curV=Color3.toHSV(currentCol)
+				local pureHue=Color3.fromHSV(curH,1,1)
 				swatch.BackgroundColor3=currentCol
-				gradBox.BackgroundColor3=currentCol
-				hueThumb.BackgroundColor3=currentCol
+				gradBox.BackgroundColor3=pureHue
+				hueThumb.BackgroundColor3=pureHue
+				hueThumb.Position=UDim2.new(curH,-6,0.5,-6)
+				svThumb.BackgroundColor3=currentCol
+				svThumb.Position=UDim2.new(curS,-5,1-curV,-5)
 				hexLbl.Text="#"..h:upper()
 				if cb then cb(currentCol) end
+				if flag then Odyssey.Flags[flag]=currentCol end
 			end
 		end
 	end)
@@ -604,9 +664,14 @@ function Tab:CreateColorPicker(opts)
 	function api:Set(o)
 		if o.Color then
 			currentCol=o.Color
+			curH,curS,curV=Color3.toHSV(currentCol)
+			local pureHue=Color3.fromHSV(curH,1,1)
 			swatch.BackgroundColor3=currentCol
-			gradBox.BackgroundColor3=currentCol
-			hueThumb.BackgroundColor3=currentCol
+			gradBox.BackgroundColor3=pureHue
+			hueThumb.BackgroundColor3=pureHue
+			hueThumb.Position=UDim2.new(curH,-6,0.5,-6)
+			svThumb.BackgroundColor3=currentCol
+			svThumb.Position=UDim2.new(curS,-5,1-curV,-5)
 			local r2,g2,b2=math.floor(currentCol.R*255),math.floor(currentCol.G*255),math.floor(currentCol.B*255)
 			local hex=string.format("#%02X%02X%02X",r2,g2,b2)
 			hexBox.Text=hex
