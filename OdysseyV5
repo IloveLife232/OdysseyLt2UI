@@ -11,19 +11,159 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
--- Load real Material/Lucide-style icons from Roblox's marketplace (asset id 15279939717)
--- Falls back to nil silently if it can't load, and text icons are used instead
-local Lucide
-pcall(function()
-	local obj = game:GetObjects("rbxassetid://15279939717")[1]
-	Lucide = require(obj)
-end)
+-- Real Material Icons - direct rbxassetid image URLs (credit: latte-soft & qweery via Nebula Softworks Luna)
+-- No sprite sheet math needed, each icon is its own full image asset.
+local MaterialIcons = {
+	["home"]="http://www.roblox.com/asset/?id=6026568195";
+	["home_filled"]="rbxassetid://9080449299";
+	["settings"]="http://www.roblox.com/asset/?id=6031280882";
+	["settings_applications"]="http://www.roblox.com/asset/?id=6031280894";
+	["save"]="http://www.roblox.com/asset/?id=6035067857";
+	["save_alt"]="http://www.roblox.com/asset/?id=6035067842";
+	["person"]="http://www.roblox.com/asset/?id=6034287594";
+	["person_outline"]="http://www.roblox.com/asset/?id=6034268008";
+	["account_circle"]="http://www.roblox.com/asset/?id=6022668898";
+	["account_box"]="http://www.roblox.com/asset/?id=6023426915";
+	["public"]="http://www.roblox.com/asset/?id=6034287522";
+	["public_off"]="http://www.roblox.com/asset/?id=6034287538";
+	["map"]="http://www.roblox.com/asset/?id=6034684930";
+	["place"]="http://www.roblox.com/asset/?id=6034503372";
+	["location_on"]="http://www.roblox.com/asset/?id=6035190846";
+	["location_off"]="http://www.roblox.com/asset/?id=6035202049";
+	["explore"]="http://www.roblox.com/asset/?id=6023426941";
+	["explore_off"]="http://www.roblox.com/asset/?id=6023426953";
+	["terrain"]="http://www.roblox.com/asset/?id=6034467794";
+	["landscape"]="http://www.roblox.com/asset/?id=6034407069";
+	["park"]="http://www.roblox.com/asset/?id=6034503369";
+	["forest"]="http://www.roblox.com/asset/?id=6034687957"; -- layers, closest forest-like available
+	["nature"]="http://www.roblox.com/asset/?id=6034323695";
+	["nature_people"]="http://www.roblox.com/asset/?id=6034323711";
+	["directions_walk"]="http://www.roblox.com/asset/?id=6034754448";
+	["directions_run"]="http://www.roblox.com/asset/?id=6034754445";
+	["flight_takeoff"]="http://www.roblox.com/asset/?id=6023565891";
+	["flight_land"]="http://www.roblox.com/asset/?id=6023565897";
+	["water_damage"]="http://www.roblox.com/asset/?id=6035161563";
+	["local_shipping"]="http://www.roblox.com/asset/?id=6034684926";
+	["local_fire_department"]="http://www.roblox.com/asset/?id=6034684949";
+	["store"]="http://www.roblox.com/asset/?id=6031265968";
+	["storefront"]="http://www.roblox.com/asset/?id=6035161534";
+	["shopping_cart"]="http://www.roblox.com/asset/?id=6031265976";
+	["attach_money"]="http://www.roblox.com/asset/?id=6034898098";
+	["monetization_on"]="http://www.roblox.com/asset/?id=6034973115";
+	["money"]="http://www.roblox.com/asset/?id=6034509997";
+	["money_off"]="http://www.roblox.com/asset/?id=6034973088";
+	["payments"]="http://www.roblox.com/asset/?id=6031097227";
+	["receipt"]="http://www.roblox.com/asset/?id=6031086173";
+	["build"]="http://www.roblox.com/asset/?id=6023426938";
+	["build_circle"]="http://www.roblox.com/asset/?id=6023426952";
+	["construction"]="http://www.roblox.com/asset/?id=6034275725";
+	["handyman"]="http://www.roblox.com/asset/?id=6034744057";
+	["hardware"]="http://www.roblox.com/asset/?id=6034744036";
+	["carpenter"]="http://www.roblox.com/asset/?id=6035107955";
+	["backup"]="http://www.roblox.com/asset/?id=6023426911";
+	["cloud"]="http://www.roblox.com/asset/?id=6031302918";
+	["cloud_upload"]="http://www.roblox.com/asset/?id=6031302992";
+	["cloud_download"]="http://www.roblox.com/asset/?id=6031302917";
+	["folder"]="http://www.roblox.com/asset/?id=6031302932";
+	["folder_open"]="http://www.roblox.com/asset/?id=6031302934";
+	["inventory"]="http://www.roblox.com/asset/?id=6035056487";
+	["archive"]="http://www.roblox.com/asset/?id=6035047379";
+	["unarchive"]="http://www.roblox.com/asset/?id=6035078921";
+	["delete"]="http://www.roblox.com/asset/?id=6022668885";
+	["delete_forever"]="http://www.roblox.com/asset/?id=6022668939";
+	["add"]="http://www.roblox.com/asset/?id=6035047377";
+	["add_circle"]="http://www.roblox.com/asset/?id=6035047380";
+	["remove"]="http://www.roblox.com/asset/?id=6035067836";
+	["remove_circle"]="http://www.roblox.com/asset/?id=6035067837";
+	["check"]="http://www.roblox.com/asset/?id=6031094667";
+	["check_circle"]="http://www.roblox.com/asset/?id=6023426945";
+	["close"]="http://www.roblox.com/asset/?id=6031094678";
+	["cancel"]="http://www.roblox.com/asset/?id=6031094677";
+	["warning"]="http://www.roblox.com/asset/?id=6031071053";
+	["error"]="http://www.roblox.com/asset/?id=6031071057";
+	["info"]="http://www.roblox.com/asset/?id=6026568227";
+	["help_outline"]="http://www.roblox.com/asset/?id=6026568201";
+	["refresh"]="http://www.roblox.com/asset/?id=6031097226";
+	["autorenew"]="http://www.roblox.com/asset/?id=6023565901";
+	["sync"]="http://www.roblox.com/asset/?id=6034452662";
+	["update"]="http://www.roblox.com/asset/?id=6031225810";
+	["history"]="http://www.roblox.com/asset/?id=6026568197";
+	["schedule"]="http://www.roblox.com/asset/?id=6031260808";
+	["timer"]="http://www.roblox.com/asset/?id=6031754564";
+	["hourglass_full"]="http://www.roblox.com/asset/?id=6026568190";
+	["hourglass_top"]="http://www.roblox.com/asset/?id=6035190886";
+	["hourglass_bottom"]="http://www.roblox.com/asset/?id=6035202043";
+	["lock"]="http://www.roblox.com/asset/?id=6026568224";
+	["lock_open"]="http://www.roblox.com/asset/?id=6026568220";
+	["visibility"]="http://www.roblox.com/asset/?id=6031075931";
+	["visibility_off"]="http://www.roblox.com/asset/?id=6031075929";
+	["search"]="http://www.roblox.com/asset/?id=6031154871";
+	["search_off"]="http://www.roblox.com/asset/?id=6031260783";
+	["filter_alt"]="http://www.roblox.com/asset/?id=6023426984";
+	["swap_horiz"]="http://www.roblox.com/asset/?id=6031233841";
+	["swap_vert"]="http://www.roblox.com/asset/?id=6031233847";
+	["notifications"]="http://www.roblox.com/asset/?id=6034308946";
+	["notifications_active"]="http://www.roblox.com/asset/?id=6034304908";
+	["notifications_off"]="http://www.roblox.com/asset/?id=6034304894";
+	["dashboard"]="http://www.roblox.com/asset/?id=6022668883";
+	["dashboard_customize"]="http://www.roblox.com/asset/?id=6022668899";
+	["tune"]="http://www.roblox.com/asset/?id=6031734877";
+	["palette"]="http://www.roblox.com/asset/?id=6034316009";
+	["color_lens"]="http://www.roblox.com/asset/?id=6031625148";
+	["brush"]="http://www.roblox.com/asset/?id=6031572320";
+	["gradient"]="http://www.roblox.com/asset/?id=6034333261";
+	["star"]="http://www.roblox.com/asset/?id=6031068423";
+	["star_border"]="http://www.roblox.com/asset/?id=6031068425";
+	["favorite"]="http://www.roblox.com/asset/?id=6023426974";
+	["favorite_border"]="http://www.roblox.com/asset/?id=6023565882";
+	["bolt"]="http://www.roblox.com/asset/?id=6035047381";
+	["flag"]="http://www.roblox.com/asset/?id=6035053279";
+	["link"]="http://www.roblox.com/asset/?id=6035056475";
+	["link_off"]="http://www.roblox.com/asset/?id=6035056484";
+	["send"]="http://www.roblox.com/asset/?id=6035067832";
+	["mail"]="http://www.roblox.com/asset/?id=6035056477";
+	["chat"]="http://www.roblox.com/asset/?id=6035173838";
+	["chat_bubble"]="http://www.roblox.com/asset/?id=6035181858";
+	["forum"]="http://www.roblox.com/asset/?id=6035202002";
+	["groups"]="http://www.roblox.com/asset/?id=6034281935";
+	["group"]="http://www.roblox.com/asset/?id=6034281901";
+	["people"]="http://www.roblox.com/asset/?id=6034287513";
+	["person_add"]="http://www.roblox.com/asset/?id=6034287514";
+	["person_remove"]="http://www.roblox.com/asset/?id=6034267996";
+	["shield"]="http://www.roblox.com/asset/?id=6035078889";
+	["security"]="http://www.roblox.com/asset/?id=6034837802";
+	["verified_user"]="http://www.roblox.com/asset/?id=6031225819";
+	["admin_panel_settings"]="http://www.roblox.com/asset/?id=6022668961";
+	["key"]="http://www.roblox.com/asset/?id=6035202034"; -- vpn_key
+	["policy"]="http://www.roblox.com/asset/?id=6035056512";
+	["build_engineering"]="http://www.roblox.com/asset/?id=6034281908"; -- engineering
+	["science"]="http://www.roblox.com/asset/?id=6034230640";
+	["bug_report"]="http://www.roblox.com/asset/?id=6022852107";
+	["extension"]="http://www.roblox.com/asset/?id=6023565892";
+	["apps"]="http://www.roblox.com/asset/?id=6031090999";
+	["widgets"]="http://www.roblox.com/asset/?id=6035039429";
+	["grid_view"]="http://www.roblox.com/asset/?id=6031302950";
+	["list"]="http://www.roblox.com/asset/?id=6026568229";
+	["view_list"]="http://www.roblox.com/asset/?id=6031079156";
+	["menu"]="http://www.roblox.com/asset/?id=6031097225";
+	["tune"]="http://www.roblox.com/asset/?id=6031734877";
+	["arrow_upward"]="http://www.roblox.com/asset/?id=6031090997";
+	["arrow_downward"]="http://www.roblox.com/asset/?id=6031090991";
+	["arrow_back"]="http://www.roblox.com/asset/?id=6031091000";
+	["arrow_forward"]="http://www.roblox.com/asset/?id=6031090995";
+	["chevron_left"]="http://www.roblox.com/asset/?id=6031094670";
+	["chevron_right"]="http://www.roblox.com/asset/?id=6031094680";
+	["expand_more"]="http://www.roblox.com/asset/?id=6031094687";
+	["expand_less"]="http://www.roblox.com/asset/?id=6031094679";
+	["refresh"]="http://www.roblox.com/asset/?id=6031097226";
+	["power_settings_new"]="http://www.roblox.com/asset/?id=6031260781";
+	["logout"]="http://www.roblox.com/asset/?id=6031082522";
+	["login"]="http://www.roblox.com/asset/?id=6031082527";
+}
 
-local function GetIconAsset(name, size)
-	if not Lucide then return nil end
-	local ok, asset = pcall(function() return Lucide.GetAsset(name, size or 48) end)
-	if ok then return asset end
-	return nil
+local function GetMaterialIcon(name)
+	if not name then return nil end
+	return MaterialIcons[name]
 end
 
 local T={
@@ -758,15 +898,13 @@ function Window:CreateTab(opts)
 	local orb=New("TextButton",{Text="",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=self._tabOrder,AutoButtonColor=false,Parent=self._orbRow})
 	Corner(orb,22); GlassStroke(orb,0.75)
 
-	-- Try a real Lucide icon image first (opts.IconName), fall back to text glyph (opts.Icon)
+	-- Try a real Material icon image first (opts.IconName), fall back to text glyph (opts.Icon)
 	local iconImg
 	if opts.IconName then
-		local asset = GetIconAsset(opts.IconName, 48)
-		if asset then
+		local iconUrl = GetMaterialIcon(opts.IconName)
+		if iconUrl then
 			iconImg = New("ImageLabel",{
-				Image=asset.Url,
-				ImageRectOffset=asset.ImageRectOffset,
-				ImageRectSize=asset.ImageRectSize,
+				Image=iconUrl,
 				ImageColor3=Color3.fromRGB(255,255,255),
 				BackgroundTransparency=1,
 				Size=UDim2.new(0,20,0,20),
@@ -810,7 +948,7 @@ function Window:CreateTab(opts)
 end
 
 function Window:_buildHomeTab(gameName)
-	local tab=self:CreateTab({Icon="⌂",IconName="house",Name="Home",ShowTitle=false})
+	local tab=self:CreateTab({Icon="⌂",IconName="home",Name="Home",ShowTitle=false})
 	local execName="Unknown"
 	pcall(function()
 		if syn then execName="Synapse X"
@@ -1091,7 +1229,7 @@ function Window:CreateProgressWidget(opts)
 	local showPercent=opts.ShowPercent
 
 	local pg=New("ScreenGui",{Name="OdysseyProgress",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-	local box=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0,16,1,-16),AnchorPoint=Vector2.new(0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=pg})
+	local box=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0.5,-130,0,16),AnchorPoint=Vector2.new(0,0),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=pg})
 	Corner(box,14); GlassStroke(box,0.5); Pad(box,12,14,12,14)
 	box.BackgroundTransparency=0.05
 	local grad=Instance.new("UIGradient")
@@ -1107,13 +1245,13 @@ function Window:CreateProgressWidget(opts)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=box})
 	VList(vl,7)
 	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
-	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.6,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
+	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-54,1,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=nameRow})
 	local function pctText()
 		local p=math.floor(((val-minV)/(maxV-minV))*100+0.5)
 		if showPercent then return p.."%" end
 		return math.floor(val).."/"..math.floor(maxV)
 	end
-	local valLbl=New("TextLabel",{Text=pctText(),TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.4,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
+	local valLbl=New("TextLabel",{Text=pctText(),TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,50,1,0),Position=UDim2.new(1,-50,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
 	local track=New("Frame",{Size=UDim2.new(1,0,0,8),BackgroundColor3=Color3.fromRGB(0,0,0),BackgroundTransparency=0.68,BorderSizePixel=0,Parent=vl})
 	Corner(track,5)
 	local pct0=(val-minV)/(maxV-minV)
@@ -1251,12 +1389,10 @@ function Odyssey:CreateWindow(opts)
 	local settingsOrb=New("TextButton",{Text="",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=999,AutoButtonColor=false,Parent=OrbScroll})
 	Corner(settingsOrb,22); GlassStroke(settingsOrb,0.75); AddTooltip(settingsOrb,"Settings")
 	do
-		local settingsAsset = GetIconAsset("settings", 48)
-		if settingsAsset then
+		local settingsUrl = GetMaterialIcon("settings")
+		if settingsUrl then
 			New("ImageLabel",{
-				Image=settingsAsset.Url,
-				ImageRectOffset=settingsAsset.ImageRectOffset,
-				ImageRectSize=settingsAsset.ImageRectSize,
+				Image=settingsUrl,
 				ImageColor3=Color3.fromRGB(255,255,255),
 				BackgroundTransparency=1,
 				Size=UDim2.new(0,20,0,20),
