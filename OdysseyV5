@@ -234,7 +234,7 @@ local function formatMoney(n)
 	return result
 end
 
-local function AddTooltip(obj,text,showIcon,iconParent,iconPos)
+local function AddTooltip(obj,text,showIcon,iconParent,iconPos,darkIcon)
 	if not text or text=="" then return end
 	local function showTip()
 		if not TipLbl or not TipFrame then return end
@@ -247,9 +247,11 @@ local function AddTooltip(obj,text,showIcon,iconParent,iconPos)
 		TipFrame.Visible=true
 	end
 	if showIcon and iconParent then
-		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=iconPos or UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
+		local iconBG=darkIcon and Color3.fromRGB(20,20,20) or Color3.fromRGB(255,255,255)
+		local iconTxt=darkIcon and Color3.fromRGB(255,255,255) or Color3.fromRGB(255,255,255)
+		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=iconTxt,BackgroundColor3=iconBG,BackgroundTransparency=darkIcon and 0.15 or 0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=iconPos or UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
 		Corner(ib,8)
-		GlassStroke(ib,0.6)
+		if darkIcon then GlassStroke(ib,0.85) else GlassStroke(ib,0.6) end
 		ib.MouseEnter:Connect(function() showTip() end)
 		ib.MouseLeave:Connect(function() if TipFrame then TipFrame.Visible=false end end)
 		return
@@ -304,7 +306,7 @@ function Tab:CreateButton(opts)
 	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=11,TextColor3=Color3.fromRGB(20,20,20),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,Parent=vl})
 	Corner(btn,10)
 	local infoText=opts.Description or opts.Tooltip
-	if infoText then AddTooltip(btn,infoText,true,btn) end
+	if infoText then AddTooltip(btn,infoText,true,btn,nil,true) end
 	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
 	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.05}):Play() end)
 	btn.MouseButton1Click:Connect(function() if cb then cb() end end)
