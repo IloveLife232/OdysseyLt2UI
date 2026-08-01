@@ -1,4 +1,4 @@
--- Odyssey UI Library v3
+-- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -234,7 +234,7 @@ local function formatMoney(n)
 	return result
 end
 
-local function AddTooltip(obj,text,showIcon,iconParent)
+local function AddTooltip(obj,text,showIcon,iconParent,iconPos)
 	if not text or text=="" then return end
 	local function showTip()
 		if not TipLbl or not TipFrame then return end
@@ -247,7 +247,7 @@ local function AddTooltip(obj,text,showIcon,iconParent)
 		TipFrame.Visible=true
 	end
 	if showIcon and iconParent then
-		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
+		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=iconPos or UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
 		Corner(ib,8)
 		GlassStroke(ib,0.6)
 		ib.MouseEnter:Connect(function() showTip() end)
@@ -303,8 +303,8 @@ function Tab:CreateButton(opts)
 	VList(vl,4)
 	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=11,TextColor3=Color3.fromRGB(20,20,20),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,Parent=vl})
 	Corner(btn,10)
-	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=10,TextColor3=Color3.fromRGB(230,235,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
-	if opts.Tooltip then AddTooltip(btn,opts.Tooltip,true,btn) end
+	local infoText=opts.Description or opts.Tooltip
+	if infoText then AddTooltip(btn,infoText,true,btn) end
 	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
 	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.05}):Play() end)
 	btn.MouseButton1Click:Connect(function() if cb then cb() end end)
@@ -324,12 +324,13 @@ function Tab:CreateToggle(opts)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
 	VList(vl,3)
 	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Toggle",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-44,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
+	New("TextLabel",{Text=opts.Name or "Toggle",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
 	local track=New("Frame",{Size=UDim2.new(0,32,0,18),Position=UDim2.new(1,-32,0.5,-9),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=enabled and 0.05 or 0.82,BorderSizePixel=0,Parent=topRow})
 	Corner(track,9); GlassStroke(track,0.6)
 	local thumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=enabled and UDim2.new(1,-14,0.5,-6) or UDim2.new(0,3,0.5,-6),BackgroundColor3=enabled and Color3.fromRGB(30,30,30) or Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=track})
 	Corner(thumb,6)
-	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
+	local infoText=opts.Description or opts.Tooltip
+	if infoText then AddTooltip(topRow,infoText,true,topRow,UDim2.new(1,-52,0.5,-7)) end
 	_div(self._list,self._order); self._order=self._order+1
 	local hit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=topRow})
 	hit.MouseButton1Click:Connect(function()
@@ -363,6 +364,9 @@ function Tab:CreateToggle(opts)
 	function api:GetValue() return enabled end
 	function api:Destroy() row:Destroy() end
 	if flag then Odyssey.Flags[flag]=enabled end
+	-- Fire the callback once on creation if the toggle starts enabled, so the effect
+	-- actually applies immediately instead of only visually showing "on" until clicked
+	if enabled and cb then cb(enabled) end
 	return api
 end
 
@@ -426,11 +430,12 @@ function Tab:CreateInput(opts)
 	local row=_row(self._list,self._order); self._order=self._order+1
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
 	VList(vl,4)
-	New("TextLabel",{Text=opts.Name or "Input",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
+	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
+	New("TextLabel",{Text=opts.Name or "Input",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
+	local infoText=opts.Description or opts.Tooltip
+	if infoText then AddTooltip(nameRow,infoText,true,nameRow,UDim2.new(1,-16,0.5,-7)) end
 	local tb=New("TextBox",{PlaceholderText=opts.PlaceholderText or "Type here...",Text="",TextSize=11,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,28),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,Parent=vl})
 	Corner(tb,8); GlassStroke(tb,0.65); Pad(tb,0,8,0,8)
-	if opts.Tooltip then AddTooltip(tb,opts.Tooltip) end
 	tb.Focused:Connect(function() Stroke(tb,Color3.fromRGB(255,255,255),1,0.2) end)
 	tb.FocusLost:Connect(function(ep)
 		GlassStroke(tb,0.65)
@@ -468,12 +473,13 @@ function Tab:CreateDropdown(opts)
 	local row=_row(self._list,self._order); self._order=self._order+1
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
 	VList(vl,4)
-	New("TextLabel",{Text=opts.Name or "Dropdown",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
+	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
+	New("TextLabel",{Text=opts.Name or "Dropdown",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
+	local infoText=opts.Description or opts.Tooltip
+	if infoText then AddTooltip(nameRow,infoText,true,nameRow,UDim2.new(1,-16,0.5,-7)) end
 	local header=New("TextButton",{Text=selText(),TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,28),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=vl})
 	Corner(header,8); GlassStroke(header,0.65); Pad(header,0,28,0,8)
 	local arrow=New("TextLabel",{Text="v",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,18,1,0),Position=UDim2.new(1,-20,0,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=header})
-	if opts.Tooltip then AddTooltip(header,opts.Tooltip) end
 	local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Visible=false,Parent=vl})
 	Corner(body,10); GlassStroke(body,0.65); Pad(body,5,5,5,5)
 	local bvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=body})
@@ -693,11 +699,13 @@ function Tab:CreateBind(opts)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
 	VList(vl,3)
 	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Keybind",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
+	New("TextLabel",{Text=opts.Name or "Keybind",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-100,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
 	local keyBtn=New("TextButton",{Text=current,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=topRow})
 	Corner(keyBtn,7); GlassStroke(keyBtn,0.65)
-	if opts.Description then New("TextLabel",{Text=opts.Description,TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl}) end
-	if opts.Tooltip then AddTooltip(topRow,opts.Tooltip) end
+	do
+		local infoText=opts.Description or opts.Tooltip
+		if infoText then AddTooltip(topRow,infoText,true,topRow,UDim2.new(1,-92,0.5,-7)) end
+	end
 	_div(self._list,self._order); self._order=self._order+1
 	local awaiting=false
 	local holdActive=false
