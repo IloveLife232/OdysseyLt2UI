@@ -11,6 +11,21 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
+-- Load real Material/Lucide-style icons from Roblox's marketplace (asset id 15279939717)
+-- Falls back to nil silently if it can't load, and text icons are used instead
+local Lucide
+pcall(function()
+	local obj = game:GetObjects("rbxassetid://15279939717")[1]
+	Lucide = require(obj)
+end)
+
+local function GetIconAsset(name, size)
+	if not Lucide then return nil end
+	local ok, asset = pcall(function() return Lucide.GetAsset(name, size or 48) end)
+	if ok then return asset end
+	return nil
+end
+
 local T={
 	Accent=Color3.fromRGB(255,255,255),
 	AccentDim=Color3.fromRGB(200,200,200),
@@ -131,6 +146,17 @@ local function New(class,props)
 	local o=Instance.new(class)
 	for k,v in pairs(props) do o[k]=v end
 	return o
+end
+
+-- Tints whichever visual child an orb has (real icon image or fallback text glyph)
+local function SetOrbTint(orb, color)
+	for _,child in ipairs(orb:GetChildren()) do
+		if child:IsA("ImageLabel") then
+			child.ImageColor3 = color
+		elseif child:IsA("TextLabel") then
+			child.TextColor3 = color
+		end
+	end
 end
 local function Corner(p,r)
 	local c=Instance.new("UICorner")
@@ -646,8 +672,30 @@ Window.__index=Window
 function Window:CreateTab(opts)
 	opts=opts or {}
 	local icon=opts.Icon or "o"
-	local orb=New("TextButton",{Text=icon,TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=self._tabOrder,AutoButtonColor=false,Parent=self._orbRow})
+	local orb=New("TextButton",{Text="",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=self._tabOrder,AutoButtonColor=false,Parent=self._orbRow})
 	Corner(orb,22); GlassStroke(orb,0.75)
+
+	-- Try a real Lucide icon image first (opts.IconName), fall back to text glyph (opts.Icon)
+	local iconImg
+	if opts.IconName then
+		local asset = GetIconAsset(opts.IconName, 48)
+		if asset then
+			iconImg = New("ImageLabel",{
+				Image=asset.Url,
+				ImageRectOffset=asset.ImageRectOffset,
+				ImageRectSize=asset.ImageRectSize,
+				ImageColor3=Color3.fromRGB(255,255,255),
+				BackgroundTransparency=1,
+				Size=UDim2.new(0,20,0,20),
+				Position=UDim2.new(0.5,-10,0.5,-10),
+				Parent=orb,
+			})
+		end
+	end
+	if not iconImg then
+		New("TextLabel",{Text=icon,TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=1,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=orb})
+	end
+
 	if opts.Name then AddTooltip(orb,opts.Name) end
 	local page=New("Frame",{Name="Page_"..opts.Name,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,Parent=self._contentScroll})
 	VList(page,7)
@@ -663,23 +711,23 @@ function Window:CreateTab(opts)
 	orb.MouseButton1Click:Connect(function()
 		for _,t in ipairs(self._tabs) do
 			t.btn.BackgroundTransparency=0.88
-			t.btn.TextColor3=Color3.fromRGB(255,255,255)
+			SetOrbTint(t.btn, Color3.fromRGB(255,255,255))
 			t.page.Visible=false
 		end
 		orb.BackgroundTransparency=0.05
-		orb.TextColor3=Color3.fromRGB(20,20,20)
+		SetOrbTint(orb, Color3.fromRGB(20,20,20))
 		page.Visible=true
 	end)
 	if #self._tabs==1 then
 		orb.BackgroundTransparency=0.05
-		orb.TextColor3=Color3.fromRGB(20,20,20)
+		SetOrbTint(orb, Color3.fromRGB(20,20,20))
 		page.Visible=true
 	end
 	return setmetatable({_list=listF,_order=0,_tabData=tabData,_win=self},Tab)
 end
 
 function Window:_buildHomeTab(gameName)
-	local tab=self:CreateTab({Icon="⌂",Name="Home",ShowTitle=false})
+	local tab=self:CreateTab({Icon="⌂",IconName="house",Name="Home",ShowTitle=false})
 	local execName="Unknown"
 	pcall(function()
 		if syn then execName="Synapse X"
@@ -1006,19 +1054,36 @@ function Odyssey:CreateWindow(opts)
 	local settingsBtnData={btn=nil,page=settingsPage}
 	local settingsTab=setmetatable({_list=settingsListF,_order=0,_tabData=settingsBtnData,_win=win},Tab)
 
-	local settingsOrb=New("TextButton",{Text="⚙",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=999,AutoButtonColor=false,Parent=OrbScroll})
+	local settingsOrb=New("TextButton",{Text="",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=999,AutoButtonColor=false,Parent=OrbScroll})
 	Corner(settingsOrb,22); GlassStroke(settingsOrb,0.75); AddTooltip(settingsOrb,"Settings")
+	do
+		local settingsAsset = GetIconAsset("settings", 48)
+		if settingsAsset then
+			New("ImageLabel",{
+				Image=settingsAsset.Url,
+				ImageRectOffset=settingsAsset.ImageRectOffset,
+				ImageRectSize=settingsAsset.ImageRectSize,
+				ImageColor3=Color3.fromRGB(255,255,255),
+				BackgroundTransparency=1,
+				Size=UDim2.new(0,20,0,20),
+				Position=UDim2.new(0.5,-10,0.5,-10),
+				Parent=settingsOrb,
+			})
+		else
+			New("TextLabel",{Text="⚙",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=1,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=settingsOrb})
+		end
+	end
 	settingsBtnData.btn=settingsOrb
 	settingsTab._win=win
 	table.insert(win._tabs,{btn=settingsOrb,page=settingsPage})
 	settingsOrb.MouseButton1Click:Connect(function()
 		for _,t in ipairs(win._tabs) do
 			t.btn.BackgroundTransparency=0.88
-			t.btn.TextColor3=Color3.fromRGB(255,255,255)
+			SetOrbTint(t.btn, Color3.fromRGB(255,255,255))
 			t.page.Visible=false
 		end
 		settingsOrb.BackgroundTransparency=0.05
-		settingsOrb.TextColor3=Color3.fromRGB(20,20,20)
+		SetOrbTint(settingsOrb, Color3.fromRGB(20,20,20))
 		settingsPage.Visible=true
 	end)
 
@@ -1329,7 +1394,7 @@ function Odyssey:CreateWindow(opts)
 	makeConfigBtn("Delete config","Permanently delete saved config",function() pcall(function() if isfile(CONFIG_PATH) then delfile(CONFIG_PATH) end end); win:Notify({Title="Config",Content="Config deleted",Duration=3}) end)
 
 	settingsTab:CreateSection("CREDITS")
-	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: IHateSchool & Vaxeal\nUI Library: Odyssey Lib v3\nTesters: Pete <3, Nazab, Gludy, Skat3"})
+	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: Odyssey team\nUI Library: Odyssey Lib v4\nTesters: placeholder"})
 
 	function win:Notify(nopts2) Window.Notify(self,nopts2) end
 	function win:SetKeybind(key) toggleKey=key end
