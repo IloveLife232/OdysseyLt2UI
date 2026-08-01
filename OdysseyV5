@@ -1,4 +1,3 @@
--- Odyssey UI Library v4 (Orb Nav + Gradient)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -11,8 +10,7 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
--- Load real Material/Lucide-style icons from Roblox's marketplace (asset id 15279939717)
--- Falls back to nil silently if it can't load, and text icons are used instead
+
 local Lucide
 pcall(function()
 	local obj = game:GetObjects("rbxassetid://15279939717")[1]
@@ -55,12 +53,11 @@ local Themes={
 	["Citrus"]={c1=Color3.fromRGB(240,230,20),c2=Color3.fromRGB(240,90,60),c3=Color3.fromRGB(230,20,110),LT2BG=Color3.fromRGB(240,110,70)},
 	["Electric"]={c1=Color3.fromRGB(0,210,255),c2=Color3.fromRGB(58,92,255),c3=Color3.fromRGB(138,30,255),LT2BG=Color3.fromRGB(48,110,255)},
 }
--- Custom themes loaded from file get merged into this table at runtime
+
 
 local lt2ThemeEnabled=true
 local currentLT2BG=Color3.fromRGB(70,90,130)
 local currentThemeColors={c1=Color3.fromRGB(74,108,174),c2=Color3.fromRGB(90,90,140),c3=Color3.fromRGB(50,50,78)}
--- Tracks original colors so we can restore them when LT2 theme is turned off
 local OriginalColors={}
 
 local function ApplyLT2Theme(bgColor)
@@ -938,6 +935,57 @@ function Window:Notify(nopts)
 	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=12,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
 	New("TextLabel",{Text=nopts.Content or "",TextSize=10,TextColor3=Color3.fromRGB(230,240,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
 	task.delay(nopts.Duration or 4,function() ng:Destroy() end)
+end
+
+-- Double confirmation dialog. Requires the user to press "Yes" twice in a row.
+-- Pressing "No" at either step cancels immediately and shows a canceled notice.
+-- Window:Confirm({
+--     Title = "Are you sure?",
+--     Warning1 = "This will run on all 6 slots.",
+--     Warning2 = "This cannot be undone. Continue?",
+--     OnConfirm = function() end,
+--     OnCancel = function() end, -- optional
+-- })
+function Window:Confirm(copts)
+	copts=copts or {}
+	local self_win=self
+	local overlay=New("ScreenGui",{Name="OdysseyConfirm",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
+	local dim=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.fromRGB(0,0,0),BackgroundTransparency=0.5,BorderSizePixel=0,ZIndex=300,Parent=overlay})
+	local box=New("Frame",{Size=UDim2.new(0,320,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0.5,-160,0.5,-60),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,ZIndex=301,Parent=overlay})
+	Corner(box,14); GlassStroke(box,0.5); Pad(box,14,16,14,16)
+	local grad=Instance.new("UIGradient")
+	grad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,currentThemeColors.c1),ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),ColorSequenceKeypoint.new(1,currentThemeColors.c3)})
+	grad.Rotation=120
+	grad.Parent=box
+	box.BackgroundTransparency=0.05
+
+	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=box})
+	VList(vl,10)
+	local titleLbl=New("TextLabel",{Text=copts.Title or "Are you sure?",TextSize=14,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+	local warnLbl=New("TextLabel",{Text=copts.Warning1 or "This action cannot be undone.",TextSize=11,TextColor3=Color3.fromRGB(235,240,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+	local btnRow=New("Frame",{Size=UDim2.new(1,0,0,32),BackgroundTransparency=1,Parent=vl})
+	local noBtn=New("TextButton",{Text="No",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.48,0,1,0),AutoButtonColor=false,Parent=btnRow})
+	Corner(noBtn,9); GlassStroke(noBtn,0.65)
+	local yesBtn=New("TextButton",{Text="Yes",TextSize=11,TextColor3=Color3.fromRGB(20,20,20),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.48,0,1,0),Position=UDim2.new(0.52,0,0,0),AutoButtonColor=false,Parent=btnRow})
+	Corner(yesBtn,9)
+
+	local step=1
+	local function cancel()
+		overlay:Destroy()
+		if copts.OnCancel then copts.OnCancel() end
+		self_win:Notify({Title="Canceled",Content="Action was canceled.",Duration=3})
+	end
+
+	noBtn.MouseButton1Click:Connect(cancel)
+	yesBtn.MouseButton1Click:Connect(function()
+		if step==1 then
+			step=2
+			warnLbl.Text=copts.Warning2 or "Are you absolutely sure? This cannot be undone."
+		else
+			overlay:Destroy()
+			if copts.OnConfirm then copts.OnConfirm() end
+		end
+	end)
 end
 
 function Window:SetKeybind(key) self._toggleKey=key end
