@@ -209,7 +209,7 @@ local function ApplyLT2Theme(bgColor)
 	local TxtColor=Color3.fromRGB(255,255,255)
 	local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920,1080)
 	for _,v in next,Players.LocalPlayer.PlayerGui:GetChildren() do
-		if v.Name~="Chat" and v.Name~="OdysseyUI" and v.Name~="OdysseyTip" and v.Name~="OdysseyNotif" then
+		if v.Name~="Chat" and v.Name~="OdysseyUI" and v.Name~="OdysseyTip" and v.Name~="OdysseyNotif" and v.Name~="OdysseyConfirm" and v.Name~="OdysseyProgress" and v.Name~="TargetGui" and v.Name~="ESPGui" and v.Name~="CrosshairGui" then
 			for _,d in next,v:GetDescendants() do pcall(function()
 				-- Skip large full-screen overlays (fades, transitions) to avoid blacking out the game
 				if d:IsA("GuiObject") then
@@ -948,7 +948,7 @@ function Window:CreateTab(opts)
 end
 
 function Window:_buildHomeTab(gameName)
-	local tab=self:CreateTab({Icon="⌂",IconName="home",Name="Home",ShowTitle=false})
+	local tab=self:CreateTab({Icon="⌂",IconName="home_filled",Name="Home",ShowTitle=false})
 	local execName="Unknown"
 	pcall(function()
 		if syn then execName="Synapse X"
