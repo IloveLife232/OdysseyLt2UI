@@ -36,6 +36,7 @@ local MaterialIcons = {
 	["landscape"]="http://www.roblox.com/asset/?id=6034407069";
 	["park"]="http://www.roblox.com/asset/?id=6034503369";
 	["forest"]="http://www.roblox.com/asset/?id=6034687957"; -- layers, closest forest-like available
+	["content_copy"]="http://www.roblox.com/asset/?id=6034687957"; -- layers icon, doubles as a duplicate/copy icon
 	["nature"]="http://www.roblox.com/asset/?id=6034323695";
 	["nature_people"]="http://www.roblox.com/asset/?id=6034323711";
 	["directions_walk"]="http://www.roblox.com/asset/?id=6034754448";
@@ -1285,14 +1286,40 @@ function Window:CreateUpdateLog(opts)
 	local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
 	New("TextLabel",{Text="Update log",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.6,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
 	New("TextLabel",{Text=(opts.Version or "v1.0.0").."  |  "..(opts.Date or ""),TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.4,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
-	for i,e in ipairs(opts.Entries or {}) do
-		local er=New("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,LayoutOrder=i,Parent=vl})
-		local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0.5,-3),BackgroundColor3=T.Text,BorderSizePixel=0,Parent=er})
-		Corner(dot,3)
-		New("TextLabel",{Text=e.Text or "",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-42,1,0),Position=UDim2.new(0,12,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=er})
-		local tf=New("Frame",{Size=UDim2.new(0,0,0,14),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Position=UDim2.new(1,-30,0.5,-7),Parent=er})
-		Corner(tf,4); Pad(tf,0,5,0,5)
-		New("TextLabel",{Text=e.Type or "?",TextSize=8,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=tf})
+
+	-- Normalizes short type codes (add/fix/chg/rmv etc) into one of 4 fixed categories
+	local function NormalizeType(t)
+		t=(t or ""):lower()
+		if t=="add" or t=="added" or t=="new" then return "Added" end
+		if t=="fix" or t=="fixed" or t=="bugfix" then return "Fixed" end
+		if t=="chg" or t=="change" or t=="changed" or t=="update" or t=="updated" then return "Changed" end
+		if t=="rmv" or t=="rem" or t=="remove" or t=="removed" or t=="delete" or t=="deleted" then return "Removed" end
+		return "Changed"
+	end
+
+	local categoryOrder={"Added","Fixed","Changed","Removed"}
+	local grouped={Added={},Fixed={},Changed={},Removed={}}
+	for _,e in ipairs(opts.Entries or {}) do
+		local cat=NormalizeType(e.Type)
+		table.insert(grouped[cat],e)
+	end
+
+	local order=1
+	for _,category in ipairs(categoryOrder) do
+		local entries=grouped[category]
+		if #entries>0 then
+			New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,LayoutOrder=order,Parent=vl})
+			order=order+1
+			New("TextLabel",{Text=category:upper(),TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=order,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+			order=order+1
+			for _,e in ipairs(entries) do
+				local er=New("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,LayoutOrder=order,Parent=vl})
+				order=order+1
+				local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0.5,-3),BackgroundColor3=T.Text,BorderSizePixel=0,Parent=er})
+				Corner(dot,3)
+				New("TextLabel",{Text=e.Text or "",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Position=UDim2.new(0,12,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=er})
+			end
+		end
 	end
 end
 
