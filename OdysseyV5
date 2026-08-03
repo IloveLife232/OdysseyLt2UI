@@ -1534,18 +1534,7 @@ function Odyssey:CreateWindow(opts)
 		settingsPage.Visible=true
 	end)
 
-	settingsTab:CreateSection("PRIVACY")
-	settingsTab:CreateToggle({
-		Name="Blur Identity",
-		CurrentValue=false,
-		Description="Client-side only: replaces your username/display name anywhere it appears on screen (leaderboards, nametags, etc) with a placeholder, and hides it on the Home tab",
-		Flag="OdysseyBlurIdentity",
-		Callback=function(v)
-			if Odyssey._SetBlurIdentity then Odyssey._SetBlurIdentity(v) end
-		end,
-	})
-
-	settingsTab:CreateSection("UI VISIBILITY")
+	settingsTab:CreateSection("GENERAL")
 	settingsTab:CreateButton({
 		Name="Destroy UI",
 		Tooltip="Removes Odyssey - re-run to bring it back",
@@ -1570,6 +1559,72 @@ function Odyssey:CreateWindow(opts)
 			awaiting2=false
 		end
 	end)
+	local antiAFKEnabled=true
+	local VU2=game:GetService("VirtualUser")
+	Players.LocalPlayer.Idled:Connect(function() if antiAFKEnabled then VU2:CaptureController(); VU2:ClickButton2(Vector2.new()) end end)
+	settingsTab:CreateToggle({
+		Name="Anti AFK",
+		Description="Prevents idle kick",
+		CurrentValue=true,
+		Tooltip="Keeps you active",
+		Callback=function(v) antiAFKEnabled=v end,
+	})
+	settingsTab:CreateToggle({
+		Name="Blur Identity",
+		CurrentValue=false,
+		Description="Client-side only: replaces your username/display name anywhere it appears on screen (leaderboards, nametags, etc) with a placeholder, and hides it on the Home tab",
+		Flag="OdysseyBlurIdentity",
+		Callback=function(v)
+			if Odyssey._SetBlurIdentity then Odyssey._SetBlurIdentity(v) end
+		end,
+	})
+
+	settingsTab:CreateSection("SERVER")
+	settingsTab:CreateButton({
+		Name="Rejoin Server",
+		Description="Rejoins the exact same server you're currently in",
+		Callback=function()
+			pcall(function()
+				game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
+			end)
+		end,
+	})
+
+	local function OdysseyServerHop(direction)
+		task.spawn(function()
+			win:Notify({Title="Odyssey", Content="Finding a server...", Duration=3})
+			local success, result = pcall(function()
+				local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder="..direction.."&limit=100"
+				local response = game:HttpGet(url)
+				return game:GetService("HttpService"):JSONDecode(response)
+			end)
+
+			if not success or not result or not result.data then
+				win:Notify({Title="Odyssey", Content="Failed to fetch server list", Duration=3})
+				return
+			end
+
+			local currentJobId = game.JobId
+			for _, server in ipairs(result.data) do
+				if server.id ~= currentJobId and server.playing < server.maxPlayers then
+					game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, Players.LocalPlayer)
+					return
+				end
+			end
+			win:Notify({Title="Odyssey", Content="No available server found", Duration=3})
+		end)
+	end
+
+	settingsTab:CreateButton({
+		Name="Server Hop (Ascending)",
+		Description="Joins the least populated available server",
+		Callback=function() OdysseyServerHop("Asc") end,
+	})
+	settingsTab:CreateButton({
+		Name="Server Hop (Descending)",
+		Description="Joins the most populated available server",
+		Callback=function() OdysseyServerHop("Desc") end,
+	})
 
 	settingsTab:CreateSection("THEME")
 
@@ -1667,7 +1722,7 @@ function Odyssey:CreateWindow(opts)
 		end,
 	})
 
-	-- ===== CUSTOM THEME CREATOR =====
+	-- ===== CUSTOM THEME CREATOR (same THEME section, no separate header) =====
 	local CUSTOM_THEME_FOLDER="OdysseyConfigs/CustomThemes"
 	local function ensureCustomThemeFolder()
 		pcall(function()
@@ -1682,7 +1737,6 @@ function Odyssey:CreateWindow(opts)
 	local customAccent=Color3.fromRGB(255,255,255)
 	local customNameValue="MyTheme"
 
-	settingsTab:CreateSection("CUSTOM THEME")
 	settingsTab:CreateInput({
 		Name="Theme name",
 		PlaceholderText="Enter a name...",
@@ -1710,6 +1764,11 @@ function Odyssey:CreateWindow(opts)
 		end
 		T.Accent=customAccent
 		T.AccentHov=customAccent
+		-- Keep LT2 menus in sync with the live preview too, not just the UI itself
+		currentLT2BG=customC2
+		if lt2ThemeEnabled then
+			task.spawn(function() ApplyLT2Theme(currentLT2BG) end)
+		end
 	end
 
 	settingsTab:CreateColorPicker({
@@ -1805,19 +1864,7 @@ function Odyssey:CreateWindow(opts)
 	loadCustomThemesFromFolder()
 	if #themeNames>10 then themeDD:Set({Options=themeNames}) end
 
-	settingsTab:CreateSection("GAMEPLAY")
-	local antiAFKEnabled=true
-	local VU2=game:GetService("VirtualUser")
-	Players.LocalPlayer.Idled:Connect(function() if antiAFKEnabled then VU2:CaptureController(); VU2:ClickButton2(Vector2.new()) end end)
-	settingsTab:CreateToggle({
-		Name="Anti AFK",
-		Description="Prevents idle kick",
-		CurrentValue=true,
-		Tooltip="Keeps you active",
-		Callback=function(v) antiAFKEnabled=v end,
-	})
-
-	settingsTab:CreateSection("FOLDER CONFIG")
+	settingsTab:CreateSection("CONFIG")
 	local pathRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),LayoutOrder=settingsTab._order,Parent=settingsTab._list})
 	settingsTab._order=settingsTab._order+1
 	local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Parent=pathRow})
