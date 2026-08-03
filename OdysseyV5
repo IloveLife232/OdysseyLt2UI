@@ -1018,32 +1018,39 @@ function Window:_buildHomeTab(gameName)
 	-- Client-side only: scans every text-bearing GuiObject under PlayerGui for the
 	-- real username/display name and swaps it for a placeholder. Purely cosmetic on
 	-- this client, doesn't affect what other players see.
+	local alreadyBlurred={}
+
 	local function BlurTextIn(obj)
+		if alreadyBlurred[obj] then return end
 		pcall(function()
 			if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
 				if obj.Text and obj.Text~="" then
+					local changed=false
 					if realUsername~="" and obj.Text:find(realUsername,1,true) then
 						obj.Text=obj.Text:gsub(realUsername,"OdysseyBlockingThis")
+						changed=true
 					end
 					if realDisplayName~="" and realDisplayName~=realUsername and obj.Text:find(realDisplayName,1,true) then
 						obj.Text=obj.Text:gsub(realDisplayName,"OdysseyBlockingThis")
+						changed=true
 					end
+					if changed then alreadyBlurred[obj]=true end
 				end
 			end
 		end)
 	end
 
-	local function BlurUsernameEverywhere()
+	local function BlurPlayerGuiPass()
 		if not realUsername or realUsername=="" then return end
-
-		-- Scan 2D UI (chat, leaderboards, menus, dropdowns, and Odyssey's own UI too)
 		for _,gui in ipairs(PlayerGui:GetChildren()) do
 			for _,obj in ipairs(gui:GetDescendants()) do
 				BlurTextIn(obj)
 			end
 		end
+	end
 
-		-- Scan the 3D world for BillboardGuis/SurfaceGuis (nametags, "Sold To" signs, etc)
+	local function BlurWorkspacePass()
+		if not realUsername or realUsername=="" then return end
 		pcall(function()
 			for _,obj in ipairs(workspace:GetDescendants()) do
 				if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
@@ -1059,9 +1066,14 @@ function Window:_buildHomeTab(gameName)
 		if blurLoopActive then return end
 		blurLoopActive=true
 		task.spawn(function()
+			local cycles=0
 			while blurIdentityEnabled do
-				BlurUsernameEverywhere()
-				task.wait(0.5)
+				BlurPlayerGuiPass() -- cheap, every pass
+				cycles+=1
+				if cycles%4==0 then
+					BlurWorkspacePass() -- expensive, only every 4th pass (~6s)
+				end
+				task.wait(1.5)
 			end
 			blurLoopActive=false
 		end)
