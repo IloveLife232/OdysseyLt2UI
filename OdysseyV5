@@ -351,13 +351,13 @@ end
 local function MakeDraggable(frame,handle)
 	local drag,start,spos=false
 	handle.InputBegan:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true;start=i.Position;spos=frame.Position end
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=true;start=i.Position;spos=frame.Position end
 	end)
 	handle.InputEnded:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end
 	end)
 	UserInputService.InputChanged:Connect(function(i)
-		if drag and i.UserInputType==Enum.UserInputType.MouseMovement then
+		if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
 			local d=i.Position-start
 			frame.Position=UDim2.new(spos.X.Scale,spos.X.Offset+d.X,spos.Y.Scale,spos.Y.Offset+d.Y)
 		end
@@ -527,7 +527,7 @@ function Tab:CreateSlider(opts)
 	VList(vl,5)
 	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Parent=vl})
 	New("TextLabel",{Text=opts.Name or "Slider",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.7,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
-	local valLbl=New("TextLabel",{Text=tostring(defV),TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.3,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=topRow})
+	local valLbl=New("TextBox",{Text=tostring(defV),TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.3,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,ClearTextOnFocus=false,Parent=topRow})
 	local trackF=New("Frame",{Size=UDim2.new(1,0,0,5),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Parent=vl})
 	Corner(trackF,3)
 	local pct=(defV-minV)/(maxV-minV)
@@ -538,9 +538,14 @@ function Tab:CreateSlider(opts)
 	_div(self._list,self._order); self._order=self._order+1
 	local dragging=false
 	thumbBtn.MouseButton1Down:Connect(function() dragging=true end)
-	UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)
+	thumbBtn.InputBegan:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.Touch then dragging=true end
+	end)
+	UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dragging=false end
+	end)
 	UserInputService.InputChanged:Connect(function(i)
-		if dragging and i.UserInputType==Enum.UserInputType.MouseMovement then
+		if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
 			local p=math.clamp((i.Position.X-trackF.AbsolutePosition.X)/trackF.AbsoluteSize.X,0,1)
 			local v=math.floor((minV+p*(maxV-minV))/inc+0.5)*inc
 			v=math.clamp(v,minV,maxV)
@@ -550,6 +555,21 @@ function Tab:CreateSlider(opts)
 			if cb then cb(v) end
 			if flag then Odyssey.Flags[flag]=v end
 		end
+	end)
+	valLbl.FocusLost:Connect(function()
+		local n=tonumber(valLbl.Text)
+		if not n then
+			valLbl.Text=tostring(defV)
+			return
+		end
+		local v=math.floor(n/inc+0.5)*inc
+		v=math.clamp(v,minV,maxV)
+		local p=(v-minV)/(maxV-minV)
+		valLbl.Text=tostring(v)
+		fill.Size=UDim2.new(p,0,1,0)
+		thumbBtn.Position=UDim2.new(p,-7,0.5,-7)
+		if cb then cb(v) end
+		if flag then Odyssey.Flags[flag]=v end
 	end)
 	local api={}
 	function api:Set(o)
@@ -774,13 +794,13 @@ function Tab:CreateColorPicker(opts)
 	end
 
 	local draggingHue,draggingSV=false,false
-	hueBar.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then draggingHue=true end end)
-	gradBox.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then draggingSV=true end end)
+	hueBar.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingHue=true end end)
+	gradBox.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingSV=true end end)
 	UserInputService.InputEnded:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.MouseButton1 then draggingHue=false; draggingSV=false end
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingHue=false; draggingSV=false end
 	end)
 	UserInputService.InputChanged:Connect(function(i)
-		if i.UserInputType~=Enum.UserInputType.MouseMovement then return end
+		if i.UserInputType~=Enum.UserInputType.MouseMovement and i.UserInputType~=Enum.UserInputType.Touch then return end
 		if draggingHue then
 			local p=math.clamp((i.Position.X-hueBar.AbsolutePosition.X)/hueBar.AbsoluteSize.X,0,1)
 			curH=p
@@ -1444,6 +1464,9 @@ function Odyssey:CreateWindow(opts)
 
 	local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=Color3.fromRGB(90,90,140),BorderSizePixel=0,Parent=Gui})
 	Corner(Main,20)
+	local OdysseyUIScale=Instance.new("UIScale")
+	OdysseyUIScale.Scale=1
+	OdysseyUIScale.Parent=Main
 	OdysseyMainRef=Main
 	OdysseyGradient=Instance.new("UIGradient")
 	OdysseyGradient.Color=ColorSequence.new({
@@ -1491,6 +1514,17 @@ function Odyssey:CreateWindow(opts)
 	local toggleKey=Enum.KeyCode.RightShift
 	UserInputService.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==toggleKey then Main.Visible=not Main.Visible end end)
 
+	-- Persistent floating button, parented directly to the Gui (not Main) so
+	-- it's still tappable even when the main window is hidden. Mobile players
+	-- have no keyboard for the RightShift toggle, so this is their way in.
+	local MobileToggle=New("TextButton",{Name="OdysseyMobileToggle",Text="🧭",TextSize=20,BackgroundColor3=Color3.fromRGB(90,90,140),BackgroundTransparency=0.1,BorderSizePixel=0,Size=UDim2.new(0,44,0,44),Position=UDim2.new(0,0,0.5,-22),AutoButtonColor=false,ZIndex=500,Parent=Gui})
+	Corner(MobileToggle,22)
+	GlassStroke(MobileToggle,0.5)
+	MobileToggle.MouseButton1Click:Connect(function()
+		Main.Visible=not Main.Visible
+	end)
+	MakeDraggable(MobileToggle,MobileToggle)
+
 	local win=setmetatable({_T=T,_orbRow=OrbScroll,_contentScroll=ContentScroll,_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey},Window)
 	win:_buildHomeTab(gameName)
 
@@ -1535,6 +1569,24 @@ function Odyssey:CreateWindow(opts)
 	end)
 
 	settingsTab:CreateSection("GENERAL")
+	local UIScalePresets={
+		["Mobile"]=0.65,
+		["Small"]=0.8,
+		["Normal"]=1,
+		["Large"]=1.1,
+		["Extra Large"]=1.25,
+	}
+	settingsTab:CreateDropdown({
+		Name="UI Size",
+		Options={"Mobile","Small","Normal","Large","Extra Large"},
+		CurrentOption="Normal",
+		MultipleOptions=false,
+		Tooltip="Changes the overall UI size - Mobile is smallest, made for touch screens",
+		Flag="OdysseyUISize",
+		Callback=function(v)
+			OdysseyUIScale.Scale=UIScalePresets[v] or 1
+		end,
+	})
 	settingsTab:CreateButton({
 		Name="Destroy UI",
 		Tooltip="Removes Odyssey - re-run to bring it back",
