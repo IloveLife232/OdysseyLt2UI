@@ -966,7 +966,7 @@ function Window:_buildHomeTab(gameName)
 	New("TextLabel",{Text="Welcome back to Odyssey 🌲",TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=wvl})
 	New("TextLabel",{Text="Your all-in-one companion for Lumber Tycoon 2 — live stats, tools, and more.",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,LayoutOrder=1,Parent=wvl})
 	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.75,BorderSizePixel=0,LayoutOrder=2,Parent=wvl})
-	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Blank",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
+	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Nazab, Pete <3 & Gludgy",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
 
 	local charP=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=tab._list})
 	Corner(charP,12); GlassStroke(charP,0.65); Pad(charP,11,14,11,14)
@@ -1928,7 +1928,7 @@ function Odyssey:CreateWindow(opts)
 	makeConfigBtn("Delete config","Permanently delete saved config",function() pcall(function() if isfile(CONFIG_PATH) then delfile(CONFIG_PATH) end end); win:Notify({Title="Config",Content="Config deleted",Duration=3}) end)
 
 	settingsTab:CreateSection("CREDITS")
-	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: Odyssey team\nUI Library: Odyssey Lib v4\nTesters: placeholder"})
+	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: IHateSchool & Vaxeal\nUI Library: Odyssey Lib v3\nTesters: Nazab, Pete <3 & Gludgy"})
 
 	function win:Notify(nopts2) Window.Notify(self,nopts2) end
 	function win:SetKeybind(key) toggleKey=key end
