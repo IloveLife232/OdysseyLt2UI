@@ -631,6 +631,88 @@ function Tab:CreateInput(opts)
 	return api
 end
 
+-- A textbox and a small dropdown side-by-side in one row, instead of each
+-- taking a full row on their own. Useful for name+category style pairs.
+function Tab:CreateInputWithDropdown(opts)
+	opts=opts or {}
+	local textCb=opts.TextCallback
+	local dropCb=opts.DropdownCallback
+	local enter=opts.Enter or false
+	local ddOptions=opts.DropdownOptions or {}
+	local ddCurrent=opts.DropdownCurrentOption or ddOptions[1] or ""
+	local row=_row(self._list,self._order); self._order=self._order+1
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
+	VList(vl,4)
+	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
+	New("TextLabel",{Text=opts.Name or "Input",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
+	local infoText=opts.Description or opts.Tooltip
+	if infoText then AddTooltip(nameRow,infoText,true,nameRow,UDim2.new(1,-16,0.5,-7)) end
+
+	local pairRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
+	local HList2=Instance.new("UIListLayout")
+	HList2.FillDirection=Enum.FillDirection.Horizontal
+	HList2.Padding=UDim.new(0,6)
+	HList2.VerticalAlignment=Enum.VerticalAlignment.Center
+	HList2.Parent=pairRow
+
+	local tb=New("TextBox",{PlaceholderText=opts.PlaceholderText or "Type here...",Text="",TextSize=11,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(0.62,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,LayoutOrder=1,Parent=pairRow})
+	Corner(tb,8); GlassStroke(tb,0.65); Pad(tb,0,8,0,8)
+	tb.Focused:Connect(function() Stroke(tb,Color3.fromRGB(255,255,255),1,0.2) end)
+	tb.FocusLost:Connect(function(ep)
+		GlassStroke(tb,0.65)
+		if enter and not ep then return end
+		if textCb then textCb(tb.Text) end
+	end)
+	tb:GetPropertyChangedSignal("Text"):Connect(function()
+		if not enter and textCb then textCb(tb.Text) end
+	end)
+
+	-- Small dropdown, compact width, dropdown body opens below the whole row
+	local ddSelected=ddCurrent
+	local ddOpen=false
+	local ddWrap=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(0.35,0,1,0),LayoutOrder=2,Parent=pairRow})
+	local ddHeader=New("TextButton",{Text=tostring(ddSelected),TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=ddWrap})
+	Corner(ddHeader,8); GlassStroke(ddHeader,0.65); Pad(ddHeader,0,6,0,16)
+	local ddArrow=New("TextLabel",{Text="v",TextSize=9,TextColor3=T.TextDim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,14,1,0),Position=UDim2.new(1,-15,0,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=ddHeader})
+	local ddBody=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Visible=false,LayoutOrder=3,Parent=vl})
+	Corner(ddBody,10); GlassStroke(ddBody,0.65); Pad(ddBody,5,5,5,5)
+	local ddList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=ddBody})
+	VList(ddList,3)
+	local ddBtns={}
+	local function ddBuild()
+		for _,b in ipairs(ddBtns) do b:Destroy() end
+		ddBtns={}
+		for _,opt in ipairs(ddOptions) do
+			local sel=(ddSelected==opt)
+			local ob=New("TextButton",{Text=opt,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=sel and 0.8 or 1,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,22),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=ddList})
+			Corner(ob,6); Pad(ob,0,6,0,6)
+			ob.MouseButton1Click:Connect(function()
+				ddSelected=opt
+				ddHeader.Text=tostring(ddSelected)
+				ddOpen=false; ddBody.Visible=false; ddArrow.Text="v"
+				ddBuild()
+				if dropCb then dropCb(ddSelected) end
+			end)
+			table.insert(ddBtns,ob)
+		end
+	end
+	ddBuild()
+	ddHeader.MouseButton1Click:Connect(function()
+		ddOpen=not ddOpen
+		ddBody.Visible=ddOpen
+		ddArrow.Text=ddOpen and "^" or "v"
+	end)
+
+	_div(self._list,self._order); self._order=self._order+1
+	local api={}
+	function api:SetText(v) tb.Text=tostring(v) end
+	function api:GetText() return tb.Text end
+	function api:SetDropdown(v) ddSelected=v; ddHeader.Text=tostring(v); ddBuild() end
+	function api:GetDropdown() return ddSelected end
+	function api:Destroy() row:Destroy() end
+	return api
+end
+
 function Tab:CreateDropdown(opts)
 	opts=opts or {}
 	local options=opts.Options or {}
@@ -1775,10 +1857,11 @@ function Odyssey:CreateWindow(opts)
 	})
 
 	-- ===== CUSTOM THEME CREATOR (same THEME section, no separate header) =====
-	local CUSTOM_THEME_FOLDER="OdysseyConfigs/CustomThemes"
+	local CUSTOM_THEME_FOLDER="Odyssey/OdysseyConfigs/CustomThemes"
 	local function ensureCustomThemeFolder()
 		pcall(function()
-			if not isfolder("OdysseyConfigs") then makefolder("OdysseyConfigs") end
+			if not isfolder("Odyssey") then makefolder("Odyssey") end
+			if not isfolder("Odyssey/OdysseyConfigs") then makefolder("Odyssey/OdysseyConfigs") end
 			if not isfolder(CUSTOM_THEME_FOLDER) then makefolder(CUSTOM_THEME_FOLDER) end
 		end)
 	end
@@ -1931,8 +2014,8 @@ function Odyssey:CreateWindow(opts)
 		Callback=function(v) _G.OdysseyAutoLoad=v end,
 	})
 
-	local CONFIG_PATH="OdysseyConfigs/config.json"
-	local FOLDERS={"Odyssey","OdysseyBuilds","OdysseyConfigs","OdysseySlotNames"}
+	local CONFIG_PATH="Odyssey/OdysseyConfigs/config.json"
+	local FOLDERS={"Odyssey","Odyssey/OdysseyBuilds","Odyssey/OdysseyConfigs","Odyssey/OdysseyConfigs/CustomThemes","Odyssey/OdysseySlotNames"}
 	local function ensureFolders() pcall(function() for _,f in ipairs(FOLDERS) do if not isfolder(f) then makefolder(f) end end end) end
 	local function saveConfig()
 		pcall(function()
