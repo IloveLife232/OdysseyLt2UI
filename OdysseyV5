@@ -1515,6 +1515,45 @@ function Window:CreateUpdateLog(opts)
 	end
 end
 
+function Window:CreateDonationPanel(opts)
+	opts=opts or {}
+	local parent=self._homeList or self._contentScroll
+	self._homeOrder=(self._homeOrder or 10)+1
+	local f=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
+	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
+	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
+	VList(vl,8)
+
+	local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
+	New("TextLabel",{Text="Support Odyssey",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
+
+	New("TextLabel",{Text="If you enjoy the script, consider donating",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=1,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+
+	local grid=New("Frame",{Size=UDim2.new(1,0,0,64),BackgroundTransparency=1,LayoutOrder=2,Parent=vl})
+	local HList3=Instance.new("UIListLayout")
+	HList3.FillDirection=Enum.FillDirection.Horizontal
+	HList3.Padding=UDim.new(0,6)
+	HList3.Parent=grid
+
+	local methods=opts.Methods or {}
+	local cardWidth=(1/math.max(#methods,1))
+
+	for i,m in ipairs(methods) do
+		local card=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Size=UDim2.new(cardWidth,-4,1,0),LayoutOrder=i,Parent=grid})
+		Corner(card,8); GlassStroke(card,0.65)
+		local cvl=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Parent=card})
+		VList(cvl,4)
+		Pad(cvl,8,4,8,4)
+		New("TextLabel",{Text=m.Name or "Method",TextSize=10,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Center,LayoutOrder=1,Parent=cvl})
+		local copyBtn=New("TextButton",{Text="Copy",TextSize=9,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,20),AutoButtonColor=false,LayoutOrder=2,Parent=cvl})
+		Corner(copyBtn,6)
+		copyBtn.MouseButton1Click:Connect(function()
+			pcall(function() setclipboard(m.Value or "") end)
+			Window:Notify({Title="Odyssey", Content=(m.Name or "Value").." copied!", Duration=2})
+		end)
+	end
+end
+
 function Window:CreateDiscordButton(opts)
 	opts=opts or {}
 	local parent=self._homeList or self._contentScroll
@@ -2068,6 +2107,7 @@ function Odyssey:CreateWindow(opts)
 	function win:Notify(nopts2) Window.Notify(self,nopts2) end
 	function win:SetKeybind(key) toggleKey=key end
 	function win:CreateUpdateLog(opts2) Window.CreateUpdateLog(self,opts2) end
+	function win:CreateDonationPanel(opts2) Window.CreateDonationPanel(self,opts2) end
 	function win:CreateDiscordButton(opts2) Window.CreateDiscordButton(self,opts2) end
 	function win:CreateTab(opts2) return Window.CreateTab(self,opts2) end
 
