@@ -1552,6 +1552,8 @@ function Window:CreateDonationPanel(opts)
 			Window:Notify({Title="Odyssey", Content=(m.Name or "Value").." copied!", Duration=2})
 		end)
 	end
+
+	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=3,TextXAlignment=Enum.TextXAlignment.Center,Parent=vl})
 end
 
 function Window:CreateDiscordButton(opts)
