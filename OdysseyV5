@@ -1969,6 +1969,26 @@ function Odyssey:CreateWindow(opts)
 		Callback=function(v) customAccent=v; ApplyCustomPreview() end,
 	})
 
+	settingsTab:CreateInput({
+		Name="Theme Code",
+		PlaceholderText='{"c1":[R,G,B],"c2":[R,G,B],"c3":[R,G,B],"accent":[R,G,B]}',
+		Enter=true,
+		Description="Paste exported theme JSON here to test/load it directly",
+		Callback=function(v)
+			local ok,data=pcall(function() return game:GetService("HttpService"):JSONDecode(v) end)
+			if not ok or not data or not data.c1 or not data.c2 or not data.c3 then
+				Window:Notify({Title="Odyssey", Content="Invalid theme code", Duration=3})
+				return
+			end
+			customC1=Color3.fromRGB(data.c1[1],data.c1[2],data.c1[3])
+			customC2=Color3.fromRGB(data.c2[1],data.c2[2],data.c2[3])
+			customC3=Color3.fromRGB(data.c3[1],data.c3[2],data.c3[3])
+			customAccent=data.accent and Color3.fromRGB(data.accent[1],data.accent[2],data.accent[3]) or customC2
+			ApplyCustomPreview()
+			Window:Notify({Title="Odyssey", Content="Theme code loaded! Save it below to keep it", Duration=4})
+		end,
+	})
+
 	local function saveCustomTheme(themeName,c1,c2,c3,accent)
 		pcall(function()
 			ensureCustomThemeFolder()
