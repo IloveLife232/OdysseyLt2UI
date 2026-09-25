@@ -1,4 +1,4 @@
--- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
+-- Odyssey UI Library v3
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -11,8 +11,6 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
--- Real Material Icons - direct rbxassetid image URLs (credit: latte-soft & qweery via Nebula Softworks Luna)
--- No sprite sheet math needed, each icon is its own full image asset.
 local MaterialIcons = {
 	["home"]="http://www.roblox.com/asset/?id=6026568195";
 	["home_filled"]="rbxassetid://9080449299";
@@ -256,15 +254,18 @@ end
 
 -- Restyles Lumber Tycoon 2's own menus (shop, load/save, notices...) to match the Odyssey look:
 -- dark panels tinted by the active theme, raised buttons with a thin outline, light text.
-local function ApplyLT2Theme(themeColor)
-	if not lt2ThemeEnabled then return end
-	themeColor=themeColor or currentLT2BG
+local SKIP_GUIS={Chat=true,OdysseyUI=true,OdysseyTip=true,OdysseyNotif=true,OdysseyConfirm=true,OdysseyProgress=true,TargetGui=true,ESPGui=true,CrosshairGui=true}
+-- Restyles Lumber Tycoon 2's own menus to match the Odyssey look (one ScreenGui at a time)
+local function StyleLT2Gui(v,themeColor)
+	if SKIP_GUIS[v.Name] then return end
 	local panelCol=C.BG:Lerp(themeColor,0.14)
 	local buttonCol=C.Hover:Lerp(themeColor,0.25)
 	local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920,1080)
-	for _,v in next,Players.LocalPlayer.PlayerGui:GetChildren() do
-		if v.Name~="Chat" and v.Name~="OdysseyUI" and v.Name~="OdysseyTip" and v.Name~="OdysseyNotif" and v.Name~="OdysseyConfirm" and v.Name~="OdysseyProgress" and v.Name~="TargetGui" and v.Name~="ESPGui" and v.Name~="CrosshairGui" then
-			for _,d in next,v:GetDescendants() do pcall(function()
+	local n=0
+	for _,d in ipairs(v:GetDescendants()) do
+		n=n+1
+		if n%250==0 then task.wait() end -- spread work over frames so there is no freeze
+		pcall(function()
 				-- Skip large full-screen overlays (fades, transitions) to avoid blacking out the game
 				if d:IsA("GuiObject") then
 					local sz=d.AbsoluteSize
@@ -296,9 +297,25 @@ local function ApplyLT2Theme(themeColor)
 					d.TextColor3=C.Text
 					d.Font=d:IsA("TextButton") and Enum.Font.GothamBold or Enum.Font.GothamMedium
 				end
-			end) end
-		end
+		end)
 	end
+end
+local lt2Busy,lt2Again=false,false
+local function ApplyLT2Theme(themeColor)
+	if not lt2ThemeEnabled then return end
+	-- if a pass is already running (e.g. dragging a colour picker), just queue one more
+	if lt2Busy then lt2Again=true return end
+	lt2Busy=true
+	task.spawn(function()
+		repeat
+			lt2Again=false
+			for _,v in ipairs(Players.LocalPlayer.PlayerGui:GetChildren()) do
+				if not lt2ThemeEnabled then break end
+				StyleLT2Gui(v,currentLT2BG)
+			end
+		until not lt2Again
+		lt2Busy=false
+	end)
 end
 
 local function RevertLT2Theme()
@@ -317,7 +334,12 @@ local function RevertLT2Theme()
 	OriginalColors={}
 end
 
-Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function() task.wait(0.1); if lt2ThemeEnabled then ApplyLT2Theme(currentLT2BG) end end)
+-- only style the menu that was just added, instead of rescanning every menu
+Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(v)
+	if SKIP_GUIS[v.Name] then return end
+	task.wait(0.1)
+	if lt2ThemeEnabled and v.Parent then StyleLT2Gui(v,currentLT2BG) end
+end)
 task.defer(function() if lt2ThemeEnabled then ApplyLT2Theme(currentLT2BG) end end)
 
 local TipFrame,TipLbl,OdysseyMainRef,OdysseyGradient,OdysseyGuiRef
@@ -1517,20 +1539,32 @@ function Window:_buildHomeTab(gameName)
 	end)
 
 	-- ===== Live values =====
+	-- Stats refresh twice a second (not every frame) and only when the text actually changes
 	local joinTime=tick()
-	RunService.Heartbeat:Connect(function(dt)
-		pcall(function()
-			local char=LocalPlayer.Character
-			local hum=char and char:FindFirstChildWhichIsA("Humanoid")
-			if hum then
-				hVal.Text=math.floor(hum.Health).." / "..math.floor(hum.MaxHealth)
-				hBar.Size=UDim2.new(math.clamp(hum.Health/math.max(hum.MaxHealth,1),0,1),0,1,0)
-			end
-			pingTile.Text=math.floor(LocalPlayer:GetNetworkPing()*1000).." ms"
-			fpsTile.Text=tostring(math.floor(1/dt))
-			srvAgeV.Text=formatTime(math.floor(tick()-joinTime))
-			playersV.Text=#Players:GetPlayers().." / "..Players.MaxPlayers
-		end)
+	local frames=0
+	RunService.RenderStepped:Connect(function() frames=frames+1 end)
+	local function setText(lbl,txt) if lbl.Text~=txt then lbl.Text=txt end end
+	task.spawn(function()
+		local last=tick()
+		while tab._list.Parent do
+			task.wait(0.5)
+			pcall(function()
+				local now=tick()
+				local fps=math.floor(frames/math.max(now-last,0.001)+0.5)
+				frames=0; last=now
+				if not tab._tabData.page.Visible or (self._main and not self._main.Visible) then return end
+				local char=LocalPlayer.Character
+				local hum=char and char:FindFirstChildWhichIsA("Humanoid")
+				if hum then
+					setText(hVal,math.floor(hum.Health).." / "..math.floor(hum.MaxHealth))
+					hBar.Size=UDim2.new(math.clamp(hum.Health/math.max(hum.MaxHealth,1),0,1),0,1,0)
+				end
+				setText(pingTile,math.floor(LocalPlayer:GetNetworkPing()*1000).." ms")
+				setText(fpsTile,tostring(fps))
+				srvAgeV.Text=formatTime(math.floor(now-joinTime))
+				setText(playersV,#Players:GetPlayers().." / "..Players.MaxPlayers)
+			end)
+		end
 	end)
 	task.spawn(function()
 		pcall(function()
@@ -1798,11 +1832,7 @@ function Odyssey:CreateWindow(opts)
 	opts=opts or {}
 	local name=opts.Name or "Odyssey"
 	local sub=opts.Subtitle or ""
-	local gameName="Unknown Game"
-	pcall(function()
-		local info=MarketplaceService:GetProductInfo(game.PlaceId)
-		gameName=info and info.Name or "Unknown Game"
-	end)
+	local gameName="Lumber Tycoon 2"
 	for _,v in ipairs(PlayerGui:GetChildren()) do
 		if v.Name=="OdysseyUI" or v.Name=="OdysseyTip" or v.Name=="OdysseyNotif" then v:Destroy() end
 	end
