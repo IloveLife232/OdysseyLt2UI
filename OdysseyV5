@@ -254,9 +254,13 @@ local function take(self)
 	return o
 end
 
-local function ApplyLT2Theme(bgColor)
+-- Restyles Lumber Tycoon 2's own menus (shop, load/save, notices...) to match the Odyssey look:
+-- dark panels tinted by the active theme, raised buttons with a thin outline, light text.
+local function ApplyLT2Theme(themeColor)
 	if not lt2ThemeEnabled then return end
-	local TxtColor=Color3.fromRGB(255,255,255)
+	themeColor=themeColor or currentLT2BG
+	local panelCol=C.BG:Lerp(themeColor,0.14)
+	local buttonCol=C.Hover:Lerp(themeColor,0.25)
 	local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920,1080)
 	for _,v in next,Players.LocalPlayer.PlayerGui:GetChildren() do
 		if v.Name~="Chat" and v.Name~="OdysseyUI" and v.Name~="OdysseyTip" and v.Name~="OdysseyNotif" and v.Name~="OdysseyConfirm" and v.Name~="OdysseyProgress" and v.Name~="TargetGui" and v.Name~="ESPGui" and v.Name~="CrosshairGui" then
@@ -266,26 +270,31 @@ local function ApplyLT2Theme(bgColor)
 					local sz=d.AbsoluteSize
 					if sz.X>=viewport.X*0.85 and sz.Y>=viewport.Y*0.85 then return end
 				end
-				if not d:FindFirstChild("UICorner") then
-					if d:IsA("Frame") or d:IsA("TextButton") or d:IsA("ScrollingFrame") then
-						Instance.new("UICorner",d).CornerRadius=UDim.new(0,6)
-					end
+				if d.Name=="DropShadow" then d:Destroy() return end
+				if not d:IsA("GuiObject") then return end
+				if not OriginalColors[d] then
+					local o={bg=d.BackgroundColor3}
+					if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then o.text=d.TextColor3; o.font=d.Font end
+					OriginalColors[d]=o
 				end
-				if d.Name=="DropShadow" then d:Destroy() end
-				if d:IsA("TextButton") or d:IsA("Frame") or d:IsA("ScrollingFrame") then
-					-- Save the original color the first time we ever touch this element
-					if not OriginalColors[d] then
-						OriginalColors[d]={bg=d.BackgroundColor3}
-					end
-					d.BackgroundColor3=bgColor
+				if (d:IsA("Frame") or d:IsA("TextButton") or d:IsA("ScrollingFrame") or d:IsA("TextBox")) and not d:FindFirstChildWhichIsA("UICorner") then
+					local uc=Instance.new("UICorner"); uc.Name="OdysseyLT2"; uc.CornerRadius=UDim.new(0,d:IsA("TextButton") and 8 or 10); uc.Parent=d
 				end
+				if d:IsA("TextButton") or d:IsA("ImageButton") then
+					d.BackgroundColor3=buttonCol
+					if d.BackgroundTransparency<0.9 and not d:FindFirstChild("OdysseyLT2Stroke") then
+						local st=Instance.new("UIStroke"); st.Name="OdysseyLT2Stroke"; st.Color=C.FieldStroke; st.Thickness=1
+						st.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; st.Parent=d
+					end
+				elseif d:IsA("TextBox") then
+					d.BackgroundColor3=C.Field
+				elseif d:IsA("Frame") or d:IsA("ScrollingFrame") or d:IsA("TextLabel") then
+					d.BackgroundColor3=panelCol
+				end
+				if d:IsA("ScrollingFrame") then d.ScrollBarImageColor3=C.Muted end
 				if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
-					if not OriginalColors[d] then
-						OriginalColors[d]={bg=d.BackgroundColor3,text=d.TextColor3}
-					elseif OriginalColors[d].text==nil then
-						OriginalColors[d].text=d.TextColor3
-					end
-					d.TextColor3=TxtColor; d.BackgroundColor3=bgColor; d.Font=Enum.Font.GothamMedium
+					d.TextColor3=C.Text
+					d.Font=d:IsA("TextButton") and Enum.Font.GothamBold or Enum.Font.GothamMedium
 				end
 			end) end
 		end
@@ -298,9 +307,14 @@ local function RevertLT2Theme()
 			if d and d.Parent then
 				if orig.bg then d.BackgroundColor3=orig.bg end
 				if orig.text then d.TextColor3=orig.text end
+				if orig.font then d.Font=orig.font end
+				for _,ch in ipairs(d:GetChildren()) do
+					if ch.Name=="OdysseyLT2Stroke" or ch.Name=="OdysseyLT2" then ch:Destroy() end
+				end
 			end
 		end)
 	end
+	OriginalColors={}
 end
 
 Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function() task.wait(0.1); if lt2ThemeEnabled then ApplyLT2Theme(currentLT2BG) end end)
@@ -1092,9 +1106,18 @@ local Window={}
 Window.__index=Window
 
 -- ===== V6 navigation: sidebar buttons (desktop) + chips (compact/mobile) =====
-function Window:_makeNav(text,iconName,glyph,order,pinned)
+local GENERAL_TABS={Home=true,Character=true,World=true,Player=true,Main=true}
+function Window:_makeNav(text,iconName,glyph,order,pinned,group)
 	local parent=pinned and self._sideBottom or self._navScroll
-	local b=New("TextButton",{Name="Nav_"..text,Text="",BackgroundColor3=C.White,BackgroundTransparency=1,BorderSizePixel=0,Size=UDim2.new(1,0,0,34),LayoutOrder=order,AutoButtonColor=false,Parent=parent})
+	if not pinned then
+		group=group or (GENERAL_TABS[text] and "General" or "Tycoon")
+		if group~=self._lastGroup then
+			self._lastGroup=group
+			local gl=New("TextLabel",{Text=group:upper(),TextSize=10,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Bottom,LayoutOrder=order*10-5,Parent=parent})
+			Pad(gl,0,0,4,10)
+		end
+	end
+	local b=New("TextButton",{Name="Nav_"..text,Text="",BackgroundColor3=C.White,BackgroundTransparency=1,BorderSizePixel=0,Size=UDim2.new(1,0,0,34),LayoutOrder=order*10,AutoButtonColor=false,Parent=parent})
 	Corner(b,9)
 	local sel=New("Frame",{Name="Sel",Size=UDim2.new(1,0,1,0),BackgroundColor3=C.White,BackgroundTransparency=0.78,BorderSizePixel=0,Visible=false,Parent=b})
 	Corner(sel,9); AccentGrad(sel,0)
@@ -1207,7 +1230,7 @@ function Window:CreateTab(opts)
 	local rawName=opts.Name or ("Tab "..self._tabOrder)
 	local display=(rawName:gsub("%s+[Tt]ab$",""))
 	local order=opts._order or self._tabOrder
-	local sideBtn,chip=self:_makeNav(display,opts.IconName,opts.Icon,order,opts._pinned)
+	local sideBtn,chip=self:_makeNav(display,opts.IconName,opts.Icon,order,opts._pinned,opts.Group)
 	local page=New("Frame",{Name="Page_"..rawName,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=order,Parent=self._contentScroll})
 	VList(page,8)
 	local sTitle=New("TextLabel",{Text=display,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Visible=false,LayoutOrder=0,Parent=page})
@@ -1245,36 +1268,43 @@ function Window:_buildHomeTab(gameName)
 		elseif request then execName="Delta / Wave"
 		end
 	end)
+	local list=tab._list
+	local LEFT=Enum.TextXAlignment.Left
+	local RIGHT=Enum.TextXAlignment.Right
 
-	local welcomeP=New("Frame",{BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=0,Parent=tab._list})
-	Corner(welcomeP,12); GlassStroke(welcomeP,0.7); Pad(welcomeP,11,14,11,14)
-	local wvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=welcomeP})
-	VList(wvl,4)
-	New("TextLabel",{Text="Welcome back to Odyssey 🌲",TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=wvl})
-	New("TextLabel",{Text="Your all-in-one companion for Lumber Tycoon 2 — live stats, tools, and more.",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,LayoutOrder=1,Parent=wvl})
-	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.75,BorderSizePixel=0,LayoutOrder=2,Parent=wvl})
-	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Nazab, Pete <3 & Gludgy",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
-
-	-- ===== Home grid: 4 stat tiles, then two columns of cards =====
-	local statsGrid=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=tab._list})
+	-- ===== Stat tiles =====
+	local statsGrid=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=list})
 	local statsGL=Instance.new("UIGridLayout")
-	statsGL.CellSize=UDim2.new(0.25,-6,0,58)
+	statsGL.CellSize=UDim2.new(0.25,-6,0,62)
 	statsGL.CellPadding=UDim2.new(0,8,0,8)
 	statsGL.SortOrder=Enum.SortOrder.LayoutOrder
 	statsGL.Parent=statsGrid
 	local tileN=0
-	local function StatTile(title,val)
+	local function StatTile(title,val,withBar)
 		tileN=tileN+1
 		local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,LayoutOrder=tileN,Parent=statsGrid})
-		Corner(f,10); GlassStroke(f)
-		New("TextLabel",{Text=title,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,0,13),Position=UDim2.new(0,12,0,9),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		return New("TextLabel",{Text=val,TextSize=17,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-20,0,22),Position=UDim2.new(0,12,0,26),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+		Corner(f,12); Stroke(f,C.CardStroke,1,0)
+		New("TextLabel",{Text=title,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-24,0,13),Position=UDim2.new(0,12,0,10),TextXAlignment=LEFT,Parent=f})
+		local v=New("TextLabel",{Text=val,TextSize=17,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-24,0,22),Position=UDim2.new(0,12,0,25),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+		local fill
+		if withBar then
+			local tr=New("Frame",{Size=UDim2.new(1,-24,0,4),Position=UDim2.new(0,12,1,-10),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=f})
+			Corner(tr,2)
+			fill=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=C.White,BorderSizePixel=0,Parent=tr})
+			Corner(fill,2)
+			local g=Instance.new("UIGradient")
+			g.Color=ColorSequence.new(Color3.fromRGB(61,220,151),Color3.fromRGB(91,140,255))
+			g.Parent=fill
+		end
+		return v,fill
 	end
-	local hVal=StatTile("Health","100/100")
-	local mVal=StatTile("Money","0")
+	local hVal,hBar=StatTile("Health","100 / 100",true)
+	local mVal=StatTile("Money","$0")
 	local pingTile=StatTile("Ping","...")
 	local fpsTile=StatTile("FPS","...")
-	local cols=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=tab._list})
+
+	-- ===== Two columns of cards =====
+	local cols=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=list})
 	local colsL=Instance.new("UIListLayout")
 	colsL.FillDirection=Enum.FillDirection.Horizontal
 	colsL.Padding=UDim.new(0,10)
@@ -1285,39 +1315,97 @@ function Window:_buildHomeTab(gameName)
 	local colR=New("Frame",{Size=UDim2.new(0.5,-5,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=cols})
 	VList(colR,10)
 	self._homeCols={colL,colR}
-	-- Compact (phone) layout: 2x2 tiles and the columns stack into one
 	self._homeRelayout=function(compact)
-		statsGL.CellSize=compact and UDim2.new(0.5,-4,0,58) or UDim2.new(0.25,-6,0,58)
+		statsGL.CellSize=compact and UDim2.new(0.5,-4,0,62) or UDim2.new(0.25,-6,0,62)
 		colsL.FillDirection=compact and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
 		local w=compact and UDim2.new(1,0,0,0) or UDim2.new(0.5,-5,0,0)
 		colL.Size=w; colR.Size=w
 	end
 
-	local charP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=colL})
-	Corner(charP,12); GlassStroke(charP,0.65); Pad(charP,11,14,11,14)
-	local charL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=charP})
-	VList(charL,7)
-	New("TextLabel",{Text="CHARACTER",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=charL})
-	local cg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=charL})
-	local cgl=Instance.new("UIGridLayout")
-	cgl.CellSize=UDim2.new(0.5,-6,0,34)
-	cgl.CellPadding=UDim2.new(0,12,0,4)
-	cgl.Parent=cg
-	local function InfoCell(key,val)
-		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=cg})
-		New("TextLabel",{Text=key,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
-		return vl
+	local function HCard(parent,order,title,pillText,pillAccent)
+		local card=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=order,Parent=parent})
+		Corner(card,12); Stroke(card,C.CardStroke,1,0); Pad(card,12,14,12,14)
+		local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=card})
+		VList(vl,4)
+		local h=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),LayoutOrder=0,Parent=vl})
+		New("TextLabel",{Text=title:upper(),TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-90,1,0),TextXAlignment=LEFT,Parent=h})
+		local pill
+		if pillText then
+			local pf=New("Frame",{Size=UDim2.new(0,0,0,18),AutomaticSize=Enum.AutomaticSize.X,AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),BackgroundColor3=pillAccent and Color3.fromRGB(91,140,255) or Color3.fromRGB(61,220,151),BackgroundTransparency=0.82,BorderSizePixel=0,Parent=h})
+			Corner(pf,9)
+			pill=New("TextLabel",{Text=pillText,TextSize=10,TextColor3=pillAccent and Color3.fromRGB(150,175,255) or Color3.fromRGB(110,240,182),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=pf})
+			Pad(pill,0,8,0,8)
+		end
+		return card,vl,pill
 	end
-	local dispV=InfoCell("Display name","...")
-	local userV=InfoCell("Username","...")
-	local ageV=InfoCell("Account age","...")
-	local idV=InfoCell("User ID","...")
-	local execV=InfoCell("Executor",execName)
+	local rowN=0
+	local function InfoRow(vl,key,val,last)
+		rowN=rowN+1
+		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,27),LayoutOrder=rowN,Parent=vl})
+		New("TextLabel",{Text=key,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.45,0,1,0),TextXAlignment=LEFT,Parent=f})
+		local v=New("TextLabel",{Text=val,TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.55,0,1,0),Position=UDim2.new(0.45,0,0,0),TextXAlignment=RIGHT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+		if not last then New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,1,-1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=f}) end
+		return v
+	end
+	local function TimerRow(vl,key,val)
+		rowN=rowN+1
+		local f=New("Frame",{BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(1,0,0,32),LayoutOrder=rowN,Parent=vl})
+		Corner(f,8); Stroke(f,C.CardStroke,1,0); Pad(f,0,10,0,10)
+		New("TextLabel",{Text=key,TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.55,0,1,0),TextXAlignment=LEFT,Parent=f})
+		return New("TextLabel",{Text=val,TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.45,0,1,0),Position=UDim2.new(0.55,0,0,0),TextXAlignment=RIGHT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+	end
+
+	-- Character
+	local _,charL=HCard(colL,1,"Character",execName)
+	local dispV=InfoRow(charL,"Display name","...")
+	local userV=InfoRow(charL,"Username","...")
+	local ageV=InfoRow(charL,"Account age","...")
+	local idV=InfoRow(charL,"User ID","...",true)
+
+	-- Timers
+	local _,timL=HCard(colR,1,"Timers")
+	local ferryV=TimerRow(timL,"Ferry departs","...")
+	local slotTimerV=TimerRow(timL,"Slot cooldown","Ready")
+	local playersV=TimerRow(timL,"Server players",#Players:GetPlayers().." / "..Players.MaxPlayers)
+	local srvAgeV={}
+
+	-- What's new (filled by CreateUpdateLog)
+	local logCard,logL=HCard(colL,2,"What's new")
+	local logPill=New("TextLabel",{Text="v1.0",TextSize=11,TextColor3=Color3.fromRGB(123,140,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,100,0,20),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=logL:FindFirstChildWhichIsA("Frame")})
+	logCard.Visible=false
+	self._log={card=logCard,list=logL,pill=logPill}
+
+	-- Community (Discord + Donate, filled by CreateDiscordButton / CreateDonationPanel)
+	local comCard,comL=HCard(colR,2,"Community")
+	comCard.Visible=false
+	New("TextLabel",{Text="Join for updates, bug reports and support.",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=1,Parent=comL})
+	local btnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),LayoutOrder=2,Parent=comL})
+	local brl=HList(btnRow,8)
+	brl.VerticalAlignment=Enum.VerticalAlignment.Top
+	local function PillBtn(text,iconName,order,primary)
+		local b=New("TextButton",{Text="",BackgroundColor3=primary and C.White or C.Hover,BorderSizePixel=0,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,AutoButtonColor=false,Visible=false,LayoutOrder=order,Parent=btnRow})
+		Corner(b,9)
+		if primary then AccentGrad(b,0) else Stroke(b,C.FieldStroke,1,0) end
+		local inner=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=b})
+		Pad(inner,0,14,0,12)
+		local il=HList(inner,6)
+		il.VerticalAlignment=Enum.VerticalAlignment.Center
+		local url=GetMaterialIcon(iconName)
+		if url then New("ImageLabel",{Image=url,ImageColor3=C.White,BackgroundTransparency=1,Size=UDim2.new(0,14,0,14),LayoutOrder=1,Parent=inner}) end
+		local lbl=New("TextLabel",{Text=text,TextSize=12,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=inner})
+		return b,lbl
+	end
+	local discordBtn,discordLbl=PillBtn("Discord","chat_bubble",1,true)
+	local donateBtn=PillBtn("Donate","favorite_border",2,false)
+	local donateArea=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Visible=false,LayoutOrder=3,Parent=comL})
+	VList(donateArea,6)
+	donateBtn.MouseButton1Click:Connect(function() donateArea.Visible=not donateArea.Visible end)
+	self._community={card=comCard,discordBtn=discordBtn,discordLbl=discordLbl,donateBtn=donateBtn,donateArea=donateArea}
+
+	-- ===== Identity + blur (unchanged behaviour) =====
 	local realDisplayName,realUsername,realUserId="","",""
 	local blurIdentityEnabled=false
 	local blurLoopActive=false
-
 	local function RefreshIdentityDisplay()
 		if blurIdentityEnabled then
 			dispV.Text="OdysseyBlockingThis"
@@ -1325,16 +1413,11 @@ function Window:_buildHomeTab(gameName)
 			idV.Text="1"
 		else
 			dispV.Text=realDisplayName
-			userV.Text=realUsername
+			userV.Text="@"..realUsername
 			idV.Text=realUserId
 		end
 	end
-
-	-- Client-side only: scans every text-bearing GuiObject under PlayerGui for the
-	-- real username/display name and swaps it for a placeholder. Purely cosmetic on
-	-- this client, doesn't affect what other players see.
 	local alreadyBlurred={}
-
 	local function BlurTextIn(obj)
 		if alreadyBlurred[obj] then return end
 		pcall(function()
@@ -1354,46 +1437,36 @@ function Window:_buildHomeTab(gameName)
 			end
 		end)
 	end
-
 	local function BlurPlayerGuiPass()
 		if not realUsername or realUsername=="" then return end
 		for _,gui in ipairs(PlayerGui:GetChildren()) do
-			for _,obj in ipairs(gui:GetDescendants()) do
-				BlurTextIn(obj)
-			end
+			for _,obj in ipairs(gui:GetDescendants()) do BlurTextIn(obj) end
 		end
 	end
-
 	local function BlurWorkspacePass()
 		if not realUsername or realUsername=="" then return end
 		pcall(function()
 			for _,obj in ipairs(workspace:GetDescendants()) do
 				if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
-					for _,child in ipairs(obj:GetDescendants()) do
-						BlurTextIn(child)
-					end
+					for _,child in ipairs(obj:GetDescendants()) do BlurTextIn(child) end
 				end
 			end
 		end)
 	end
-
 	local function StartBlurLoop()
 		if blurLoopActive then return end
 		blurLoopActive=true
 		task.spawn(function()
 			local cycles=0
 			while blurIdentityEnabled do
-				BlurPlayerGuiPass() -- cheap, every pass
+				BlurPlayerGuiPass()
 				cycles+=1
-				if cycles%4==0 then
-					BlurWorkspacePass() -- expensive, only every 4th pass (~6s)
-				end
+				if cycles%4==0 then BlurWorkspacePass() end
 				task.wait(1.5)
 			end
 			blurLoopActive=false
 		end)
 	end
-
 	Odyssey._RefreshIdentityDisplay=RefreshIdentityDisplay
 	Odyssey._SetBlurIdentity=function(v)
 		blurIdentityEnabled=v
@@ -1408,144 +1481,85 @@ function Window:_buildHomeTab(gameName)
 		realUsername=LocalPlayer.Name
 		realUserId=tostring(LocalPlayer.UserId)
 		local age=LocalPlayer.AccountAge
-		ageV.Text=age<365 and (age.." days") or (math.floor(age/365).." year(s)")
+		ageV.Text=formatMoney(age).." days"
 		RefreshIdentityDisplay()
 	end)
-	local gbRow=New("Frame",{Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,LayoutOrder=3,Parent=charL})
-	local gb=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=gbRow})
-	Corner(gb,6); GlassStroke(gb,0.7); Pad(gb,0,8,0,8)
-	New("TextLabel",{Text="Roblox Game  |  "..gameName,TextSize=10,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=gb})
-	RunService.Heartbeat:Connect(function()
-		pcall(function()
-			local char=LocalPlayer.Character
-			if not char then return end
-			local hum=char:FindFirstChildWhichIsA("Humanoid")
-			if not hum then return end
-			hVal.Text=math.floor(hum.Health).."/"..math.floor(hum.MaxHealth)
-		end)
-	end)
-	pcall(function()
-		local ls=LocalPlayer:WaitForChild("leaderstats",5)
-		local money=ls:WaitForChild("Money",5)
-		mVal.Text=formatMoney(money.Value)
-		money.Changed:Connect(function(v) mVal.Text=formatMoney(v) end)
-	end)
 
-	local srvP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=colR})
-	Corner(srvP,12); GlassStroke(srvP,0.65); Pad(srvP,11,14,11,14)
-	local srvL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=srvP})
-	VList(srvL,7)
-	New("TextLabel",{Text="SERVER",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=srvL})
-	local sg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=srvL})
-	local sgl2=Instance.new("UIGridLayout")
-	sgl2.CellSize=UDim2.new(0.5,-6,0,34)
-	sgl2.CellPadding=UDim2.new(0,12,0,4)
-	sgl2.Parent=sg
-	local function SrvCell(key,val)
-		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=sg})
-		New("TextLabel",{Text=key,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
-		return vl
-	end
-	local playersV=SrvCell("Players",#Players:GetPlayers().."/"..Players.MaxPlayers)
-	local pingV={} -- shown in the Ping stat tile instead
-	local fpsV={} -- shown in the FPS stat tile instead
-	local jobV=SrvCell("Job ID",game.JobId~="" and game.JobId:sub(1,8) or "...")
-	local placeV=SrvCell("Place ID",tostring(game.PlaceId))
-	local srvVerV=SrvCell("Server ver.",tostring(game.PlaceVersion))
-	local srvAgeV=SrvCell("Time in server","...")
+	-- ===== Live values =====
 	local joinTime=tick()
 	RunService.Heartbeat:Connect(function(dt)
 		pcall(function()
-			local ping=math.floor(LocalPlayer:GetNetworkPing()*1000)
-			pingV.Text=ping.."ms"; pingTile.Text=ping.." ms"
-			fpsV.Text=tostring(math.floor(1/dt)); fpsTile.Text=fpsV.Text
+			local char=LocalPlayer.Character
+			local hum=char and char:FindFirstChildWhichIsA("Humanoid")
+			if hum then
+				hVal.Text=math.floor(hum.Health).." / "..math.floor(hum.MaxHealth)
+				hBar.Size=UDim2.new(math.clamp(hum.Health/math.max(hum.MaxHealth,1),0,1),0,1,0)
+			end
+			pingTile.Text=math.floor(LocalPlayer:GetNetworkPing()*1000).." ms"
+			fpsTile.Text=tostring(math.floor(1/dt))
 			srvAgeV.Text=formatTime(math.floor(tick()-joinTime))
+			playersV.Text=#Players:GetPlayers().." / "..Players.MaxPlayers
 		end)
 	end)
-
-	local lt2P=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=colL})
-	Corner(lt2P,12); GlassStroke(lt2P,0.65); Pad(lt2P,11,14,11,14)
-	local lt2L=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=lt2P})
-	VList(lt2L,7)
-	New("TextLabel",{Text="LUMBER TYCOON 2",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=lt2L})
-	local bg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=lt2L})
-	local bgl=Instance.new("UIGridLayout")
-	bgl.CellSize=UDim2.new(0.5,-4,0,46)
-	bgl.CellPadding=UDim2.new(0,8,0,6)
-	bgl.Parent=bg
-	local function StatusBox(title,val)
-		local f=New("Frame",{BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=bg})
-		Corner(f,9); GlassStroke(f,0.75)
-		New("TextLabel",{Text=title,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-8,0,12),Position=UDim2.new(0,7,0,6),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		local vl=New("TextLabel",{Text=val,TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-8,0,16),Position=UDim2.new(0,7,0,22),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		return vl
-	end
-	local ferryStatusV=StatusBox("FERRY STATUS","...")
-	local ferryTimerV=StatusBox("FERRY TIMER","...")
-	local slotTimerV=StatusBox("RELOAD SLOT","Ready")
-	local lt2MoneyV=StatusBox("MONEY","...")
-	pcall(function()
-		local ferry=workspace:WaitForChild("Ferry",10)
-		if not ferry then return end
-		local moving=ferry:WaitForChild("Moving",5)
-		local timeToDep=ferry:WaitForChild("TimeToDeparture",5)
-		local function upFerry()
-			if moving.Value then
-				ferryStatusV.Text="Departure"
-				ferryTimerV.Text="Sailing"
-			else
-				ferryStatusV.Text="Docked"
-				ferryTimerV.Text=formatTime(timeToDep.Value)
-			end
-		end
-		upFerry()
-		moving.Changed:Connect(upFerry)
-		timeToDep.Changed:Connect(upFerry)
+	task.spawn(function()
+		pcall(function()
+			local ls=LocalPlayer:WaitForChild("leaderstats",5)
+			local money=ls:WaitForChild("Money",5)
+			mVal.Text="$"..formatMoney(money.Value)
+			money.Changed:Connect(function(v) mVal.Text="$"..formatMoney(v) end)
+		end)
 	end)
-	pcall(function()
-		local ls=LocalPlayer:WaitForChild("leaderstats",5)
-		local money=ls:WaitForChild("Money",5)
-		lt2MoneyV.Text=formatMoney(money.Value)
-		money.Changed:Connect(function(v) lt2MoneyV.Text=formatMoney(v) end)
-	end)
-	pcall(function()
-		local noticeGUI=PlayerGui:WaitForChild("NoticeGUI",10)
-		local noticeOpen=noticeGUI:WaitForChild("NoticeOpen",5)
-		local noticeText=noticeGUI.Notice.Main.TextLabel
-		local slotCD=0
-		local slotActive=false
-		local function startCD(s) slotCD=s; slotActive=true end
-		local function checkNotice()
-			local t=noticeText.Text
-			if t:find("load again") then
-				local s=t:match("Wait (%d+) seconds")
-				if s then startCD(tonumber(s)) end
+	task.spawn(function()
+		pcall(function()
+			local ferry=workspace:WaitForChild("Ferry",10)
+			if not ferry then return end
+			local moving=ferry:WaitForChild("Moving",5)
+			local timeToDep=ferry:WaitForChild("TimeToDeparture",5)
+			local function upFerry()
+				if moving.Value then ferryV.Text="Sailing"
+				else ferryV.Text=formatTime(timeToDep.Value) end
 			end
-		end
-		local loadSaveGui=PlayerGui:WaitForChild("LoadSaveGUI",10)
-		if loadSaveGui then
-			local isOpen=loadSaveGui:WaitForChild("IsOpen",5)
-			local wasOpen=false
-			isOpen.Changed:Connect(function(v)
-				if not v and wasOpen and not slotActive then startCD(60) end
-				wasOpen=v
-			end)
-		end
-		noticeOpen.Changed:Connect(function(v) if v then checkNotice() end end)
-		noticeText:GetPropertyChangedSignal("Text"):Connect(function() if noticeOpen.Value then checkNotice() end end)
-		RunService.Heartbeat:Connect(function(dt)
-			if slotActive and slotCD>0 then
-				slotCD=slotCD-dt
-				slotTimerV.Text=formatTime(math.max(0,math.ceil(slotCD)))
-				if slotCD<=0 then
-					slotActive=false
-					slotTimerV.Text="Ready"
+			upFerry()
+			moving.Changed:Connect(upFerry)
+			timeToDep.Changed:Connect(upFerry)
+		end)
+	end)
+	task.spawn(function()
+		pcall(function()
+			local noticeGUI=PlayerGui:WaitForChild("NoticeGUI",10)
+			local noticeOpen=noticeGUI:WaitForChild("NoticeOpen",5)
+			local noticeText=noticeGUI.Notice.Main.TextLabel
+			local slotCD=0
+			local slotActive=false
+			local function startCD(s) slotCD=s; slotActive=true end
+			local function checkNotice()
+				local t=noticeText.Text
+				if t:find("load again") then
+					local s=t:match("Wait (%d+) seconds")
+					if s then startCD(tonumber(s)) end
 				end
 			end
+			local loadSaveGui=PlayerGui:WaitForChild("LoadSaveGUI",10)
+			if loadSaveGui then
+				local isOpen=loadSaveGui:WaitForChild("IsOpen",5)
+				local wasOpen=false
+				isOpen.Changed:Connect(function(v)
+					if not v and wasOpen and not slotActive then startCD(60) end
+					wasOpen=v
+				end)
+			end
+			noticeOpen.Changed:Connect(function(v) if v then checkNotice() end end)
+			noticeText:GetPropertyChangedSignal("Text"):Connect(function() if noticeOpen.Value then checkNotice() end end)
+			RunService.Heartbeat:Connect(function(dt)
+				if slotActive and slotCD>0 then
+					slotCD=slotCD-dt
+					slotTimerV.Text=formatTime(math.max(0,math.ceil(slotCD)))
+					if slotCD<=0 then slotActive=false; slotTimerV.Text="Ready" end
+				end
+			end)
 		end)
 	end)
-	self._homeList=tab._list
+	self._homeList=list
 	self._homeOrder=10
 	return tab
 end
@@ -1675,19 +1689,13 @@ function Window:CreateProgressWidget(opts)
 	return api
 end
 
+-- Fills the Home "What's new" card
 function Window:CreateUpdateLog(opts)
 	opts=opts or {}
-	local parent=(self._homeCols and self._homeCols[2]) or self._homeList or self._contentScroll
-	self._homeOrder=(self._homeOrder or 10)+1
-	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
-	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
-	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
-	VList(vl,5)
-	local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
-	New("TextLabel",{Text="Update log",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.6,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
-	New("TextLabel",{Text=(opts.Version or "v1.0.0").."  |  "..(opts.Date or ""),TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.4,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
-
-	-- Normalizes short type codes (add/fix/chg/rmv etc) into one of 4 fixed categories
+	local log=self._log
+	if not log then return end
+	log.card.Visible=true
+	if log.pill then log.pill.Text=opts.Version or "v1.0" end
 	local function NormalizeType(t)
 		t=(t or ""):lower()
 		if t=="add" or t=="added" or t=="new" then return "Added" end
@@ -1696,88 +1704,65 @@ function Window:CreateUpdateLog(opts)
 		if t=="rmv" or t=="rem" or t=="remove" or t=="removed" or t=="delete" or t=="deleted" then return "Removed" end
 		return "Changed"
 	end
-
-	local categoryOrder={"Added","Fixed","Changed","Removed"}
+	local dotCol=Color3.fromRGB(123,140,255)
+	local catColor={Added=dotCol,Fixed=dotCol,Changed=dotCol,Removed=dotCol}
 	local grouped={Added={},Fixed={},Changed={},Removed={}}
-	for _,e in ipairs(opts.Entries or {}) do
-		local cat=NormalizeType(e.Type)
-		table.insert(grouped[cat],e)
-	end
-
-	local order=1
-	for _,category in ipairs(categoryOrder) do
+	for _,e in ipairs(opts.Entries or {}) do table.insert(grouped[NormalizeType(e.Type)],e) end
+	local order=100
+	for _,category in ipairs({"Added","Fixed","Changed","Removed"}) do
 		local entries=grouped[category]
 		if #entries>0 then
-			New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,LayoutOrder=order,Parent=vl})
-			order=order+1
-			New("TextLabel",{Text=category:upper(),TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=order,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-			order=order+1
 			for _,e in ipairs(entries) do
-				local er=New("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,LayoutOrder=order,Parent=vl})
 				order=order+1
-				local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0.5,-3),BackgroundColor3=T.Text,BorderSizePixel=0,Parent=er})
+				local er=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=order,Parent=log.list})
+				local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0,6),BackgroundColor3=catColor[category],BorderSizePixel=0,Parent=er})
 				Corner(dot,3)
-				New("TextLabel",{Text=e.Text or "",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Position=UDim2.new(0,12,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=er})
+				New("TextLabel",{Text=e.Text or "",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-14,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0,14,0,0),TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Parent=er})
 			end
 		end
 	end
 end
 
+-- Adds the Donate button + payment methods to the Home "Community" card
 function Window:CreateDonationPanel(opts)
 	opts=opts or {}
-	local parent=(self._homeCols and self._homeCols[1]) or self._homeList or self._contentScroll
-	self._homeOrder=(self._homeOrder or 10)+1
-	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
-	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
-	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
-	VList(vl,8)
-
-	local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
-	New("TextLabel",{Text="Support Odyssey",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
-
-	New("TextLabel",{Text="If you enjoy the script, consider donating",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=1,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-
-	local grid=New("Frame",{Size=UDim2.new(1,0,0,64),BackgroundTransparency=1,LayoutOrder=2,Parent=vl})
-	local HList3=Instance.new("UIListLayout")
-	HList3.FillDirection=Enum.FillDirection.Horizontal
-	HList3.Padding=UDim.new(0,6)
-	HList3.Parent=grid
-
+	local com=self._community
+	if not com then return end
+	com.card.Visible=true
+	com.donateBtn.Visible=true
+	local area=com.donateArea
+	New("TextLabel",{Text="If you enjoy the script, consider donating",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=1,Parent=area})
+	local grid=New("Frame",{Size=UDim2.new(1,0,0,58),BackgroundTransparency=1,LayoutOrder=2,Parent=area})
+	HList(grid,6)
 	local methods=opts.Methods or {}
-	local cardWidth=(1/math.max(#methods,1))
-
+	local w=1/math.max(#methods,1)
 	for i,m in ipairs(methods) do
-		local card=New("Frame",{BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Size=UDim2.new(cardWidth,-4,1,0),LayoutOrder=i,Parent=grid})
-		Corner(card,8); GlassStroke(card,0.65)
-		local cvl=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Parent=card})
-		VList(cvl,4)
-		Pad(cvl,8,4,8,4)
-		New("TextLabel",{Text=m.Name or "Method",TextSize=10,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Center,LayoutOrder=1,Parent=cvl})
-		local copyBtn=New("TextButton",{Text="Copy",TextSize=10,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,20),AutoButtonColor=false,LayoutOrder=2,Parent=cvl})
+		local cardM=New("Frame",{BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(w,-5,1,0),LayoutOrder=i,Parent=grid})
+		Corner(cardM,8); Stroke(cardM,C.CardStroke,1,0); Pad(cardM,6,6,6,6)
+		New("TextLabel",{Text=m.Name or "Method",TextSize=11,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextTruncate=Enum.TextTruncate.AtEnd,Parent=cardM})
+		local copyBtn=New("TextButton",{Text="Copy",TextSize=10,TextColor3=C.Text,BackgroundColor3=C.Hover,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,20),Position=UDim2.new(0,0,1,-20),AutoButtonColor=false,Parent=cardM})
 		Corner(copyBtn,6)
 		copyBtn.MouseButton1Click:Connect(function()
 			pcall(function() setclipboard(m.Value or "") end)
-			Window:Notify({Title="Odyssey", Content=(m.Name or "Value").." copied!", Duration=2})
+			Window:Notify({Title="Odyssey",Content=(m.Name or "Value").." copied!",Duration=2})
 		end)
 	end
-
-	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=3,TextXAlignment=Enum.TextXAlignment.Center,Parent=vl})
+	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=10,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),LayoutOrder=3,Parent=area})
 end
 
+-- Shows the Discord button in the Home "Community" card
 function Window:CreateDiscordButton(opts)
 	opts=opts or {}
-	local parent=(self._homeCols and self._homeCols[2]) or self._homeList or self._contentScroll
-	self._homeOrder=(self._homeOrder or 10)+1
-	local btn=New("TextButton",{Text="",BackgroundColor3=C.White,BorderSizePixel=0,Size=UDim2.new(1,0,0,40),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
-	Corner(btn,10)
-	local g=Instance.new("UIGradient")
-	g.Color=ColorSequence.new(T.Discord,Color3.fromRGB(125,95,255))
-	g.Parent=btn
-	New("TextLabel",{Text=opts.Label or "Join Discord Server",TextSize=13,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=btn})
-	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.12}):Play() end)
-	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
-	btn.MouseButton1Click:Connect(function() if opts.Callback then opts.Callback() end end)
+	local com=self._community
+	if not com then return end
+	com.card.Visible=true
+	com.discordBtn.Visible=true
+	local b=com.discordBtn
+	b.MouseEnter:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundTransparency=0.12}):Play() end)
+	b.MouseLeave:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
+	b.MouseButton1Click:Connect(function() if opts.Callback then opts.Callback() end end)
 end
+
 function Odyssey:CreateWindow(opts)
 	opts=opts or {}
 	local name=opts.Name or "Odyssey"
@@ -1806,7 +1791,7 @@ function Odyssey:CreateWindow(opts)
 	local Main=New("Frame",{Name="Main",Size=UDim2.fromOffset(SIZES[layout].X,SIZES[layout].Y),AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,0),BackgroundColor3=Color3.fromRGB(90,90,140),BorderSizePixel=0,Parent=Gui})
 	Corner(Main,16)
 	local OdysseyUIScale=Instance.new("UIScale")
-	OdysseyUIScale.Scale=1
+	OdysseyUIScale.Scale=0.9
 	OdysseyUIScale.Parent=Main
 	OdysseyMainRef=Main
 	OdysseyGradient=Instance.new("UIGradient")
@@ -1869,7 +1854,7 @@ function Odyssey:CreateWindow(opts)
 	local navTop=HEAD+46
 	local NavScroll=New("ScrollingFrame",{Size=UDim2.new(1,-16,1,-(navTop+50)),Position=UDim2.new(0,8,0,navTop),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Side})
 	VList(NavScroll,3)
-	New("Frame",{Size=UDim2.new(1,-24,0,1),Position=UDim2.new(0,12,1,-48),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Side})
+	local SideDiv=New("Frame",{Size=UDim2.new(1,-24,0,1),Position=UDim2.new(0,12,1,-48),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Side})
 	local SideBottom=New("Frame",{Size=UDim2.new(1,-16,0,34),Position=UDim2.new(0,8,1,-42),BackgroundTransparency=1,Parent=Side})
 	VList(SideBottom,0)
 
@@ -1879,8 +1864,11 @@ function Odyssey:CreateWindow(opts)
 	MakeDraggable(Main,Header)
 	New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,1,-1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Header})
 	local CompactLogo=Logo(Header,30,UDim2.new(0,14,0.5,-15))
-	local TitleLbl=New("TextLabel",{Text="Home",TextSize=16,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-150,0,18),Position=UDim2.new(0,20,0,10),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Header})
-	local SubLbl=New("TextLabel",{Text="",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-150,0,14),Position=UDim2.new(0,20,0,30),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Header})
+	local TitleWrap=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,-150,1,0),Position=UDim2.new(0,20,0,0),ClipsDescendants=true,Parent=Header})
+	local twl=HList(TitleWrap,10)
+	twl.VerticalAlignment=Enum.VerticalAlignment.Center
+	local TitleLbl=New("TextLabel",{Text="Home",TextSize=16,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,0,20),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=1,Parent=TitleWrap})
+	local SubLbl=New("TextLabel",{Text="",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0,0,0,20),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=TitleWrap})
 	local CloseBtn=IconBtn(Header,"close","X",UDim2.new(1,-12,0.5,0),"Close")
 	CloseBtn.MouseEnter:Connect(function() CloseBtn.BackgroundColor3=C.DangerBg end)
 	local MinBtn=IconBtn(Header,"remove","-",UDim2.new(1,-48,0.5,0),"Minimize")
@@ -1895,6 +1883,11 @@ function Odyssey:CreateWindow(opts)
 	Corner(CSearchWrap,17); Stroke(CSearchWrap,C.Focus,1,0)
 	local CSearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=13,Font=Enum.Font.Gotham,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-28,1,0),Position=UDim2.new(0,14,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=CSearchWrap})
 
+	local FOOT=30
+	local Footer=New("Frame",{Name="Footer",Size=UDim2.new(1,0,0,FOOT),Position=UDim2.new(0,0,1,-FOOT),BackgroundTransparency=1,Parent=Content})
+	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Footer})
+	local FooterKey=New("TextLabel",{Text="Toggle UI: RightShift",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0,16,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=Footer})
+	local FooterTheme=New("TextLabel",{Text="Theme: Slate",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0.5,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=Footer})
 	local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-HEAD),Position=UDim2.new(0,0,0,HEAD),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Content})
 	Pad(ContentScroll,12,16,16,16); VList(ContentScroll,10)
 
@@ -1906,18 +1899,22 @@ function Odyssey:CreateWindow(opts)
 		local s=SIZES[mode]
 		Main.Size=minimized and UDim2.fromOffset(s.X,HEAD) or UDim2.fromOffset(s.X,s.Y)
 		Side.Visible=not compact
+		SearchWrap.Visible=not minimized
+		NavScroll.Visible=not minimized
+		SideBottom.Visible=not minimized
+		SideDiv.Visible=not minimized
 		Content.Position=UDim2.new(0,compact and 0 or SIDE,0,0)
 		Content.Size=UDim2.new(1,compact and 0 or -SIDE,1,0)
 		CompactLogo.Visible=compact
 		local tx=compact and 54 or 20
-		TitleLbl.Position=UDim2.new(0,tx,0,10)
-		SubLbl.Position=UDim2.new(0,tx,0,30)
+		TitleWrap.Position=UDim2.new(0,tx,0,0)
 		SearchBtn.Visible=compact
 		ChipBar.Visible=compact and not minimized and not CSearchWrap.Visible
 		if not compact then CSearchWrap.Visible=false end
 		local top=compact and HEAD+48 or HEAD
 		ContentScroll.Position=UDim2.new(0,0,0,top)
-		ContentScroll.Size=UDim2.new(1,0,1,-top)
+		ContentScroll.Size=UDim2.new(1,0,1,-(top+FOOT))
+		Footer.Visible=not minimized
 		ContentScroll.Visible=not minimized
 		if win and win._homeRelayout then win._homeRelayout(compact) end
 		if win then win:_relayoutTabs(compact) end
@@ -1967,8 +1964,8 @@ function Odyssey:CreateWindow(opts)
 	pcall(function()
 		local vp=workspace.CurrentCamera.ViewportSize
 		local sz=SIZES[layout]
-		local fit=math.min(1,(vp.Y-30)/sz.Y,(vp.X-30)/sz.X)
-		if fit<1 then OdysseyUIScale.Scale=math.max(fit,0.55) end
+		local fit=math.min(0.9,(vp.Y-30)/sz.Y,(vp.X-30)/sz.X)
+		if fit<0.9 then OdysseyUIScale.Scale=math.max(fit,0.55) end
 	end)
 	win:_buildHomeTab(gameName)
 	if win._homeRelayout then win._homeRelayout(layout=="Compact") end
@@ -1977,11 +1974,11 @@ function Odyssey:CreateWindow(opts)
 
 	settingsTab:CreateSection("GENERAL")
 	local UIScalePresets={
-		["Mobile"]=0.65,
-		["Small"]=0.8,
-		["Normal"]=1,
-		["Large"]=1.1,
-		["Extra Large"]=1.25,
+		["Mobile"]=0.6,
+		["Small"]=0.75,
+		["Normal"]=0.9,
+		["Large"]=1,
+		["Extra Large"]=1.15,
 	}
 	settingsTab:CreateDropdown({
 		Name="UI Size",
@@ -1991,7 +1988,7 @@ function Odyssey:CreateWindow(opts)
 		Tooltip="Changes the overall UI size - Mobile is smallest, made for touch screens",
 		Flag="OdysseyUISize",
 		Callback=function(v)
-			OdysseyUIScale.Scale=UIScalePresets[v] or 1
+			OdysseyUIScale.Scale=UIScalePresets[v] or 0.9
 		end,
 	})
 	settingsTab:CreateDropdown({
@@ -2024,6 +2021,7 @@ function Odyssey:CreateWindow(opts)
 		if awaiting2 and not gp then
 			toggleKey=i.KeyCode
 			kbBox2.Text=i.KeyCode.Name
+			FooterKey.Text="Toggle UI: "..i.KeyCode.Name
 			awaiting2=false
 		end
 	end)
@@ -2099,6 +2097,7 @@ function Odyssey:CreateWindow(opts)
 	-- BULLETPROOF theme apply: directly builds and assigns the gradient inline,
 	-- no shared function/table indirection between theme name and its colors.
 	local function ApplyThemeDirect(themeName)
+		FooterTheme.Text="Theme: "..tostring(themeName)
 		local seq
 		if themeName=="Ocean" then
 			seq=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(10,90,180)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(20,150,220)),ColorSequenceKeypoint.new(1,Color3.fromRGB(10,190,210))})
