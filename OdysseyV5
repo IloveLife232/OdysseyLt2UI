@@ -1415,7 +1415,8 @@ function Window:_buildHomeTab(gameName)
 	local comCard,comL=HCard(colR,2,"Community")
 	comCard.Visible=false
 	New("TextLabel",{Text="Join for updates, bug reports and support.",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=1,Parent=comL})
-	local btnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),LayoutOrder=3,Parent=comL})
+	-- buttons pinned to the bottom of the card
+	local btnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,0,1,0),Parent=comCard})
 	local brl=HList(btnRow,8)
 	brl.VerticalAlignment=Enum.VerticalAlignment.Top
 	local function PillBtn(text,iconName,order,primary)
@@ -1454,14 +1455,15 @@ function Window:_buildHomeTab(gameName)
 		if sc<=0 then sc=1 end
 		local function natural(vl) return math.floor(vl.AbsoluteSize.Y/sc+0.5)+24 end
 		if homeCompact then
-			auto(charCard); auto(timCard); auto(comCard)
+			auto(charCard); auto(timCard)
+			fix(comCard,natural(comL)+34+14)
 			fix(logCard,200)
 			return
 		end
 		local top=math.max(natural(charL),natural(timL))
 		fix(charCard,top); fix(timCard,top)
 		local h=LOG_H
-		if comCard.Visible then h=math.max(natural(comL),LOG_H) end
+		if comCard.Visible then h=math.max(natural(comL)+34+14,LOG_H) end -- text + gap + button row
 		fix(logCard,h)
 		if comCard.Visible then fix(comCard,h) end
 	end
@@ -1814,7 +1816,7 @@ function Window:CreateDonationPanel(opts)
 		local names={}
 		for _,m in ipairs(opts.Methods or {}) do if m.Name then table.insert(names,m.Name) end end
 		local how=#names>0 and (" Tap Donate for "..table.concat(names,", ")..".") or " Tap Donate to see how."
-		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep it updated and free."..how,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
+		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep it updated and free."..how,TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
 	end
 	-- Dropdown panel that opens under the Donate button and floats over the UI
 	local btn=com.donateBtn
