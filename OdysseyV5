@@ -1,7 +1,8 @@
--- Odyssey UI Library v3
+-- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
+Odyssey.Version = "6.2"
 
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -1456,14 +1457,14 @@ function Window:_buildHomeTab(gameName)
 		local function natural(vl) return math.floor(vl.AbsoluteSize.Y/sc+0.5)+24 end
 		if homeCompact then
 			auto(charCard); auto(timCard)
-			fix(comCard,natural(comL)+34+14)
+			fix(comCard,natural(comL)+34+30)
 			fix(logCard,200)
 			return
 		end
 		local top=math.max(natural(charL),natural(timL))
 		fix(charCard,top); fix(timCard,top)
 		local h=LOG_H
-		if comCard.Visible then h=math.max(natural(comL)+34+14,LOG_H) end -- text + gap + button row
+		if comCard.Visible then h=math.max(natural(comL)+34+30,LOG_H) end -- text + gap + button row
 		fix(logCard,h)
 		if comCard.Visible then fix(comCard,h) end
 	end
@@ -2008,7 +2009,7 @@ function Odyssey:CreateWindow(opts)
 	local FOOT=30
 	local Footer=New("Frame",{Name="Footer",Size=UDim2.new(1,0,0,FOOT),Position=UDim2.new(0,0,1,-FOOT),BackgroundTransparency=1,Parent=Content})
 	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Footer})
-	local FooterKey=New("TextLabel",{Text="Toggle UI: RightShift",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0,16,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=Footer})
+	local FooterKey=New("TextLabel",{Text="Toggle UI: RightShift   ·   Lib v"..Odyssey.Version,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0,16,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=Footer})
 	local FooterTheme=New("TextLabel",{Text="Theme: Slate",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0.5,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=Footer})
 	local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-HEAD),Position=UDim2.new(0,0,0,HEAD),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Content})
 	Pad(ContentScroll,12,16,16,16); VList(ContentScroll,10)
@@ -2183,7 +2184,7 @@ function Odyssey:CreateWindow(opts)
 		if awaiting2 and not gp then
 			toggleKey=i.KeyCode
 			kbBox2.Text=i.KeyCode.Name
-			FooterKey.Text="Toggle UI: "..i.KeyCode.Name
+			FooterKey.Text="Toggle UI: "..i.KeyCode.Name.."   ·   Lib v"..Odyssey.Version
 			awaiting2=false
 		end
 	end)
