@@ -1,4 +1,4 @@
--- Odyssey UI Library v3
+-- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -11,7 +11,8 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
-
+-- Real Material Icons - direct rbxassetid image URLs (credit: latte-soft & qweery via Nebula Softworks Luna)
+-- No sprite sheet math needed, each icon is its own full image asset.
 local MaterialIcons = {
 	["home"]="http://www.roblox.com/asset/?id=6026568195";
 	["home_filled"]="rbxassetid://9080449299";
@@ -1383,14 +1384,14 @@ function Window:_buildHomeTab(gameName)
 	end
 
 	-- Character
-	local _,charL=HCard(colL,1,"Character",execName)
+	local charCard,charL=HCard(colL,1,"Character",execName)
 	local dispV=InfoRow(charL,"Display name","...")
 	local userV=InfoRow(charL,"Username","...")
 	local ageV=InfoRow(charL,"Account age","...")
 	local idV=InfoRow(charL,"User ID","...",true)
 
 	-- Timers
-	local _,timL=HCard(colR,1,"Timers")
+	local timCard,timL=HCard(colR,1,"Timers")
 	local ferryV=TimerRow(timL,"Ferry departs","...")
 	local slotTimerV=TimerRow(timL,"Slot cooldown","Ready")
 	local playersV=TimerRow(timL,"Server players",#Players:GetPlayers().." / "..Players.MaxPlayers)
@@ -1439,26 +1440,33 @@ function Window:_buildHomeTab(gameName)
 	-- Keep "What's new" ending level with the bottom of the Community card;
 	-- anything longer scrolls inside the card.
 	local mainRef=self._main
-	-- What's new has a fixed height (scrolls inside); Community stretches so both
-	-- cards end at the same line.
-	local comMin=Instance.new("UISizeConstraint")
-	comMin.Parent=comCard
+	-- Line up the Home cards: Character = Timers height, What's new = Community height
+	-- (the update log scrolls inside its card).
 	local LOG_H=160
+	local function fix(card,h)
+		card.AutomaticSize=Enum.AutomaticSize.None
+		if card.Size.Y.Offset~=h then card.Size=UDim2.new(1,0,0,h) end
+	end
+	local function auto(card) card.AutomaticSize=Enum.AutomaticSize.Y; card.Size=UDim2.new(1,0,0,0) end
 	syncLog=function()
 		if not logCard.Parent then return end
-		if logCard.Size.Y.Offset~=LOG_H then logCard.Size=UDim2.new(1,0,0,LOG_H) end
-		if homeCompact or not comCard.Visible or not logCard.Visible then
-			comMin.MinSize=Vector2.new(0,0)
-			return
-		end
 		local sc=1
 		pcall(function() local us=mainRef:FindFirstChildWhichIsA("UIScale"); if us then sc=us.Scale end end)
 		if sc<=0 then sc=1 end
-		local logBottom=logCard.AbsolutePosition.Y+logCard.AbsoluteSize.Y
-		local want=math.floor((logBottom-comCard.AbsolutePosition.Y)/sc+0.5)
-		comMin.MinSize=Vector2.new(0,math.max(want,0))
+		local function natural(vl) return math.floor(vl.AbsoluteSize.Y/sc+0.5)+24 end
+		if homeCompact then
+			auto(charCard); auto(timCard); auto(comCard)
+			fix(logCard,200)
+			return
+		end
+		local top=math.max(natural(charL),natural(timL))
+		fix(charCard,top); fix(timCard,top)
+		local h=LOG_H
+		if comCard.Visible then h=math.max(natural(comL),LOG_H) end
+		fix(logCard,h)
+		if comCard.Visible then fix(comCard,h) end
 	end
-	for _,sig in ipairs({logCard:GetPropertyChangedSignal("AbsolutePosition"),comCard:GetPropertyChangedSignal("AbsolutePosition"),comCard:GetPropertyChangedSignal("Visible"),logCard:GetPropertyChangedSignal("Visible")}) do
+	for _,sig in ipairs({charL:GetPropertyChangedSignal("AbsoluteSize"),timL:GetPropertyChangedSignal("AbsoluteSize"),comL:GetPropertyChangedSignal("AbsoluteSize"),comCard:GetPropertyChangedSignal("Visible"),logCard:GetPropertyChangedSignal("Visible")}) do
 		sig:Connect(function() task.defer(syncLog) end)
 	end
 	task.defer(syncLog)
