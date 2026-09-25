@@ -1,8 +1,8 @@
--- Odyssey UI Library v3
+-- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
-Odyssey.Version = "6.3"
+Odyssey.Version = "6.7"
 
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -247,6 +247,23 @@ local function AccentGrad(obj,rot)
 	return g
 end
 -- Shared layout-order counter so sections and their parent tab never collide
+-- A UIGradient on a TextButton also tints its text (white text became invisible),
+-- so gradient buttons get a gradient "Fill" frame behind a separate text label.
+local function GradientButton(btn,radius)
+	btn.BackgroundTransparency=1
+	local fill=Instance.new("Frame")
+	fill.Name="Fill"; fill.Size=UDim2.new(1,0,1,0); fill.BackgroundColor3=Color3.new(1,1,1)
+	fill.BorderSizePixel=0; fill.ZIndex=btn.ZIndex; fill.Parent=btn
+	local uc=Instance.new("UICorner"); uc.CornerRadius=UDim.new(0,radius or 9); uc.Parent=fill
+	AccentGrad(fill,0)
+	local lbl=Instance.new("TextLabel")
+	lbl.Name="Label"; lbl.Text=btn.Text; lbl.TextSize=btn.TextSize; lbl.Font=btn.Font
+	lbl.TextColor3=Color3.new(1,1,1); lbl.BackgroundTransparency=1; lbl.Size=UDim2.new(1,-12,1,0)
+	lbl.Position=UDim2.new(0,6,0,0); lbl.TextTruncate=Enum.TextTruncate.AtEnd; lbl.ZIndex=btn.ZIndex+1; lbl.Parent=btn
+	btn.TextTransparency=1
+	btn:GetPropertyChangedSignal("Text"):Connect(function() lbl.Text=btn.Text end)
+	return fill,lbl
+end
 local function take(self)
 	local c=self._ctr
 	local o=self._order or 0
@@ -609,22 +626,37 @@ function Tab:CreateParagraph(opts)
 end
 
 -- opts.Style = "Primary" | "Danger" | nil (default)
+-- opts.SameRow = true puts this button next to the button created just before it (half width each)
+local LastButton=setmetatable({},{__mode="k"})
 function Tab:CreateButton(opts)
 	opts=opts or {}
 	local cb=opts.Callback
 	local style=opts.Style
-	local inSec=self._root and self._root.secs[self._list]
-	local row=_slot(self,false,0.8,true)
-	if not inSec then Pad(row,2,0,2,0) end
-	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Size=UDim2.new(1,0,0,36),AutoButtonColor=false,Parent=row})
+	local list=self._list
+	local prev=opts.SameRow and LastButton[list]
+	local row,btnSize,btnPos
+	if prev and prev.row.Parent and prev.btn.Parent then
+		LastButton[list]=nil
+		row=prev.row
+		prev.btn.Size=UDim2.new(0.5,-4,0,36)
+		btnSize=UDim2.new(0.5,-4,0,36); btnPos=UDim2.new(0.5,4,0,0)
+	else
+		local inSec=self._root and self._root.secs[list]
+		row=_slot(self,false,0.8,true)
+		if not inSec then Pad(row,2,0,2,0) end
+		btnSize=UDim2.new(1,0,0,36); btnPos=UDim2.new(0,0,0,0)
+	end
+	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Size=btnSize,Position=btnPos,TextTruncate=Enum.TextTruncate.AtEnd,AutoButtonColor=false,Parent=row})
+	if not prev then LastButton[list]={row=row,btn=btn} end
 	Corner(btn,9)
 	local st=Stroke(btn,C.FieldStroke,1,0)
 	local baseCol=C.Hover
 	local hoverCol=C.HoverHi
+	local fill
 	if style=="Primary" then
-		btn.BackgroundColor3=C.White; btn.TextColor3=C.White; btn.Font=Enum.Font.GothamBold
-		st.Transparency=1; AccentGrad(btn,0)
-		baseCol=C.White; hoverCol=Color3.fromRGB(225,225,235)
+		btn.Font=Enum.Font.GothamBold
+		st.Transparency=1
+		fill=GradientButton(btn,9)
 	elseif style=="Danger" then
 		btn.BackgroundColor3=C.DangerBg; btn.TextColor3=C.Danger; st.Color=C.DangerStroke
 		baseCol=C.DangerBg; hoverCol=Color3.fromRGB(96,36,54)
@@ -634,17 +666,27 @@ function Tab:CreateButton(opts)
 	end
 	local infoText=opts.Description or opts.Tooltip
 	if infoText then AddTooltip(btn,infoText,true,btn,nil,true) end
-	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=hoverCol}):Play() end)
-	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=baseCol}):Play() end)
-	btn.MouseButton1Click:Connect(function()
-		btn.BackgroundColor3=style and baseCol or C.Sel
-		TweenService:Create(btn,TweenInfo.new(0.25),{BackgroundColor3=baseCol}):Play()
-		if cb then cb() end
-	end)
+	if fill then
+		btn.MouseEnter:Connect(function() TweenService:Create(fill,TweenInfo.new(0.1),{BackgroundTransparency=0.15}):Play() end)
+		btn.MouseLeave:Connect(function() TweenService:Create(fill,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
+		btn.MouseButton1Click:Connect(function()
+			fill.BackgroundTransparency=0.35
+			TweenService:Create(fill,TweenInfo.new(0.25),{BackgroundTransparency=0}):Play()
+			if cb then cb() end
+		end)
+	else
+		btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=hoverCol}):Play() end)
+		btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=baseCol}):Play() end)
+		btn.MouseButton1Click:Connect(function()
+			btn.BackgroundColor3=style and baseCol or C.Sel
+			TweenService:Create(btn,TweenInfo.new(0.25),{BackgroundColor3=baseCol}):Play()
+			if cb then cb() end
+		end)
+	end
 	reg(self,opts.Name,row)
 	local api={}
 	function api:SetName(n) btn.Text=n end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() if prev then btn:Destroy() else row:Destroy() end end
 	return api
 end
 
@@ -655,6 +697,9 @@ function Tab:CreateToggle(opts)
 	local flag=opts.Flag
 	local card=_slot(self,true)
 	local left=_title(card,opts.Name or "Toggle",opts.Description)
+	if opts.Style=="Danger" then
+		local nl=left:FindFirstChildWhichIsA("TextLabel"); if nl then nl.TextColor3=C.Danger end
+	end
 	left.Size=UDim2.new(1,-52,0,0)
 	local track=New("Frame",{Size=UDim2.new(0,38,0,20),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=card})
 	Corner(track,10)
@@ -1131,16 +1176,37 @@ local Window={}
 Window.__index=Window
 
 -- ===== V6 navigation: sidebar buttons (desktop) + chips (compact/mobile) =====
-local GENERAL_TABS={Home=true,Character=true,World=true,Player=true,Main=true}
+local DEFAULT_GROUPS={Home="Player",Character="Player",World="Player",
+	Property="Base",["Slot Importer"]="Base",Vehicle="Base",Builder="Base",
+	Wood="Misc",["Auto Buy"]="Misc",Dupe="Misc"}
+-- Sidebar group header: small label + a thin line to the right. One per group,
+-- always placed just above the group's first tab (works with any tab Order).
+function Window:_groupHeader(group,order)
+	self._groupHeaders=self._groupHeaders or {}
+	local h=self._groupHeaders[group]
+	local lo=order*10-5
+	if h then
+		if lo<h.LayoutOrder then h.LayoutOrder=lo end
+	else
+		h=New("Frame",{Name="Group_"..group,BackgroundTransparency=1,Size=UDim2.new(1,0,0,30),LayoutOrder=lo,Parent=self._navScroll})
+		local lbl=New("TextLabel",{Text=group:upper(),TextSize=10,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,0,14),AutomaticSize=Enum.AutomaticSize.X,Position=UDim2.new(0,12,1,-18),Parent=h})
+		local line=New("Frame",{BackgroundColor3=C.CardStroke,BorderSizePixel=0,Size=UDim2.new(1,-20,0,1),Position=UDim2.new(0,0,1,-11),Parent=h})
+		-- line starts right after the label text
+		local function fit() line.Position=UDim2.new(0,lbl.TextBounds.X+20,1,-11); line.Size=UDim2.new(1,-(lbl.TextBounds.X+28),0,1) end
+		lbl:GetPropertyChangedSignal("TextBounds"):Connect(fit)
+		task.defer(fit)
+		self._groupHeaders[group]=h
+	end
+	-- the very first header doesn't need the extra space above it
+	local first,firstLO=nil,math.huge
+	for _,g in pairs(self._groupHeaders) do if g.LayoutOrder<firstLO then first,firstLO=g,g.LayoutOrder end end
+	for _,g in pairs(self._groupHeaders) do g.Size=UDim2.new(1,0,0,g==first and 22 or 34) end
+end
 function Window:_makeNav(text,iconName,glyph,order,pinned,group)
 	local parent=pinned and self._sideBottom or self._navScroll
 	if not pinned then
-		group=group or (GENERAL_TABS[text] and "General" or "Tycoon")
-		if group~=self._lastGroup then
-			self._lastGroup=group
-			local gl=New("TextLabel",{Text=group:upper(),TextSize=10,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Bottom,LayoutOrder=order*10-5,Parent=parent})
-			Pad(gl,0,0,4,10)
-		end
+		group=group or DEFAULT_GROUPS[text] or "Tycoon"
+		self:_groupHeader(group,order)
 	end
 	local b=New("TextButton",{Name="Nav_"..text,Text="",BackgroundColor3=C.White,BackgroundTransparency=1,BorderSizePixel=0,Size=UDim2.new(1,0,0,34),LayoutOrder=order*10,AutoButtonColor=false,Parent=parent})
 	Corner(b,9)
@@ -1254,7 +1320,7 @@ function Window:CreateTab(opts)
 	opts=opts or {}
 	local rawName=opts.Name or ("Tab "..self._tabOrder)
 	local display=(rawName:gsub("%s+[Tt]ab$",""))
-	local order=opts._order or self._tabOrder
+	local order=opts._order or opts.Order or self._tabOrder
 	local sideBtn,chip=self:_makeNav(display,opts.IconName,opts.Icon,order,opts._pinned,opts.Group)
 	local page=New("Frame",{Name="Page_"..rawName,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=order,Parent=self._contentScroll})
 	VList(page,8)
@@ -1707,7 +1773,7 @@ function Window:Confirm(copts)
 	local noBtn=New("TextButton",{Text="No",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.5,-5,1,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
 	Corner(noBtn,9); Stroke(noBtn,C.FieldStroke,1,0)
 	local yesBtn=New("TextButton",{Text="Yes",TextSize=13,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.5,-5,1,0),Position=UDim2.new(0.5,5,0,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
-	Corner(yesBtn,9); AccentGrad(yesBtn,0)
+	Corner(yesBtn,9); GradientButton(yesBtn,9)
 	local step=1
 	local function cancel()
 		overlay:Destroy()
@@ -1834,7 +1900,7 @@ function Window:CreateDonationPanel(opts)
 		Corner(row,8); Stroke(row,C.CardStroke,1,0)
 		New("TextLabel",{Text=m.Name or "Method",TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=603,Parent=row})
 		local copyBtn=New("TextButton",{Text="Copy",TextSize=11,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,58,0,24),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-6,0.5,0),AutoButtonColor=false,ZIndex=603,Parent=row})
-		Corner(copyBtn,6); AccentGrad(copyBtn,0)
+		Corner(copyBtn,6); GradientButton(copyBtn,6)
 		copyBtn.MouseButton1Click:Connect(function()
 			pcall(function() setclipboard(m.Value or "") end)
 			copyBtn.Text="Copied"
