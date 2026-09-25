@@ -1,4 +1,4 @@
--- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
+-- Odyssey UI Library v3
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
