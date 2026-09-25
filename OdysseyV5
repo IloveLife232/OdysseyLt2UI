@@ -2,7 +2,7 @@
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
-Odyssey.Version = "6.8"
+Odyssey.Version = "6.9"
 
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -1883,7 +1883,7 @@ function Window:CreateDonationPanel(opts)
 		local names={}
 		for _,m in ipairs(opts.Methods or {}) do if m.Name then table.insert(names,m.Name) end end
 		local how=#names>0 and (" Tap Donate for "..table.concat(names,", ")..".") or " Tap Donate to see how."
-		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep it updated and free."..how,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
+		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep new features and fixes coming."..how,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
 	end
 	-- Dropdown panel that opens under the Donate button and floats over the UI
 	local btn=com.donateBtn
