@@ -2,7 +2,7 @@
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
-Odyssey.Version = "6.9"
+Odyssey.Version = "7.0"
 
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -665,7 +665,22 @@ function Tab:CreateButton(opts)
 		Corner(pip,2); AccentGrad(pip,90)
 	end
 	local infoText=opts.Description or opts.Tooltip
-	if infoText then AddTooltip(btn,infoText,true,btn,nil,true) end
+	if infoText then
+		AddTooltip(btn,infoText,true,btn,nil,true)
+		-- keep the button's words clear of the "i" icon: the text gets its own label
+		-- with equal space on both sides so it stays centred and never runs under the icon
+		local lbl=btn:FindFirstChild("Label")
+		if not lbl then
+			lbl=Instance.new("TextLabel")
+			lbl.Name="Label"; lbl.Text=btn.Text; lbl.TextSize=btn.TextSize; lbl.Font=btn.Font
+			lbl.TextColor3=btn.TextColor3; lbl.BackgroundTransparency=1
+			lbl.TextTruncate=Enum.TextTruncate.AtEnd; lbl.ZIndex=btn.ZIndex+1; lbl.Parent=btn
+			btn.TextTransparency=1
+			btn:GetPropertyChangedSignal("Text"):Connect(function() lbl.Text=btn.Text end)
+		end
+		lbl.Size=UDim2.new(1,-60,1,0)
+		lbl.Position=UDim2.new(0,30,0,0)
+	end
 	if fill then
 		btn.MouseEnter:Connect(function() TweenService:Create(fill,TweenInfo.new(0.1),{BackgroundTransparency=0.15}):Play() end)
 		btn.MouseLeave:Connect(function() TweenService:Create(fill,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
