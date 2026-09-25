@@ -2,7 +2,7 @@
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
-Odyssey.Version = "6.7"
+Odyssey.Version = "6.8"
 
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -175,8 +175,8 @@ local T={
 	Green=Color3.fromRGB(130,220,180),
 	GreenDim=Color3.fromRGB(35,90,60),
 	Text=Color3.fromRGB(255,255,255),
-	TextDim=Color3.fromRGB(184,189,219),
-	TextMuted=Color3.fromRGB(138,144,179),
+	TextDim=Color3.fromRGB(208,212,236),
+	TextMuted=Color3.fromRGB(164,170,204),
 	Red=Color3.fromRGB(255,120,110),
 	Yellow=Color3.fromRGB(255,210,110),
 	Blue=Color3.fromRGB(150,200,255),
@@ -218,9 +218,9 @@ local C={
 	HoverHi=Color3.fromRGB(46,52,86),
 	Track=Color3.fromRGB(42,47,74),
 	Sel=Color3.fromRGB(58,66,108),
-	Text=Color3.fromRGB(232,234,246),
-	Dim=Color3.fromRGB(184,189,219),
-	Muted=Color3.fromRGB(138,144,179),
+	Text=Color3.fromRGB(242,244,252),
+	Dim=Color3.fromRGB(208,212,236),
+	Muted=Color3.fromRGB(164,170,204),
 	Knob=Color3.fromRGB(154,160,195),
 	Focus=Color3.fromRGB(123,140,255),
 	Danger=Color3.fromRGB(255,155,174),
@@ -496,7 +496,7 @@ local function AddTooltip(obj,text,showIcon,iconParent,iconPos,darkIcon)
 	if showIcon and iconParent then
 		local iconBG=Color3.fromRGB(21,25,41)
 		local iconTxt=darkIcon and Color3.fromRGB(255,255,255) or Color3.fromRGB(255,255,255)
-		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=iconTxt,BackgroundColor3=iconBG,BackgroundTransparency=darkIcon and 0.15 or 0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=iconPos or UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
+		local ib=New("TextButton",{Text="i",TextSize=10,TextColor3=iconTxt,BackgroundColor3=iconBG,BackgroundTransparency=darkIcon and 0.15 or 0.85,BorderSizePixel=0,Font=Enum.Font.BuilderSansBold,Size=UDim2.new(0,15,0,15),Position=iconPos or UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
 		Corner(ib,8)
 		if darkIcon then GlassStroke(ib,0.85) else GlassStroke(ib,0.6) end
 		ib.MouseEnter:Connect(function() showTip() end)
@@ -539,14 +539,14 @@ end
 local function _title(parent,text,desc,order)
 	local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=order or 0,Parent=parent})
 	VList(f,2)
-	New("TextLabel",{Text=text or "",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,LayoutOrder=1,Parent=f})
+	New("TextLabel",{Text=text or "",TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,LayoutOrder=1,Parent=f})
 	if desc and desc~="" then
-		New("TextLabel",{Text=desc,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=2,Parent=f})
+		New("TextLabel",{Text=desc,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=2,Parent=f})
 	end
 	return f
 end
 local function _fieldBox(props)
-	local o=New(props.Class or "TextBox",{Text=props.Text or "",TextSize=props.TextSize or 12,TextColor3=C.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=props.Font or Enum.Font.Gotham,Size=props.Size or UDim2.new(1,0,0,32),Position=props.Position,AnchorPoint=props.AnchorPoint,TextXAlignment=props.Align or LEFT,LayoutOrder=props.LayoutOrder or 0,Parent=props.Parent})
+	local o=New(props.Class or "TextBox",{Text=props.Text or "",TextSize=props.TextSize or 13,TextColor3=C.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=props.Font or Enum.Font.BuilderSansMedium,Size=props.Size or UDim2.new(1,0,0,32),Position=props.Position,AnchorPoint=props.AnchorPoint,TextXAlignment=props.Align or LEFT,LayoutOrder=props.LayoutOrder or 0,Parent=props.Parent})
 	if o:IsA("TextBox") then o.ClearTextOnFocus=false; o.PlaceholderText=props.Placeholder or ""; o.PlaceholderColor3=C.Muted end
 	if o:IsA("TextButton") then o.AutoButtonColor=false end
 	Corner(o,8)
@@ -586,7 +586,7 @@ function Tab:CreateSection(name)
 	local h=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),LayoutOrder=0,Parent=vl})
 	local bar=New("Frame",{Size=UDim2.new(0,3,0,12),Position=UDim2.new(0,0,0.5,-6),BackgroundColor3=C.White,BorderSizePixel=0,Parent=h})
 	Corner(bar,2); AccentGrad(bar,90)
-	New("TextLabel",{Text=tostring(name or ""):upper(),TextSize=11,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=h})
+	New("TextLabel",{Text=tostring(name or ""):upper(),TextSize=12,TextColor3=C.Dim,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=h})
 	local list=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=1,Parent=vl})
 	VList(list,0)
 	root.secs[list]={n=0,col=c,card=card}
@@ -605,7 +605,7 @@ function Tab:CreateLabel(opts)
 	local prefixes={"","i  ","!  "}
 	local inSec=self._root and self._root.secs[self._list]
 	local row=_slot(self,false,0.5,true)
-	local lbl=New("TextLabel",{Text=(prefixes[opts.Style or 1] or "")..(opts.Text or ""),TextSize=12,TextColor3=colors[opts.Style or 1] or C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=row})
+	local lbl=New("TextLabel",{Text=(prefixes[opts.Style or 1] or "")..(opts.Text or ""),TextSize=13,TextColor3=colors[opts.Style or 1] or C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=row})
 	if not inSec then Pad(row,2,4,2,4) end
 	local api={}
 	function api:Set(o) if o.Text then lbl.Text=o.Text end end
@@ -618,8 +618,8 @@ function Tab:CreateParagraph(opts)
 	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,4)
-	if opts.Title then New("TextLabel",{Text=opts.Title,TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=LEFT,Parent=vl}) end
-	New("TextLabel",{Text=opts.Text or "",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=vl})
+	if opts.Title then New("TextLabel",{Text=opts.Title,TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=LEFT,Parent=vl}) end
+	New("TextLabel",{Text=opts.Text or "",TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=vl})
 	local api={}
 	function api:Destroy() card:Destroy() end
 	return api
@@ -646,7 +646,7 @@ function Tab:CreateButton(opts)
 		if not inSec then Pad(row,2,0,2,0) end
 		btnSize=UDim2.new(1,0,0,36); btnPos=UDim2.new(0,0,0,0)
 	end
-	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Size=btnSize,Position=btnPos,TextTruncate=Enum.TextTruncate.AtEnd,AutoButtonColor=false,Parent=row})
+	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=14,TextColor3=C.Text,BackgroundColor3=C.Hover,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.BuilderSansMedium,Size=btnSize,Position=btnPos,TextTruncate=Enum.TextTruncate.AtEnd,AutoButtonColor=false,Parent=row})
 	if not prev then LastButton[list]={row=row,btn=btn} end
 	Corner(btn,9)
 	local st=Stroke(btn,C.FieldStroke,1,0)
@@ -654,7 +654,7 @@ function Tab:CreateButton(opts)
 	local hoverCol=C.HoverHi
 	local fill
 	if style=="Primary" then
-		btn.Font=Enum.Font.GothamBold
+		btn.Font=Enum.Font.BuilderSansBold
 		st.Transparency=1
 		fill=GradientButton(btn,9)
 	elseif style=="Danger" then
@@ -749,10 +749,10 @@ function Tab:CreateSlider(opts)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,8)
 	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,22),LayoutOrder=1,Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Slider",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=topRow})
-	local valLbl=_fieldBox({Parent=topRow,Text=fmt(defV),Size=UDim2.new(0,56,0,22),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.GothamBold})
+	New("TextLabel",{Text=opts.Name or "Slider",TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=topRow})
+	local valLbl=_fieldBox({Parent=topRow,Text=fmt(defV),Size=UDim2.new(0,56,0,22),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.BuilderSansBold})
 	if opts.Description then
-		New("TextLabel",{Text=opts.Description,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=2,Parent=vl})
+		New("TextLabel",{Text=opts.Description,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=2,Parent=vl})
 	end
 	local holder=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),LayoutOrder=3,Parent=vl})
 	local trackF=New("Frame",{Size=UDim2.new(1,-8,0,6),Position=UDim2.new(0,4,0.5,-3),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=holder})
@@ -854,7 +854,7 @@ local function _optionList(parent,order)
 	return body,bvl,scroll
 end
 local function _optionBtn(scroll,text,selected)
-	local ob=New("TextButton",{Text=tostring(text),TextSize=12,TextColor3=selected and C.White or C.Dim,BackgroundColor3=C.Sel,BackgroundTransparency=selected and 0.1 or 1,BorderSizePixel=0,Font=selected and Enum.Font.GothamMedium or Enum.Font.Gotham,Size=UDim2.new(1,-4,0,28),TextXAlignment=LEFT,AutoButtonColor=false,Parent=scroll})
+	local ob=New("TextButton",{Text=tostring(text),TextSize=13,TextColor3=selected and C.White or C.Dim,BackgroundColor3=C.Sel,BackgroundTransparency=selected and 0.1 or 1,BorderSizePixel=0,Font=selected and Enum.Font.BuilderSansMedium or Enum.Font.BuilderSansMedium,Size=UDim2.new(1,-4,0,28),TextXAlignment=LEFT,AutoButtonColor=false,Parent=scroll})
 	Corner(ob,6); Pad(ob,0,8,0,10)
 	ob.MouseEnter:Connect(function() if not selected then ob.BackgroundTransparency=0.6 end end)
 	ob.MouseLeave:Connect(function() if not selected then ob.BackgroundTransparency=1 end end)
@@ -1028,8 +1028,8 @@ function Tab:CreateColorPicker(opts)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,8)
 	local hRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,26),LayoutOrder=1,Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Color",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-110,1,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=hRow})
-	local hexLbl=New("TextLabel",{Text="#FFFFFF",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(0,70,1,0),Position=UDim2.new(1,-104,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
+	New("TextLabel",{Text=opts.Name or "Color",TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-110,1,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=hRow})
+	local hexLbl=New("TextLabel",{Text="#FFFFFF",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(0,70,1,0),Position=UDim2.new(1,-104,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
 	local swatch=New("Frame",{Size=UDim2.new(0,26,0,26),Position=UDim2.new(1,-26,0,0),BackgroundColor3=defCol,BorderSizePixel=0,Parent=hRow})
 	Corner(swatch,7); Stroke(swatch,C.FieldStroke,1,0)
 	local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,BackgroundColor3=C.Field,BorderSizePixel=0,Visible=false,LayoutOrder=2,Parent=vl})
@@ -1061,7 +1061,7 @@ function Tab:CreateColorPicker(opts)
 	local svThumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=UDim2.new(curS,-6,1-curV,-6),BackgroundColor3=defCol,BorderSizePixel=0,ZIndex=3,Parent=gradBox})
 	Corner(svThumb,6); Stroke(svThumb,C.White,2,0)
 	gradBox.BackgroundColor3=Color3.fromHSV(curH,1,1)
-	local hexBox=_fieldBox({Parent=hueRow,Text="#FFFFFF",Size=UDim2.new(0,72,1,0),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.Code,TextSize=11})
+	local hexBox=_fieldBox({Parent=hueRow,Text="#FFFFFF",Size=UDim2.new(0,72,1,0),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.Code,TextSize=12})
 	hexBox.BackgroundColor3=C.Card
 	local function hexOf(c) return string.format("#%02X%02X%02X",math.floor(c.R*255),math.floor(c.G*255),math.floor(c.B*255)) end
 	hexBox.Text=hexOf(defCol); hexLbl.Text=hexOf(defCol)
@@ -1139,7 +1139,7 @@ function Tab:CreateBind(opts)
 	local card=_slot(self,true)
 	local left=_title(card,opts.Name or "Keybind",opts.Description)
 	left.Size=UDim2.new(1,-96,0,0)
-	local keyBtn=_fieldBox({Class="TextButton",Parent=card,Text=current,Size=UDim2.new(0,84,0,26),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.GothamBold,TextSize=11})
+	local keyBtn=_fieldBox({Class="TextButton",Parent=card,Text=current,Size=UDim2.new(0,84,0,26),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.BuilderSansBold,TextSize=12})
 	if tipOnly(opts) then AddTooltip(card,opts.Tooltip) end
 	local awaiting=false
 	local holdActive=false
@@ -1189,7 +1189,7 @@ function Window:_groupHeader(group,order)
 		if lo<h.LayoutOrder then h.LayoutOrder=lo end
 	else
 		h=New("Frame",{Name="Group_"..group,BackgroundTransparency=1,Size=UDim2.new(1,0,0,30),LayoutOrder=lo,Parent=self._navScroll})
-		local lbl=New("TextLabel",{Text=group:upper(),TextSize=10,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,0,14),AutomaticSize=Enum.AutomaticSize.X,Position=UDim2.new(0,12,1,-18),Parent=h})
+		local lbl=New("TextLabel",{Text=group:upper(),TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,0,0,14),AutomaticSize=Enum.AutomaticSize.X,Position=UDim2.new(0,12,1,-18),Parent=h})
 		local line=New("Frame",{BackgroundColor3=C.CardStroke,BorderSizePixel=0,Size=UDim2.new(1,-20,0,1),Position=UDim2.new(0,0,1,-11),Parent=h})
 		-- line starts right after the label text
 		local function fit() line.Position=UDim2.new(0,lbl.TextBounds.X+20,1,-11); line.Size=UDim2.new(1,-(lbl.TextBounds.X+28),0,1) end
@@ -1218,9 +1218,9 @@ function Window:_makeNav(text,iconName,glyph,order,pinned,group)
 	if url then
 		New("ImageLabel",{Name="Icon",Image=url,ImageColor3=C.Dim,BackgroundTransparency=1,Size=UDim2.new(0,17,0,17),Position=UDim2.new(0,12,0.5,-8),ZIndex=2,Parent=b})
 	else
-		New("TextLabel",{Name="Icon",Text=glyph or "•",TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,17,0,17),Position=UDim2.new(0,12,0.5,-8),ZIndex=2,Parent=b})
+		New("TextLabel",{Name="Icon",Text=glyph or "•",TextSize=14,TextColor3=C.Dim,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,17,0,17),Position=UDim2.new(0,12,0.5,-8),ZIndex=2,Parent=b})
 	end
-	New("TextLabel",{Name="Label",Text=text,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,38,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=2,Parent=b})
+	New("TextLabel",{Name="Label",Text=text,TextSize=14,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,38,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=2,Parent=b})
 	b.MouseEnter:Connect(function() if not sel.Visible then b.BackgroundTransparency=0.95 end end)
 	b.MouseLeave:Connect(function() b.BackgroundTransparency=1 end)
 
@@ -1230,7 +1230,7 @@ function Window:_makeNav(text,iconName,glyph,order,pinned,group)
 	cst.Name="ChipStroke"
 	local csel=New("Frame",{Name="Sel",Size=UDim2.new(1,0,1,0),BackgroundColor3=C.White,BorderSizePixel=0,Visible=false,Parent=c})
 	Corner(csel,17); AccentGrad(csel,0)
-	local cl=New("TextLabel",{Name="Label",Text=text,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,ZIndex=2,Parent=c})
+	local cl=New("TextLabel",{Name="Label",Text=text,TextSize=14,TextColor3=C.Dim,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,ZIndex=2,Parent=c})
 	Pad(cl,0,16,0,16)
 	return b,c
 end
@@ -1243,7 +1243,7 @@ function Window:_styleNav(td,on)
 		local ic=b:FindFirstChild("Icon")
 		if ic then if ic:IsA("ImageLabel") then ic.ImageColor3=on and C.White or C.Dim else ic.TextColor3=on and C.White or C.Dim end end
 		local lb=b:FindFirstChild("Label")
-		if lb then lb.TextColor3=on and C.White or C.Dim; lb.Font=on and Enum.Font.GothamBold or Enum.Font.GothamMedium end
+		if lb then lb.TextColor3=on and C.White or C.Dim; lb.Font=on and Enum.Font.BuilderSansBold or Enum.Font.BuilderSansMedium end
 		b.BackgroundTransparency=1
 	end
 	local c=td.chip
@@ -1324,7 +1324,7 @@ function Window:CreateTab(opts)
 	local sideBtn,chip=self:_makeNav(display,opts.IconName,opts.Icon,order,opts._pinned,opts.Group)
 	local page=New("Frame",{Name="Page_"..rawName,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=order,Parent=self._contentScroll})
 	VList(page,8)
-	local sTitle=New("TextLabel",{Text=display,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Visible=false,LayoutOrder=0,Parent=page})
+	local sTitle=New("TextLabel",{Text=display,TextSize=13,TextColor3=C.Muted,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Visible=false,LayoutOrder=0,Parent=page})
 	local listF=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=page})
 	VList(listF,6)
 	local compact=self._compact
@@ -1375,8 +1375,8 @@ function Window:_buildHomeTab(gameName)
 		tileN=tileN+1
 		local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,LayoutOrder=tileN,Parent=statsGrid})
 		Corner(f,12); Stroke(f,C.CardStroke,1,0)
-		New("TextLabel",{Text=title,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-24,0,13),Position=UDim2.new(0,12,0,10),TextXAlignment=LEFT,Parent=f})
-		local v=New("TextLabel",{Text=val,TextSize=17,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-24,0,22),Position=UDim2.new(0,12,0,25),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+		New("TextLabel",{Text=title,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-24,0,13),Position=UDim2.new(0,12,0,10),TextXAlignment=LEFT,Parent=f})
+		local v=New("TextLabel",{Text=val,TextSize=17,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,-24,0,22),Position=UDim2.new(0,12,0,25),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
 		local fill
 		if withBar then
 			local tr=New("Frame",{Size=UDim2.new(1,-24,0,4),Position=UDim2.new(0,12,1,-10),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=f})
@@ -1423,12 +1423,12 @@ function Window:_buildHomeTab(gameName)
 		local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=card})
 		VList(vl,4)
 		local h=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),LayoutOrder=0,Parent=vl})
-		New("TextLabel",{Text=title:upper(),TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-90,1,0),TextXAlignment=LEFT,Parent=h})
+		New("TextLabel",{Text=title:upper(),TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,-90,1,0),TextXAlignment=LEFT,Parent=h})
 		local pill
 		if pillText then
 			local pf=New("Frame",{Size=UDim2.new(0,0,0,18),AutomaticSize=Enum.AutomaticSize.X,AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),BackgroundColor3=pillAccent and Color3.fromRGB(91,140,255) or Color3.fromRGB(61,220,151),BackgroundTransparency=0.82,BorderSizePixel=0,Parent=h})
 			Corner(pf,9)
-			pill=New("TextLabel",{Text=pillText,TextSize=10,TextColor3=pillAccent and Color3.fromRGB(150,175,255) or Color3.fromRGB(110,240,182),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=pf})
+			pill=New("TextLabel",{Text=pillText,TextSize=12,TextColor3=pillAccent and Color3.fromRGB(150,175,255) or Color3.fromRGB(110,240,182),Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=pf})
 			Pad(pill,0,8,0,8)
 		end
 		return card,vl,pill
@@ -1437,8 +1437,8 @@ function Window:_buildHomeTab(gameName)
 	local function InfoRow(vl,key,val,last)
 		rowN=rowN+1
 		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,27),LayoutOrder=rowN,Parent=vl})
-		New("TextLabel",{Text=key,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.45,0,1,0),TextXAlignment=LEFT,Parent=f})
-		local v=New("TextLabel",{Text=val,TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.55,0,1,0),Position=UDim2.new(0.45,0,0,0),TextXAlignment=RIGHT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+		New("TextLabel",{Text=key,TextSize=13,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0.45,0,1,0),TextXAlignment=LEFT,Parent=f})
+		local v=New("TextLabel",{Text=val,TextSize=13,TextColor3=C.Text,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0.55,0,1,0),Position=UDim2.new(0.45,0,0,0),TextXAlignment=RIGHT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
 		if not last then New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,1,-1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=f}) end
 		return v
 	end
@@ -1446,8 +1446,8 @@ function Window:_buildHomeTab(gameName)
 		rowN=rowN+1
 		local f=New("Frame",{BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(1,0,0,32),LayoutOrder=rowN,Parent=vl})
 		Corner(f,8); Stroke(f,C.CardStroke,1,0); Pad(f,0,10,0,10)
-		New("TextLabel",{Text=key,TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.55,0,1,0),TextXAlignment=LEFT,Parent=f})
-		return New("TextLabel",{Text=val,TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.45,0,1,0),Position=UDim2.new(0.55,0,0,0),TextXAlignment=RIGHT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+		New("TextLabel",{Text=key,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0.55,0,1,0),TextXAlignment=LEFT,Parent=f})
+		return New("TextLabel",{Text=val,TextSize=13,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0.45,0,1,0),Position=UDim2.new(0.55,0,0,0),TextXAlignment=RIGHT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
 	end
 
 	-- Character
@@ -1466,7 +1466,7 @@ function Window:_buildHomeTab(gameName)
 
 	-- What's new (filled by CreateUpdateLog)
 	local logCard,logL=HCard(colL,2,"What's new")
-	local logPill=New("TextLabel",{Text="v1.0",TextSize=11,TextColor3=Color3.fromRGB(123,140,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,100,0,20),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=logL:FindFirstChildWhichIsA("Frame")})
+	local logPill=New("TextLabel",{Text="v1.0",TextSize=12,TextColor3=Color3.fromRGB(123,140,255),Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,100,0,20),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=logL:FindFirstChildWhichIsA("Frame")})
 	logCard.Visible=false
 	-- fixed-height card with its own scroll area (height synced to the Community card below)
 	logCard.AutomaticSize=Enum.AutomaticSize.None
@@ -1481,7 +1481,7 @@ function Window:_buildHomeTab(gameName)
 	-- Community (Discord + Donate, filled by CreateDiscordButton / CreateDonationPanel)
 	local comCard,comL=HCard(colR,2,"Community")
 	comCard.Visible=false
-	New("TextLabel",{Text="Join for updates, bug reports and support.",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=1,Parent=comL})
+	New("TextLabel",{Text="Join for updates, bug reports and support.",TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=1,Parent=comL})
 	-- buttons pinned to the bottom of the card
 	local btnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),AnchorPoint=Vector2.new(0,1),Position=UDim2.new(0,0,1,0),Parent=comCard})
 	local brl=HList(btnRow,8)
@@ -1496,7 +1496,7 @@ function Window:_buildHomeTab(gameName)
 		il.VerticalAlignment=Enum.VerticalAlignment.Center
 		local url=GetMaterialIcon(iconName)
 		if url then New("ImageLabel",{Image=url,ImageColor3=C.White,BackgroundTransparency=1,Size=UDim2.new(0,14,0,14),LayoutOrder=1,Parent=inner}) end
-		local lbl=New("TextLabel",{Text=text,TextSize=12,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=inner})
+		local lbl=New("TextLabel",{Text=text,TextSize=13,TextColor3=C.White,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=inner})
 		return b,lbl
 	end
 	local discordBtn,discordLbl=PillBtn("Discord","chat_bubble",1,true)
@@ -1741,9 +1741,9 @@ function Window:Notify(nopts)
 	Corner(bar,2); AccentGrad(bar,90)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
 	VList(vl,3)
-	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=vl})
+	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=vl})
 	if nopts.Content and nopts.Content~="" then
-		New("TextLabel",{Text=nopts.Content,TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
+		New("TextLabel",{Text=nopts.Content,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
 	end
 	TweenService:Create(f,TweenInfo.new(0.25,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{Position=UDim2.new(0,0,0,0)}):Play()
 	task.delay(nopts.Duration or 4,function()
@@ -1766,13 +1766,13 @@ function Window:Confirm(copts)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,ZIndex=301,Parent=box})
 	VList(vl,10)
 	local topRow=New("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,ZIndex=301,LayoutOrder=1,Parent=vl})
-	New("TextLabel",{Text=copts.Title or "Are you sure?",TextSize=15,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=topRow})
-	local stepLbl=New("TextLabel",{Text="Step 1 of 2",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0,80,1,0),Position=UDim2.new(1,-80,0,0),TextXAlignment=Enum.TextXAlignment.Right,ZIndex=302,Parent=topRow})
-	local warnLbl=New("TextLabel",{Text=copts.Warning1 or "This action cannot be undone.",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,LayoutOrder=2,Parent=vl})
+	New("TextLabel",{Text=copts.Title or "Are you sure?",TextSize=16,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=topRow})
+	local stepLbl=New("TextLabel",{Text="Step 1 of 2",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0,80,1,0),Position=UDim2.new(1,-80,0,0),TextXAlignment=Enum.TextXAlignment.Right,ZIndex=302,Parent=topRow})
+	local warnLbl=New("TextLabel",{Text=copts.Warning1 or "This action cannot be undone.",TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,LayoutOrder=2,Parent=vl})
 	local btnRow=New("Frame",{Size=UDim2.new(1,0,0,36),BackgroundTransparency=1,ZIndex=301,LayoutOrder=3,Parent=vl})
-	local noBtn=New("TextButton",{Text="No",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.5,-5,1,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
+	local noBtn=New("TextButton",{Text="No",TextSize=14,TextColor3=C.Text,BackgroundColor3=C.Hover,BorderSizePixel=0,Font=Enum.Font.BuilderSansBold,Size=UDim2.new(0.5,-5,1,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
 	Corner(noBtn,9); Stroke(noBtn,C.FieldStroke,1,0)
-	local yesBtn=New("TextButton",{Text="Yes",TextSize=13,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.5,-5,1,0),Position=UDim2.new(0.5,5,0,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
+	local yesBtn=New("TextButton",{Text="Yes",TextSize=14,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.BuilderSansBold,Size=UDim2.new(0.5,-5,1,0),Position=UDim2.new(0.5,5,0,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
 	Corner(yesBtn,9); GradientButton(yesBtn,9)
 	local step=1
 	local function cancel()
@@ -1811,13 +1811,13 @@ function Window:CreateProgressWidget(opts)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=box})
 	VList(vl,8)
 	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Parent=vl})
-	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=nameRow})
+	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=nameRow})
 	local function pctOf() if maxV==minV then return 0 end return (val-minV)/(maxV-minV) end
 	local function pctText()
 		if showPercent then return math.floor(pctOf()*100+0.5).."%" end
 		return math.floor(val).." / "..math.floor(maxV)
 	end
-	local valLbl=New("TextLabel",{Text=pctText(),TextSize=12,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,64,1,0),Position=UDim2.new(1,-64,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
+	local valLbl=New("TextLabel",{Text=pctText(),TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,64,1,0),Position=UDim2.new(1,-64,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
 	local track=New("Frame",{Size=UDim2.new(1,0,0,8),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=vl})
 	Corner(track,4)
 	local fill=New("Frame",{Size=UDim2.new(pctOf(),0,1,0),BackgroundColor3=C.White,BorderSizePixel=0,Parent=track})
@@ -1866,7 +1866,7 @@ function Window:CreateUpdateLog(opts)
 				local er=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=order,Parent=log.list})
 				local dot=New("Frame",{Size=UDim2.new(0,6,0,6),Position=UDim2.new(0,0,0,6),BackgroundColor3=catColor[category],BorderSizePixel=0,Parent=er})
 				Corner(dot,3)
-				New("TextLabel",{Text=e.Text or "",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-14,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0,14,0,0),TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Parent=er})
+				New("TextLabel",{Text=e.Text or "",TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-14,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0,14,0,0),TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Parent=er})
 			end
 		end
 	end
@@ -1883,7 +1883,7 @@ function Window:CreateDonationPanel(opts)
 		local names={}
 		for _,m in ipairs(opts.Methods or {}) do if m.Name then table.insert(names,m.Name) end end
 		local how=#names>0 and (" Tap Donate for "..table.concat(names,", ")..".") or " Tap Donate to see how."
-		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep it updated and free."..how,TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
+		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep it updated and free."..how,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
 	end
 	-- Dropdown panel that opens under the Donate button and floats over the UI
 	local btn=com.donateBtn
@@ -1893,13 +1893,13 @@ function Window:CreateDonationPanel(opts)
 	local popScale=Instance.new("UIScale"); popScale.Parent=pop
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,ZIndex=601,Parent=pop})
 	VList(vl,6)
-	New("TextLabel",{Text="Donate",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=1,ZIndex=602,Parent=vl})
-	New("TextLabel",{Text="Tap Copy, then send it through the app.",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,ZIndex=602,Parent=vl})
+	New("TextLabel",{Text="Donate",TextSize=14,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=1,ZIndex=602,Parent=vl})
+	New("TextLabel",{Text="Tap Copy, then send it through the app.",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,ZIndex=602,Parent=vl})
 	for i,m in ipairs(opts.Methods or {}) do
 		local row=New("Frame",{BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(1,0,0,34),LayoutOrder=10+i,ZIndex=602,Parent=vl})
 		Corner(row,8); Stroke(row,C.CardStroke,1,0)
-		New("TextLabel",{Text=m.Name or "Method",TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=603,Parent=row})
-		local copyBtn=New("TextButton",{Text="Copy",TextSize=11,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,58,0,24),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-6,0.5,0),AutoButtonColor=false,ZIndex=603,Parent=row})
+		New("TextLabel",{Text=m.Name or "Method",TextSize=13,TextColor3=C.Text,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=603,Parent=row})
+		local copyBtn=New("TextButton",{Text="Copy",TextSize=12,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.BuilderSansBold,Size=UDim2.new(0,58,0,24),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-6,0.5,0),AutoButtonColor=false,ZIndex=603,Parent=row})
 		Corner(copyBtn,6); GradientButton(copyBtn,6)
 		copyBtn.MouseButton1Click:Connect(function()
 			pcall(function() setclipboard(m.Value or "") end)
@@ -1908,7 +1908,7 @@ function Window:CreateDonationPanel(opts)
 			Window:Notify({Title="Odyssey",Content=(m.Name or "Value").." copied!",Duration=2})
 		end)
 	end
-	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=10,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),LayoutOrder=100,ZIndex=602,Parent=vl})
+	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),LayoutOrder=100,ZIndex=602,Parent=vl})
 	local function place()
 		local sc=1
 		pcall(function() local us=main:FindFirstChildWhichIsA("UIScale"); if us then sc=us.Scale end end)
@@ -1969,7 +1969,7 @@ function Odyssey:CreateWindow(opts)
 	OdysseyGuiRef=Gui
 	TipFrame=New("Frame",{Size=UDim2.new(0,210,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=C.Card,BackgroundTransparency=0.02,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=Gui})
 	Corner(TipFrame,8); Stroke(TipFrame,C.FieldStroke,1,0); Pad(TipFrame,7,10,7,10)
-	TipLbl=New("TextLabel",{Text="",TextSize=11,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
+	TipLbl=New("TextLabel",{Text="",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
 
 	local SIDE=172
 	local HEAD=54
@@ -2002,7 +2002,7 @@ function Odyssey:CreateWindow(opts)
 		if url then
 			New("ImageLabel",{Image=url,ImageColor3=C.White,BackgroundTransparency=1,Size=UDim2.new(0,size-12,0,size-12),Position=UDim2.new(0,6,0,6),Parent=l})
 		else
-			New("TextLabel",{Text="O",TextSize=15,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=l})
+			New("TextLabel",{Text="O",TextSize=16,TextColor3=C.White,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=l})
 		end
 		return l
 	end
@@ -2013,7 +2013,7 @@ function Odyssey:CreateWindow(opts)
 		if url then
 			New("ImageLabel",{Name="Icon",Image=url,ImageColor3=C.Dim,BackgroundTransparency=1,Size=UDim2.new(0,16,0,16),Position=UDim2.new(0.5,-8,0.5,-8),Parent=b})
 		else
-			New("TextLabel",{Name="Icon",Text=fallback,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=b})
+			New("TextLabel",{Name="Icon",Text=fallback,TextSize=14,TextColor3=C.Dim,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=b})
 		end
 		b.MouseEnter:Connect(function() b.BackgroundColor3=C.Hover end)
 		b.MouseLeave:Connect(function() b.BackgroundColor3=C.Field end)
@@ -2029,15 +2029,15 @@ function Odyssey:CreateWindow(opts)
 	local Brand=New("Frame",{Size=UDim2.new(1,0,0,HEAD),BackgroundTransparency=1,Parent=Side})
 	MakeDraggable(Main,Brand)
 	Logo(Brand,32,UDim2.new(0,14,0.5,-16))
-	New("TextLabel",{Text=name,TextSize=15,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-62,0,17),Position=UDim2.new(0,54,0.5,sub~="" and -15 or -8),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Brand})
+	New("TextLabel",{Text=name,TextSize=16,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,-62,0,17),Position=UDim2.new(0,54,0.5,sub~="" and -15 or -8),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Brand})
 	if sub~="" then
-		New("TextLabel",{Text=sub,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-62,0,13),Position=UDim2.new(0,54,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Brand})
+		New("TextLabel",{Text=sub,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-62,0,13),Position=UDim2.new(0,54,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Brand})
 	end
 	local SearchWrap=New("Frame",{Size=UDim2.new(1,-24,0,32),Position=UDim2.new(0,12,0,HEAD+4),BackgroundColor3=C.Field,BorderSizePixel=0,Parent=Side})
 	Corner(SearchWrap,8)
 	local searchStroke=Stroke(SearchWrap,C.FieldStroke,1,0)
 	New("ImageLabel",{Image=GetMaterialIcon("search") or "",ImageColor3=C.Muted,BackgroundTransparency=1,Size=UDim2.new(0,15,0,15),Position=UDim2.new(0,9,0.5,-7),Parent=SearchWrap})
-	local SearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=12,Font=Enum.Font.Gotham,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,30,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=SearchWrap})
+	local SearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=13,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,30,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=SearchWrap})
 	SearchBox.Focused:Connect(function() searchStroke.Color=C.Focus end)
 	SearchBox.FocusLost:Connect(function() searchStroke.Color=C.FieldStroke end)
 	local navTop=HEAD+46
@@ -2056,8 +2056,8 @@ function Odyssey:CreateWindow(opts)
 	local TitleWrap=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,-150,1,0),Position=UDim2.new(0,20,0,0),ClipsDescendants=true,Parent=Header})
 	local twl=HList(TitleWrap,10)
 	twl.VerticalAlignment=Enum.VerticalAlignment.Center
-	local TitleLbl=New("TextLabel",{Text="Home",TextSize=16,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,0,20),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=1,Parent=TitleWrap})
-	local SubLbl=New("TextLabel",{Text="",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0,0,0,20),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=TitleWrap})
+	local TitleLbl=New("TextLabel",{Text="Home",TextSize=17,TextColor3=C.Text,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(0,0,0,20),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=1,Parent=TitleWrap})
+	local SubLbl=New("TextLabel",{Text="",TextSize=13,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0,0,0,20),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=2,Parent=TitleWrap})
 	local CloseBtn=IconBtn(Header,"close","X",UDim2.new(1,-12,0.5,0),"Close")
 	CloseBtn.MouseEnter:Connect(function() CloseBtn.BackgroundColor3=C.DangerBg end)
 	local MinBtn=IconBtn(Header,"remove","-",UDim2.new(1,-48,0.5,0),"Minimize")
@@ -2070,13 +2070,13 @@ function Odyssey:CreateWindow(opts)
 	Pad(ChipBar,0,14,0,14)
 	local CSearchWrap=New("Frame",{Size=UDim2.new(1,-28,0,34),Position=UDim2.new(0,14,0,HEAD+7),BackgroundColor3=C.Field,BorderSizePixel=0,Visible=false,Parent=Content})
 	Corner(CSearchWrap,17); Stroke(CSearchWrap,C.Focus,1,0)
-	local CSearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=13,Font=Enum.Font.Gotham,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-28,1,0),Position=UDim2.new(0,14,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=CSearchWrap})
+	local CSearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=14,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-28,1,0),Position=UDim2.new(0,14,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=CSearchWrap})
 
 	local FOOT=30
 	local Footer=New("Frame",{Name="Footer",Size=UDim2.new(1,0,0,FOOT),Position=UDim2.new(0,0,1,-FOOT),BackgroundTransparency=1,Parent=Content})
 	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Footer})
-	local FooterKey=New("TextLabel",{Text="Toggle UI: RightShift   ·   Lib v"..Odyssey.Version,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0,16,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=Footer})
-	local FooterTheme=New("TextLabel",{Text="Theme: Slate",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0.5,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=Footer})
+	local FooterKey=New("TextLabel",{Text="Toggle UI: RightShift   ·   Lib v"..Odyssey.Version,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0,16,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=Footer})
+	local FooterTheme=New("TextLabel",{Text="Theme: Slate",TextSize=12,TextColor3=C.Muted,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(0.5,-16,1,0),Position=UDim2.new(0.5,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=Footer})
 	local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-HEAD),Position=UDim2.new(0,0,0,HEAD),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Content})
 	Pad(ContentScroll,12,16,16,16); VList(ContentScroll,10)
 
@@ -2139,7 +2139,7 @@ function Odyssey:CreateWindow(opts)
 		if url then
 			mtIcon=New("ImageLabel",{Image=url,ImageColor3=C.White,BackgroundTransparency=1,Size=UDim2.new(0,22,0,22),AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,0),ZIndex=502,Parent=MobileToggle})
 		else
-			mtIcon=New("TextLabel",{Text="O",TextSize=18,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),ZIndex=502,Parent=MobileToggle})
+			mtIcon=New("TextLabel",{Text="O",TextSize=18,TextColor3=C.White,Font=Enum.Font.BuilderSansBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),ZIndex=502,Parent=MobileToggle})
 		end
 	end
 	local function mtRefresh()
@@ -2240,8 +2240,8 @@ function Odyssey:CreateWindow(opts)
 	})
 	local kbRow2=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),LayoutOrder=settingsTab._order,Parent=settingsTab._list})
 	settingsTab._order=settingsTab._order+1
-	New("TextLabel",{Text="Toggle keybind",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=kbRow2})
-	local kbBox2=New("TextButton",{Text=toggleKey.Name,TextSize=10,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=kbRow2})
+	New("TextLabel",{Text="Toggle keybind",TextSize=12,TextColor3=T.Text,Font=Enum.Font.BuilderSansMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=kbRow2})
+	local kbBox2=New("TextButton",{Text=toggleKey.Name,TextSize=12,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.BuilderSansBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=kbRow2})
 	Corner(kbBox2,7); GlassStroke(kbBox2,0.65)
 	AddTooltip(kbRow2,"Click then press any key to change",true,kbRow2)
 	local awaiting2=false
@@ -2589,7 +2589,7 @@ function Odyssey:CreateWindow(opts)
 	settingsTab._order=settingsTab._order+1
 	local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=pathRow})
 	Corner(pathBox,7); GlassStroke(pathBox,0.65); Pad(pathBox,0,8,0,8)
-	New("TextLabel",{Text="Odyssey/",TextSize=10,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
+	New("TextLabel",{Text="Odyssey/",TextSize=12,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
 	AddTooltip(pathBox,"Root folder for all Odyssey data",true,pathBox)
 	settingsTab:CreateToggle({
 		Name="Load config on join",
@@ -2641,7 +2641,7 @@ function Odyssey:CreateWindow(opts)
 	cfgGrid.CellPadding=UDim2.new(0,8,0,6)
 	cfgGrid.Parent=cfgBtnRow
 	local function makeConfigBtn(txt,tip,cb2)
-		local b=New("TextButton",{Text=txt,TextSize=10,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,AutoButtonColor=false,Parent=cfgBtnRow})
+		local b=New("TextButton",{Text=txt,TextSize=12,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.BuilderSansMedium,AutoButtonColor=false,Parent=cfgBtnRow})
 		Corner(b,8); GlassStroke(b,0.65); AddTooltip(b,tip,true,b)
 		b.MouseButton1Click:Connect(function() if cb2 then cb2() end end)
 		return b
