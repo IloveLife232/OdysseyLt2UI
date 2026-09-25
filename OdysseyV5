@@ -462,6 +462,24 @@ local function _card(parent,order)
 	Corner(f,10); Stroke(f,C.CardStroke,1,0); Pad(f,9,12,9,12)
 	return f
 end
+-- Where an element goes: inside the current section card (flat row + divider),
+-- or as a standalone card if the tab has no section yet.
+local function _slot(self,asCard,weight,noDiv)
+	local root=self._root
+	local sec=root and root.secs[self._list]
+	if sec then
+		if not noDiv and sec.n>0 then
+			New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,LayoutOrder=take(self),Parent=self._list})
+		end
+		if not noDiv then sec.n=sec.n+1 end
+		root.w[sec.col]=root.w[sec.col]+(weight or 1)
+		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=take(self),Parent=self._list})
+		Pad(f,noDiv and 5 or 9,0,noDiv and 5 or 9,0)
+		return f
+	end
+	if asCard then return _card(self._list,take(self)) end
+	return _row(self._list,take(self))
+end
 local function _title(parent,text,desc,order)
 	local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=order or 0,Parent=parent})
 	VList(f,2)
@@ -486,7 +504,9 @@ end
 local function reg(self,name,row)
 	local w=self._win
 	if w and w._searchItems and name then
-		table.insert(w._searchItems,{n=tostring(name):lower(),row=row,page=self._tabData and self._tabData.page})
+		local root=self._root
+		local sec=root and root.secs[self._list]
+		table.insert(w._searchItems,{n=tostring(name):lower(),row=row,page=self._tabData and self._tabData.page,sec=sec and sec.card})
 	end
 end
 local function regSection(self,row)
@@ -496,13 +516,30 @@ end
 local function tipOnly(opts) return (not opts.Description) and opts.Tooltip or nil end
 
 function Tab:CreateSection(name)
-	local row=_row(self._list,take(self))
-	local h=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,26),Parent=row})
-	local bar=New("Frame",{Size=UDim2.new(0,3,0,12),Position=UDim2.new(0,0,1,-15),BackgroundColor3=C.White,BorderSizePixel=0,Parent=h})
+	local root=self._root
+	if not root then return self end
+	-- masonry: put the new section card in the lighter column
+	local c=(root.w[2]<root.w[1]) and 2 or 1
+	root.secN=root.secN+1
+	root.colsFrame.Visible=true
+	local card=New("Frame",{Name="Section_"..tostring(name),BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=root.secN,Parent=root.compact and root.cols[1] or root.cols[c]})
+	card:SetAttribute("Col",c)
+	Corner(card,12); Stroke(card,C.CardStroke,1,0); Pad(card,11,14,5,14)
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
+	VList(vl,2)
+	local h=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),LayoutOrder=0,Parent=vl})
+	local bar=New("Frame",{Size=UDim2.new(0,3,0,12),Position=UDim2.new(0,0,0.5,-6),BackgroundColor3=C.White,BorderSizePixel=0,Parent=h})
 	Corner(bar,2); AccentGrad(bar,90)
-	New("TextLabel",{Text=tostring(name or ""):upper(),TextSize=11,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,14),Position=UDim2.new(0,10,1,-16),TextXAlignment=LEFT,Parent=h})
-	regSection(self,row)
-	return setmetatable({_list=self._list,_order=self._order,_ctr=self._ctr,_tabData=self._tabData,_win=self._win},Tab)
+	New("TextLabel",{Text=tostring(name or ""):upper(),TextSize=11,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=h})
+	local list=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=1,Parent=vl})
+	VList(list,0)
+	root.secs[list]={n=0,col=c,card=card}
+	root.w[c]=root.w[c]+0.6
+	table.insert(root.cards,card)
+	-- everything created on this tab after this call lands in this section
+	self._list=list
+	regSection(self,card)
+	return setmetatable({_list=list,_order=0,_ctr=self._ctr,_root=root,_tabData=self._tabData,_win=self._win},Tab)
 end
 function Tab:CreateDivider() _div(self._list,take(self)) end
 
@@ -510,9 +547,10 @@ function Tab:CreateLabel(opts)
 	opts=opts or {}
 	local colors={C.Dim,T.Blue,T.Yellow}
 	local prefixes={"","i  ","!  "}
-	local row=_row(self._list,take(self))
+	local inSec=self._root and self._root.secs[self._list]
+	local row=_slot(self,false,0.5,true)
 	local lbl=New("TextLabel",{Text=(prefixes[opts.Style or 1] or "")..(opts.Text or ""),TextSize=12,TextColor3=colors[opts.Style or 1] or C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=row})
-	Pad(row,2,4,2,4)
+	if not inSec then Pad(row,2,4,2,4) end
 	local api={}
 	function api:Set(o) if o.Text then lbl.Text=o.Text end end
 	function api:Destroy() row:Destroy() end
@@ -521,7 +559,7 @@ end
 
 function Tab:CreateParagraph(opts)
 	opts=opts or {}
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,4)
 	if opts.Title then New("TextLabel",{Text=opts.Title,TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=LEFT,Parent=vl}) end
@@ -536,7 +574,9 @@ function Tab:CreateButton(opts)
 	opts=opts or {}
 	local cb=opts.Callback
 	local style=opts.Style
-	local row=_row(self._list,take(self))
+	local inSec=self._root and self._root.secs[self._list]
+	local row=_slot(self,false,0.8,true)
+	if not inSec then Pad(row,2,0,2,0) end
 	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Size=UDim2.new(1,0,0,36),AutoButtonColor=false,Parent=row})
 	Corner(btn,9)
 	local st=Stroke(btn,C.FieldStroke,1,0)
@@ -574,7 +614,7 @@ function Tab:CreateToggle(opts)
 	local enabled=opts.CurrentValue or false
 	local cb=opts.Callback
 	local flag=opts.Flag
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local left=_title(card,opts.Name or "Toggle",opts.Description)
 	left.Size=UDim2.new(1,-52,0,0)
 	local track=New("Frame",{Size=UDim2.new(0,38,0,20),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=card})
@@ -621,7 +661,7 @@ function Tab:CreateSlider(opts)
 	do local d=tostring(inc):match("%.(%d+)"); if d then decimals=#d end end
 	local function fmt(v) if decimals>0 then return string.format("%."..decimals.."f",v) end return tostring(math.floor(v+0.5)) end
 	local function pctOf(v) if maxV==minV then return 0 end return (v-minV)/(maxV-minV) end
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,8)
 	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,22),LayoutOrder=1,Parent=vl})
@@ -693,7 +733,7 @@ function Tab:CreateInput(opts)
 	opts=opts or {}
 	local cb=opts.Callback
 	local enter=opts.Enter or false
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,6)
 	local head=_title(vl,opts.Name or "Input",opts.Description,1)
@@ -749,7 +789,7 @@ function Tab:CreateInputWithDropdown(opts)
 	local enter=opts.Enter or false
 	local ddOptions=opts.DropdownOptions or {}
 	local ddCurrent=opts.DropdownCurrentOption or ddOptions[1] or ""
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,6)
 	local head=_title(vl,opts.Name or "Input",opts.Description,1)
@@ -822,7 +862,7 @@ function Tab:CreateDropdown(opts)
 		return s
 	end
 	local open=false
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,6)
 	local head=_title(vl,opts.Name or "Dropdown",opts.Description,1)
@@ -900,7 +940,7 @@ function Tab:CreateColorPicker(opts)
 	local flag=opts.Flag
 	local expanded=false
 	local currentCol=defCol
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,8)
 	local hRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,26),LayoutOrder=1,Parent=vl})
@@ -1012,7 +1052,7 @@ function Tab:CreateBind(opts)
 	local current=opts.CurrentKeybind or opts.CurrentBind or "None"
 	local hold=opts.HoldToInteract or false
 	local cb=opts.Callback
-	local card=_card(self._list,take(self))
+	local card=_slot(self,true)
 	local left=_title(card,opts.Name or "Keybind",opts.Description)
 	left.Size=UDim2.new(1,-96,0,0)
 	local keyBtn=_fieldBox({Class="TextButton",Parent=card,Text=current,Size=UDim2.new(0,84,0,26),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.GothamBold,TextSize=11})
@@ -1120,6 +1160,19 @@ function Window:_selectTab(td)
 	end
 end
 
+function Window:_relayoutTabs(compact)
+	self._compact=compact
+	for _,root in ipairs(self._roots or {}) do
+		root.compact=compact
+		for i,card in ipairs(root.cards) do
+			card.Parent=compact and root.cols[1] or root.cols[card:GetAttribute("Col") or 1]
+			card.LayoutOrder=i
+		end
+		root.cols[1].Size=compact and UDim2.new(1,0,0,0) or UDim2.new(0.5,-5,0,0)
+		root.cols[2].Visible=not compact
+	end
+end
+
 function Window:_runSearch(q)
 	q=tostring(q or ""):lower():match("^%s*(.-)%s*$")
 	if q=="" then
@@ -1128,13 +1181,14 @@ function Window:_runSearch(q)
 		if self._current then self:_selectTab(self._current) end
 		return
 	end
-	local hit={}
+	local hit,secHit={},{}
 	for _,it in ipairs(self._searchItems) do
 		local m=it.n:find(q,1,true)~=nil
 		it.row.Visible=m
 		if m and it.page then hit[it.page]=true end
+		if m and it.sec then secHit[it.sec]=true end
 	end
-	for _,s in ipairs(self._searchSections) do s.Visible=false end
+	for _,s in ipairs(self._searchSections) do s.Visible=secHit[s]==true end
 	local any=false
 	for _,t in ipairs(self._tabs) do
 		local h=hit[t.page]==true
@@ -1159,13 +1213,26 @@ function Window:CreateTab(opts)
 	local sTitle=New("TextLabel",{Text=display,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Visible=false,LayoutOrder=0,Parent=page})
 	local listF=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=page})
 	VList(listF,6)
+	local compact=self._compact
+	local colsFrame=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=3,Parent=page})
+	local cl=Instance.new("UIListLayout")
+	cl.FillDirection=Enum.FillDirection.Horizontal
+	cl.Padding=UDim.new(0,10)
+	cl.SortOrder=Enum.SortOrder.LayoutOrder
+	cl.Parent=colsFrame
+	local colA=New("Frame",{Size=compact and UDim2.new(1,0,0,0) or UDim2.new(0.5,-5,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=colsFrame})
+	VList(colA,10)
+	local colB=New("Frame",{Size=UDim2.new(0.5,-5,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=not compact,LayoutOrder=2,Parent=colsFrame})
+	VList(colB,10)
+	local root={cols={colA,colB},w={0,0},secs={},cards={},secN=0,colsFrame=colsFrame,compact=compact}
+	table.insert(self._roots,root)
 	self._tabOrder=self._tabOrder+1
 	local tabData={btn=sideBtn,chip=chip,page=page,name=display,desc=opts.Description,searchTitle=sTitle}
 	table.insert(self._tabs,tabData)
 	sideBtn.MouseButton1Click:Connect(function() self:_selectTab(tabData) end)
 	chip.MouseButton1Click:Connect(function() self:_selectTab(tabData) end)
 	if #self._tabs==1 then self:_selectTab(tabData) end
-	return setmetatable({_list=listF,_order=0,_ctr={n=0},_tabData=tabData,_win=self},Tab)
+	return setmetatable({_list=listF,_order=0,_ctr={n=0},_root=root,_tabData=tabData,_win=self},Tab)
 end
 
 function Window:_buildHomeTab(gameName)
@@ -1188,21 +1255,49 @@ function Window:_buildHomeTab(gameName)
 	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.75,BorderSizePixel=0,LayoutOrder=2,Parent=wvl})
 	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Nazab, Pete <3 & Gludgy",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
 
-	local charP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=tab._list})
+	-- ===== Home grid: 4 stat tiles, then two columns of cards =====
+	local statsGrid=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=tab._list})
+	local statsGL=Instance.new("UIGridLayout")
+	statsGL.CellSize=UDim2.new(0.25,-6,0,58)
+	statsGL.CellPadding=UDim2.new(0,8,0,8)
+	statsGL.SortOrder=Enum.SortOrder.LayoutOrder
+	statsGL.Parent=statsGrid
+	local tileN=0
+	local function StatTile(title,val)
+		tileN=tileN+1
+		local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,LayoutOrder=tileN,Parent=statsGrid})
+		Corner(f,10); GlassStroke(f)
+		New("TextLabel",{Text=title,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,0,13),Position=UDim2.new(0,12,0,9),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		return New("TextLabel",{Text=val,TextSize=17,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-20,0,22),Position=UDim2.new(0,12,0,26),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
+	end
+	local hVal=StatTile("Health","100/100")
+	local mVal=StatTile("Money","0")
+	local pingTile=StatTile("Ping","...")
+	local fpsTile=StatTile("FPS","...")
+	local cols=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=tab._list})
+	local colsL=Instance.new("UIListLayout")
+	colsL.FillDirection=Enum.FillDirection.Horizontal
+	colsL.Padding=UDim.new(0,10)
+	colsL.SortOrder=Enum.SortOrder.LayoutOrder
+	colsL.Parent=cols
+	local colL=New("Frame",{Size=UDim2.new(0.5,-5,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=cols})
+	VList(colL,10)
+	local colR=New("Frame",{Size=UDim2.new(0.5,-5,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=cols})
+	VList(colR,10)
+	self._homeCols={colL,colR}
+	-- Compact (phone) layout: 2x2 tiles and the columns stack into one
+	self._homeRelayout=function(compact)
+		statsGL.CellSize=compact and UDim2.new(0.5,-4,0,58) or UDim2.new(0.25,-6,0,58)
+		colsL.FillDirection=compact and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
+		local w=compact and UDim2.new(1,0,0,0) or UDim2.new(0.5,-5,0,0)
+		colL.Size=w; colR.Size=w
+	end
+
+	local charP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=colL})
 	Corner(charP,12); GlassStroke(charP,0.65); Pad(charP,11,14,11,14)
 	local charL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=charP})
 	VList(charL,7)
 	New("TextLabel",{Text="CHARACTER",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=charL})
-	local statsRow=New("Frame",{Size=UDim2.new(1,0,0,46),BackgroundTransparency=1,LayoutOrder=1,Parent=charL})
-	local function StatTile(title,val,xpos)
-		local f=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=xpos,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=statsRow})
-		Corner(f,10); GlassStroke(f,0.7)
-		New("TextLabel",{Text=title,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,12),Position=UDim2.new(0,9,0,5),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		local vl=New("TextLabel",{Text=val,TextSize=16,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,20),Position=UDim2.new(0,9,0,19),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		return vl
-	end
-	local hVal=StatTile("HEALTH","100/100",UDim2.new(0,0,0,0))
-	local mVal=StatTile("MONEY","0",UDim2.new(0.5,4,0,0))
 	local cg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=charL})
 	local cgl=Instance.new("UIGridLayout")
 	cgl.CellSize=UDim2.new(0.5,-6,0,34)
@@ -1211,7 +1306,7 @@ function Window:_buildHomeTab(gameName)
 	local function InfoCell(key,val)
 		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=cg})
 		New("TextLabel",{Text=key,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
 		return vl
 	end
 	local dispV=InfoCell("Display name","...")
@@ -1336,7 +1431,7 @@ function Window:_buildHomeTab(gameName)
 		money.Changed:Connect(function(v) mVal.Text=formatMoney(v) end)
 	end)
 
-	local srvP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=tab._list})
+	local srvP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=colR})
 	Corner(srvP,12); GlassStroke(srvP,0.65); Pad(srvP,11,14,11,14)
 	local srvL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=srvP})
 	VList(srvL,7)
@@ -1349,12 +1444,12 @@ function Window:_buildHomeTab(gameName)
 	local function SrvCell(key,val)
 		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=sg})
 		New("TextLabel",{Text=key,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
-		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=f})
 		return vl
 	end
 	local playersV=SrvCell("Players",#Players:GetPlayers().."/"..Players.MaxPlayers)
-	local pingV=SrvCell("Ping","...")
-	local fpsV=SrvCell("FPS","...")
+	local pingV={} -- shown in the Ping stat tile instead
+	local fpsV={} -- shown in the FPS stat tile instead
 	local jobV=SrvCell("Job ID",game.JobId~="" and game.JobId:sub(1,8) or "...")
 	local placeV=SrvCell("Place ID",tostring(game.PlaceId))
 	local srvVerV=SrvCell("Server ver.",tostring(game.PlaceVersion))
@@ -1363,13 +1458,13 @@ function Window:_buildHomeTab(gameName)
 	RunService.Heartbeat:Connect(function(dt)
 		pcall(function()
 			local ping=math.floor(LocalPlayer:GetNetworkPing()*1000)
-			pingV.Text=ping.."ms"
-			fpsV.Text=tostring(math.floor(1/dt))
+			pingV.Text=ping.."ms"; pingTile.Text=ping.." ms"
+			fpsV.Text=tostring(math.floor(1/dt)); fpsTile.Text=fpsV.Text
 			srvAgeV.Text=formatTime(math.floor(tick()-joinTime))
 		end)
 	end)
 
-	local lt2P=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=3,Parent=tab._list})
+	local lt2P=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=colL})
 	Corner(lt2P,12); GlassStroke(lt2P,0.65); Pad(lt2P,11,14,11,14)
 	local lt2L=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=lt2P})
 	VList(lt2L,7)
@@ -1582,7 +1677,7 @@ end
 
 function Window:CreateUpdateLog(opts)
 	opts=opts or {}
-	local parent=self._homeList or self._contentScroll
+	local parent=(self._homeCols and self._homeCols[2]) or self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
 	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
 	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
@@ -1630,7 +1725,7 @@ end
 
 function Window:CreateDonationPanel(opts)
 	opts=opts or {}
-	local parent=self._homeList or self._contentScroll
+	local parent=(self._homeCols and self._homeCols[1]) or self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
 	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
 	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
@@ -1671,7 +1766,7 @@ end
 
 function Window:CreateDiscordButton(opts)
 	opts=opts or {}
-	local parent=self._homeList or self._contentScroll
+	local parent=(self._homeCols and self._homeCols[2]) or self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
 	local btn=New("TextButton",{Text="",BackgroundColor3=C.White,BorderSizePixel=0,Size=UDim2.new(1,0,0,40),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
 	Corner(btn,10)
@@ -1704,7 +1799,7 @@ function Odyssey:CreateWindow(opts)
 
 	local SIDE=172
 	local HEAD=54
-	local SIZES={Sidebar=Vector2.new(700,460),Compact=Vector2.new(440,470)}
+	local SIZES={Sidebar=Vector2.new(760,480),Compact=Vector2.new(440,470)}
 	local layout=(UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) and "Compact" or "Sidebar"
 	local minimized=false
 
@@ -1803,6 +1898,7 @@ function Odyssey:CreateWindow(opts)
 	local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-HEAD),Position=UDim2.new(0,0,0,HEAD),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Content})
 	Pad(ContentScroll,12,16,16,16); VList(ContentScroll,10)
 
+	local win
 	local function ApplyLayout(mode)
 		if not SIZES[mode] then return end
 		layout=mode
@@ -1823,6 +1919,8 @@ function Odyssey:CreateWindow(opts)
 		ContentScroll.Position=UDim2.new(0,0,0,top)
 		ContentScroll.Size=UDim2.new(1,0,1,-top)
 		ContentScroll.Visible=not minimized
+		if win and win._homeRelayout then win._homeRelayout(compact) end
+		if win then win:_relayoutTabs(compact) end
 	end
 
 	MinBtn.MouseButton1Click:Connect(function()
@@ -1855,11 +1953,11 @@ function Odyssey:CreateWindow(opts)
 	MobileToggle.MouseButton1Click:Connect(function() Main.Visible=not Main.Visible end)
 	MakeDraggable(MobileToggle,MobileToggle)
 
-	local win=setmetatable({
+	win=setmetatable({
 		_T=T,_orbRow=NavScroll,_navScroll=NavScroll,_chipScroll=ChipBar,_sideBottom=SideBottom,
 		_contentScroll=ContentScroll,_titleLbl=TitleLbl,_subLbl=SubLbl,
 		_searchItems={},_searchSections={},_searchBoxes={SearchBox,CSearchBox},
-		_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey,
+		_tabs={},_tabOrder=1,_roots={},_compact=(layout=="Compact"),_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey,
 	},Window)
 	for _,box in ipairs(win._searchBoxes) do
 		box:GetPropertyChangedSignal("Text"):Connect(function() win:_runSearch(box.Text) end)
@@ -1873,6 +1971,7 @@ function Odyssey:CreateWindow(opts)
 		if fit<1 then OdysseyUIScale.Scale=math.max(fit,0.55) end
 	end)
 	win:_buildHomeTab(gameName)
+	if win._homeRelayout then win._homeRelayout(layout=="Compact") end
 
 	local settingsTab=win:CreateTab({Name="Settings",IconName="settings",Icon="*",Description="Preferences, theme and config",_pinned=true,_order=999})
 
