@@ -1,4 +1,4 @@
--- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
+-- Odyssey UI Library v3
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -1415,7 +1415,7 @@ function Window:_buildHomeTab(gameName)
 	local comCard,comL=HCard(colR,2,"Community")
 	comCard.Visible=false
 	New("TextLabel",{Text="Join for updates, bug reports and support.",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=1,Parent=comL})
-	local btnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),LayoutOrder=2,Parent=comL})
+	local btnRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),LayoutOrder=3,Parent=comL})
 	local brl=HList(btnRow,8)
 	brl.VerticalAlignment=Enum.VerticalAlignment.Top
 	local function PillBtn(text,iconName,order,primary)
@@ -1433,10 +1433,9 @@ function Window:_buildHomeTab(gameName)
 	end
 	local discordBtn,discordLbl=PillBtn("Discord","chat_bubble",1,true)
 	local donateBtn=PillBtn("Donate","favorite_border",2,false)
-	local donateArea=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Visible=false,LayoutOrder=3,Parent=comL})
+	local donateArea=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Visible=false,LayoutOrder=5,Parent=comL})
 	VList(donateArea,6)
-	donateBtn.MouseButton1Click:Connect(function() donateArea.Visible=not donateArea.Visible end)
-	self._community={card=comCard,discordBtn=discordBtn,discordLbl=discordLbl,donateBtn=donateBtn,donateArea=donateArea}
+	self._community={list=comL,card=comCard,discordBtn=discordBtn,discordLbl=discordLbl,donateBtn=donateBtn,donateArea=donateArea}
 	-- Keep "What's new" ending level with the bottom of the Community card;
 	-- anything longer scrolls inside the card.
 	local mainRef=self._main
@@ -1811,24 +1810,68 @@ function Window:CreateDonationPanel(opts)
 	if not com then return end
 	com.card.Visible=true
 	com.donateBtn.Visible=true
-	local area=com.donateArea
-	New("TextLabel",{Text="If you enjoy the script, consider donating",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=1,Parent=area})
-	local grid=New("Frame",{Size=UDim2.new(1,0,0,58),BackgroundTransparency=1,LayoutOrder=2,Parent=area})
-	HList(grid,6)
-	local methods=opts.Methods or {}
-	local w=1/math.max(#methods,1)
-	for i,m in ipairs(methods) do
-		local cardM=New("Frame",{BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(w,-5,1,0),LayoutOrder=i,Parent=grid})
-		Corner(cardM,8); Stroke(cardM,C.CardStroke,1,0); Pad(cardM,6,6,6,6)
-		New("TextLabel",{Text=m.Name or "Method",TextSize=11,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextTruncate=Enum.TextTruncate.AtEnd,Parent=cardM})
-		local copyBtn=New("TextButton",{Text="Copy",TextSize=10,TextColor3=C.Text,BackgroundColor3=C.Hover,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,20),Position=UDim2.new(0,0,1,-20),AutoButtonColor=false,Parent=cardM})
-		Corner(copyBtn,6)
+	do
+		local names={}
+		for _,m in ipairs(opts.Methods or {}) do if m.Name then table.insert(names,m.Name) end end
+		local how=#names>0 and (" Tap Donate for "..table.concat(names,", ")..".") or " Tap Donate to see how."
+		New("TextLabel",{Text="Enjoying Odyssey? Donations help keep it updated and free."..how,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,Parent=com.list})
+	end
+	-- Dropdown panel that opens under the Donate button and floats over the UI
+	local btn=com.donateBtn
+	local main=self._main
+	local pop=New("Frame",{Name="OdysseyDonateDropdown",Size=UDim2.fromOffset(240,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=C.Card,BorderSizePixel=0,Visible=false,ZIndex=600,Parent=self._gui})
+	Corner(pop,10); Stroke(pop,C.FieldStroke,1,0); Pad(pop,10,10,10,10)
+	local popScale=Instance.new("UIScale"); popScale.Parent=pop
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,ZIndex=601,Parent=pop})
+	VList(vl,6)
+	New("TextLabel",{Text="Donate",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=1,ZIndex=602,Parent=vl})
+	New("TextLabel",{Text="Tap Copy, then send it through the app.",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=2,ZIndex=602,Parent=vl})
+	for i,m in ipairs(opts.Methods or {}) do
+		local row=New("Frame",{BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(1,0,0,34),LayoutOrder=10+i,ZIndex=602,Parent=vl})
+		Corner(row,8); Stroke(row,C.CardStroke,1,0)
+		New("TextLabel",{Text=m.Name or "Method",TextSize=12,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),Position=UDim2.new(0,10,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=603,Parent=row})
+		local copyBtn=New("TextButton",{Text="Copy",TextSize=11,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,58,0,24),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-6,0.5,0),AutoButtonColor=false,ZIndex=603,Parent=row})
+		Corner(copyBtn,6); AccentGrad(copyBtn,0)
 		copyBtn.MouseButton1Click:Connect(function()
 			pcall(function() setclipboard(m.Value or "") end)
+			copyBtn.Text="Copied"
+			task.delay(1.5,function() if copyBtn.Parent then copyBtn.Text="Copy" end end)
 			Window:Notify({Title="Odyssey",Content=(m.Name or "Value").." copied!",Duration=2})
 		end)
 	end
-	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=10,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),LayoutOrder=3,Parent=area})
+	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=10,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),LayoutOrder=100,ZIndex=602,Parent=vl})
+	local function place()
+		local sc=1
+		pcall(function() local us=main:FindFirstChildWhichIsA("UIScale"); if us then sc=us.Scale end end)
+		popScale.Scale=sc
+		local p,s=btn.AbsolutePosition,btn.AbsoluteSize
+		local vp=workspace.CurrentCamera.ViewportSize
+		local h=pop.AbsoluteSize.Y
+		local y=p.Y+s.Y+6
+		if y+h>vp.Y-50 then y=p.Y-h-6 end -- not enough room below: open upwards
+		pop.Position=UDim2.fromOffset(p.X,y)
+	end
+	local function setOpen(v)
+		pop.Visible=v
+		if v then place(); task.defer(place) end
+	end
+	btn.MouseButton1Click:Connect(function() setOpen(not pop.Visible) end)
+	RunService.Heartbeat:Connect(function() if pop.Visible then place() end end)
+	main:GetPropertyChangedSignal("Visible"):Connect(function() if not main.Visible then setOpen(false) end end)
+	btn:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() if pop.Visible and btn.AbsoluteSize.Y==0 then setOpen(false) end end)
+	UserInputService.InputBegan:Connect(function(i)
+		if not pop.Visible then return end
+		if i.UserInputType~=Enum.UserInputType.MouseButton1 and i.UserInputType~=Enum.UserInputType.Touch then return end
+		local pos=i.Position
+		local function inside(o)
+			local ap,as=o.AbsolutePosition,o.AbsoluteSize
+			return pos.X>=ap.X and pos.X<=ap.X+as.X and pos.Y>=ap.Y and pos.Y<=ap.Y+as.Y
+		end
+		if not inside(pop) and not inside(btn) then setOpen(false) end
+	end)
+	-- hide when you switch away from Home
+	local homeTab=self._tabs and self._tabs[1]
+	if homeTab then homeTab.page:GetPropertyChangedSignal("Visible"):Connect(function() if not homeTab.page.Visible then setOpen(false) end end) end
 end
 
 -- Shows the Discord button in the Home "Community" card
