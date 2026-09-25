@@ -11,6 +11,7 @@ local MarketplaceService=game:GetService("MarketplaceService")
 local LocalPlayer=Players.LocalPlayer
 local PlayerGui=LocalPlayer:WaitForChild("PlayerGui")
 
+
 local MaterialIcons = {
 	["home"]="http://www.roblox.com/asset/?id=6026568195";
 	["home_filled"]="rbxassetid://9080449299";
@@ -1438,22 +1439,29 @@ function Window:_buildHomeTab(gameName)
 	-- Keep "What's new" ending level with the bottom of the Community card;
 	-- anything longer scrolls inside the card.
 	local mainRef=self._main
+	-- What's new has a fixed height (scrolls inside); Community stretches so both
+	-- cards end at the same line.
+	local comMin=Instance.new("UISizeConstraint")
+	comMin.Parent=comCard
+	local LOG_H=160
 	syncLog=function()
 		if not logCard.Parent then return end
-		local h=180
-		if not homeCompact and comCard.Visible then
-			local sc=1
-			pcall(function() local us=mainRef:FindFirstChildWhichIsA("UIScale"); if us then sc=us.Scale end end)
-			if sc<=0 then sc=1 end
-			local bottom=comCard.AbsolutePosition.Y+comCard.AbsoluteSize.Y
-			h=(bottom-logCard.AbsolutePosition.Y)/sc
+		if logCard.Size.Y.Offset~=LOG_H then logCard.Size=UDim2.new(1,0,0,LOG_H) end
+		if homeCompact or not comCard.Visible or not logCard.Visible then
+			comMin.MinSize=Vector2.new(0,0)
+			return
 		end
-		h=math.max(math.floor(h+0.5),130)
-		if logCard.Size.Y.Offset~=h then logCard.Size=UDim2.new(1,0,0,h) end
+		local sc=1
+		pcall(function() local us=mainRef:FindFirstChildWhichIsA("UIScale"); if us then sc=us.Scale end end)
+		if sc<=0 then sc=1 end
+		local logBottom=logCard.AbsolutePosition.Y+logCard.AbsoluteSize.Y
+		local want=math.floor((logBottom-comCard.AbsolutePosition.Y)/sc+0.5)
+		comMin.MinSize=Vector2.new(0,math.max(want,0))
 	end
-	for _,sig in ipairs({comCard:GetPropertyChangedSignal("AbsoluteSize"),comCard:GetPropertyChangedSignal("AbsolutePosition"),comCard:GetPropertyChangedSignal("Visible"),logCard:GetPropertyChangedSignal("AbsolutePosition"),logCard:GetPropertyChangedSignal("Visible")}) do
+	for _,sig in ipairs({logCard:GetPropertyChangedSignal("AbsolutePosition"),comCard:GetPropertyChangedSignal("AbsolutePosition"),comCard:GetPropertyChangedSignal("Visible"),logCard:GetPropertyChangedSignal("Visible")}) do
 		sig:Connect(function() task.defer(syncLog) end)
 	end
+	task.defer(syncLog)
 
 	-- ===== Identity + blur (unchanged behaviour) =====
 	local realDisplayName,realUsername,realUserId="","",""
