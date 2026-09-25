@@ -1,4 +1,4 @@
--- Odyssey UI Library v4 (Orb Nav + Gradient)
+-- Odyssey UI Library v3
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -174,8 +174,8 @@ local T={
 	Green=Color3.fromRGB(130,220,180),
 	GreenDim=Color3.fromRGB(35,90,60),
 	Text=Color3.fromRGB(255,255,255),
-	TextDim=Color3.fromRGB(220,235,230),
-	TextMuted=Color3.fromRGB(220,225,235),
+	TextDim=Color3.fromRGB(184,189,219),
+	TextMuted=Color3.fromRGB(138,144,179),
 	Red=Color3.fromRGB(255,120,110),
 	Yellow=Color3.fromRGB(255,210,110),
 	Blue=Color3.fromRGB(150,200,255),
@@ -204,6 +204,55 @@ local currentThemeColors={c1=Color3.fromRGB(74,108,174),c2=Color3.fromRGB(90,90,
 -- Tracks original colors so we can restore them when LT2 theme is turned off
 local OriginalColors={}
 local ProgressBarGradients={}
+
+-- ===== V6 palette + helpers =====
+local C={
+	BG=Color3.fromRGB(16,18,30),
+	Side=Color3.fromRGB(11,13,22),
+	Card=Color3.fromRGB(26,30,51),
+	CardStroke=Color3.fromRGB(38,43,71),
+	Field=Color3.fromRGB(21,25,41),
+	FieldStroke=Color3.fromRGB(47,53,85),
+	Hover=Color3.fromRGB(34,39,64),
+	HoverHi=Color3.fromRGB(46,52,86),
+	Track=Color3.fromRGB(42,47,74),
+	Sel=Color3.fromRGB(58,66,108),
+	Text=Color3.fromRGB(232,234,246),
+	Dim=Color3.fromRGB(184,189,219),
+	Muted=Color3.fromRGB(138,144,179),
+	Knob=Color3.fromRGB(154,160,195),
+	Focus=Color3.fromRGB(123,140,255),
+	Danger=Color3.fromRGB(255,155,174),
+	DangerBg=Color3.fromRGB(74,29,42),
+	DangerStroke=Color3.fromRGB(120,45,62),
+	White=Color3.fromRGB(255,255,255),
+}
+Odyssey.Colors=C
+local function ThemeSeq()
+	return ColorSequence.new({
+		ColorSequenceKeypoint.new(0,currentThemeColors.c1),
+		ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),
+		ColorSequenceKeypoint.new(1,currentThemeColors.c3),
+	})
+end
+-- Gradient that follows the active theme (registered with the theme updater)
+local function AccentGrad(obj,rot)
+	local g=Instance.new("UIGradient")
+	g.Color=ThemeSeq()
+	g.Rotation=rot or 0
+	g.Parent=obj
+	ProgressBarGradients[g]=true
+	obj.AncestryChanged:Connect(function(_,p) if not p then ProgressBarGradients[g]=nil end end)
+	return g
+end
+-- Shared layout-order counter so sections and their parent tab never collide
+local function take(self)
+	local c=self._ctr
+	local o=self._order or 0
+	if c then o=math.max(c.n,o); c.n=o+1 end
+	self._order=o+1
+	return o
+end
 
 local function ApplyLT2Theme(bgColor)
 	if not lt2ThemeEnabled then return end
@@ -307,9 +356,9 @@ local function Corner(p,r)
 end
 local function GlassStroke(p,alpha)
 	local s=Instance.new("UIStroke")
-	s.Color=Color3.fromRGB(255,255,255)
+	s.Color=Color3.fromRGB(47,53,85)
 	s.Thickness=1
-	s.Transparency=alpha or 0.75
+	s.Transparency=0
 	s.Parent=p
 	return s
 end
@@ -389,7 +438,7 @@ local function AddTooltip(obj,text,showIcon,iconParent,iconPos,darkIcon)
 		TipFrame.Visible=true
 	end
 	if showIcon and iconParent then
-		local iconBG=darkIcon and Color3.fromRGB(20,20,20) or Color3.fromRGB(255,255,255)
+		local iconBG=Color3.fromRGB(21,25,41)
 		local iconTxt=darkIcon and Color3.fromRGB(255,255,255) or Color3.fromRGB(255,255,255)
 		local ib=New("TextButton",{Text="i",TextSize=8,TextColor3=iconTxt,BackgroundColor3=iconBG,BackgroundTransparency=darkIcon and 0.15 or 0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,15,0,15),Position=iconPos or UDim2.new(1,-21,0.5,-7),AutoButtonColor=false,ZIndex=5,Parent=iconParent})
 		Corner(ib,8)
@@ -403,22 +452,67 @@ local function AddTooltip(obj,text,showIcon,iconParent,iconPos,darkIcon)
 end
 local Tab={}
 Tab.__index=Tab
-local function _row(parent,order) return New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=order or 0,Parent=parent}) end
-local function _div(parent,order) return New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,LayoutOrder=order or 0,Parent=parent}) end
+local LEFT=Enum.TextXAlignment.Left
+local AUTO_Y=Enum.AutomaticSize.Y
+local function _row(parent,order) return New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=order or 0,Parent=parent}) end
+-- Dividers are replaced by card spacing in V6; kept as invisible frames for compatibility
+local function _div(parent,order) return New("Frame",{Size=UDim2.new(1,0,0,0),BackgroundTransparency=1,Visible=false,LayoutOrder=order or 0,Parent=parent}) end
+local function _card(parent,order)
+	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=order or 0,Parent=parent})
+	Corner(f,10); Stroke(f,C.CardStroke,1,0); Pad(f,9,12,9,12)
+	return f
+end
+local function _title(parent,text,desc,order)
+	local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,LayoutOrder=order or 0,Parent=parent})
+	VList(f,2)
+	New("TextLabel",{Text=text or "",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,LayoutOrder=1,Parent=f})
+	if desc and desc~="" then
+		New("TextLabel",{Text=desc,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=2,Parent=f})
+	end
+	return f
+end
+local function _fieldBox(props)
+	local o=New(props.Class or "TextBox",{Text=props.Text or "",TextSize=props.TextSize or 12,TextColor3=C.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=props.Font or Enum.Font.Gotham,Size=props.Size or UDim2.new(1,0,0,32),Position=props.Position,AnchorPoint=props.AnchorPoint,TextXAlignment=props.Align or LEFT,LayoutOrder=props.LayoutOrder or 0,Parent=props.Parent})
+	if o:IsA("TextBox") then o.ClearTextOnFocus=false; o.PlaceholderText=props.Placeholder or ""; o.PlaceholderColor3=C.Muted end
+	if o:IsA("TextButton") then o.AutoButtonColor=false end
+	Corner(o,8)
+	local st=Stroke(o,C.FieldStroke,1,0)
+	if o:IsA("TextBox") then
+		o.Focused:Connect(function() st.Color=C.Focus end)
+		o.FocusLost:Connect(function() st.Color=C.FieldStroke end)
+	end
+	return o,st
+end
+local function reg(self,name,row)
+	local w=self._win
+	if w and w._searchItems and name then
+		table.insert(w._searchItems,{n=tostring(name):lower(),row=row,page=self._tabData and self._tabData.page})
+	end
+end
+local function regSection(self,row)
+	local w=self._win
+	if w and w._searchSections then table.insert(w._searchSections,row) end
+end
+local function tipOnly(opts) return (not opts.Description) and opts.Tooltip or nil end
 
 function Tab:CreateSection(name)
-	local row=_row(self._list,self._order); self._order=self._order+1
-	New("TextLabel",{Text=name:upper(),TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=row})
-	return setmetatable({_list=self._list,_order=self._order,_tabData=self._tabData,_win=self._win},Tab)
+	local row=_row(self._list,take(self))
+	local h=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,26),Parent=row})
+	local bar=New("Frame",{Size=UDim2.new(0,3,0,12),Position=UDim2.new(0,0,1,-15),BackgroundColor3=C.White,BorderSizePixel=0,Parent=h})
+	Corner(bar,2); AccentGrad(bar,90)
+	New("TextLabel",{Text=tostring(name or ""):upper(),TextSize=11,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,14),Position=UDim2.new(0,10,1,-16),TextXAlignment=LEFT,Parent=h})
+	regSection(self,row)
+	return setmetatable({_list=self._list,_order=self._order,_ctr=self._ctr,_tabData=self._tabData,_win=self._win},Tab)
 end
-function Tab:CreateDivider() _div(self._list,self._order); self._order=self._order+1 end
+function Tab:CreateDivider() _div(self._list,take(self)) end
 
 function Tab:CreateLabel(opts)
 	opts=opts or {}
-	local colors={T.TextDim,T.Blue,T.Yellow}
+	local colors={C.Dim,T.Blue,T.Yellow}
 	local prefixes={"","i  ","!  "}
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local lbl=New("TextLabel",{Text=(prefixes[opts.Style or 1] or "")..(opts.Text or ""),TextSize=11,TextColor3=colors[opts.Style or 1] or T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=row})
+	local row=_row(self._list,take(self))
+	local lbl=New("TextLabel",{Text=(prefixes[opts.Style or 1] or "")..(opts.Text or ""),TextSize=12,TextColor3=colors[opts.Style or 1] or C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=row})
+	Pad(row,2,4,2,4)
 	local api={}
 	function api:Set(o) if o.Text then lbl.Text=o.Text end end
 	function api:Destroy() row:Destroy() end
@@ -427,32 +521,48 @@ end
 
 function Tab:CreateParagraph(opts)
 	opts=opts or {}
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local f=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	Corner(f,10); GlassStroke(f,0.7); Pad(f,10,12,10,12)
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=f})
+	local card=_card(self._list,take(self))
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
 	VList(vl,4)
-	if opts.Title then New("TextLabel",{Text=opts.Title,TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl}) end
-	New("TextLabel",{Text=opts.Text or "",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
+	if opts.Title then New("TextLabel",{Text=opts.Title,TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=LEFT,Parent=vl}) end
+	New("TextLabel",{Text=opts.Text or "",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextXAlignment=LEFT,TextWrapped=true,Parent=vl})
 	local api={}
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	return api
 end
 
+-- opts.Style = "Primary" | "Danger" | nil (default)
 function Tab:CreateButton(opts)
 	opts=opts or {}
 	local cb=opts.Callback
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,4)
-	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=11,TextColor3=Color3.fromRGB(20,20,20),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,32),AutoButtonColor=false,Parent=vl})
-	Corner(btn,10)
+	local style=opts.Style
+	local row=_row(self._list,take(self))
+	local btn=New("TextButton",{Text=opts.Name or "Button",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,Size=UDim2.new(1,0,0,36),AutoButtonColor=false,Parent=row})
+	Corner(btn,9)
+	local st=Stroke(btn,C.FieldStroke,1,0)
+	local baseCol=C.Hover
+	local hoverCol=C.HoverHi
+	if style=="Primary" then
+		btn.BackgroundColor3=C.White; btn.TextColor3=C.White; btn.Font=Enum.Font.GothamBold
+		st.Transparency=1; AccentGrad(btn,0)
+		baseCol=C.White; hoverCol=Color3.fromRGB(225,225,235)
+	elseif style=="Danger" then
+		btn.BackgroundColor3=C.DangerBg; btn.TextColor3=C.Danger; st.Color=C.DangerStroke
+		baseCol=C.DangerBg; hoverCol=Color3.fromRGB(96,36,54)
+	else
+		local pip=New("Frame",{Size=UDim2.new(0,3,0,16),Position=UDim2.new(0,8,0.5,-8),BackgroundColor3=C.White,BorderSizePixel=0,Parent=btn})
+		Corner(pip,2); AccentGrad(pip,90)
+	end
 	local infoText=opts.Description or opts.Tooltip
 	if infoText then AddTooltip(btn,infoText,true,btn,nil,true) end
-	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
-	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.05}):Play() end)
-	btn.MouseButton1Click:Connect(function() if cb then cb() end end)
-	_div(self._list,self._order); self._order=self._order+1
+	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=hoverCol}):Play() end)
+	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundColor3=baseCol}):Play() end)
+	btn.MouseButton1Click:Connect(function()
+		btn.BackgroundColor3=style and baseCol or C.Sel
+		TweenService:Create(btn,TweenInfo.new(0.25),{BackgroundColor3=baseCol}):Play()
+		if cb then cb() end
+	end)
+	reg(self,opts.Name,row)
 	local api={}
 	function api:SetName(n) btn.Text=n end
 	function api:Destroy() row:Destroy() end
@@ -464,52 +574,37 @@ function Tab:CreateToggle(opts)
 	local enabled=opts.CurrentValue or false
 	local cb=opts.Callback
 	local flag=opts.Flag
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,3)
-	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Toggle",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
-	local track=New("Frame",{Size=UDim2.new(0,32,0,18),Position=UDim2.new(1,-32,0.5,-9),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=enabled and 0.05 or 0.82,BorderSizePixel=0,Parent=topRow})
-	Corner(track,9); GlassStroke(track,0.6)
-	local thumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=enabled and UDim2.new(1,-14,0.5,-6) or UDim2.new(0,3,0.5,-6),BackgroundColor3=enabled and Color3.fromRGB(30,30,30) or Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=track})
-	Corner(thumb,6)
-	local infoText=opts.Description or opts.Tooltip
-	if infoText then AddTooltip(topRow,infoText,true,topRow,UDim2.new(1,-52,0.5,-7)) end
-	_div(self._list,self._order); self._order=self._order+1
-	local hit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=topRow})
+	local card=_card(self._list,take(self))
+	local left=_title(card,opts.Name or "Toggle",opts.Description)
+	left.Size=UDim2.new(1,-52,0,0)
+	local track=New("Frame",{Size=UDim2.new(0,38,0,20),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=card})
+	Corner(track,10)
+	local on=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=C.White,BackgroundTransparency=enabled and 0 or 1,BorderSizePixel=0,Parent=track})
+	Corner(on,10); AccentGrad(on,0)
+	local thumb=New("Frame",{Size=UDim2.new(0,14,0,14),Position=enabled and UDim2.new(0,21,0.5,-7) or UDim2.new(0,3,0.5,-7),BackgroundColor3=enabled and C.White or C.Knob,BorderSizePixel=0,ZIndex=2,Parent=track})
+	Corner(thumb,7)
+	if tipOnly(opts) then AddTooltip(card,opts.Tooltip) end
+	local hit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),ZIndex=3,Parent=card})
+	local function render(anim)
+		local ti=TweenInfo.new(anim and 0.15 or 0)
+		TweenService:Create(on,ti,{BackgroundTransparency=enabled and 0 or 1}):Play()
+		TweenService:Create(thumb,ti,{Position=enabled and UDim2.new(0,21,0.5,-7) or UDim2.new(0,3,0.5,-7),BackgroundColor3=enabled and C.White or C.Knob}):Play()
+	end
 	hit.MouseButton1Click:Connect(function()
 		enabled=not enabled
-		local ti=TweenInfo.new(0.15)
-		if enabled then
-			TweenService:Create(track,ti,{BackgroundTransparency=0.05}):Play()
-			TweenService:Create(thumb,ti,{Position=UDim2.new(1,-14,0.5,-6),BackgroundColor3=Color3.fromRGB(30,30,30)}):Play()
-		else
-			TweenService:Create(track,ti,{BackgroundTransparency=0.82}):Play()
-			TweenService:Create(thumb,ti,{Position=UDim2.new(0,3,0.5,-6),BackgroundColor3=Color3.fromRGB(255,255,255)}):Play()
-		end
+		render(true)
 		if cb then cb(enabled) end
 		if flag then Odyssey.Flags[flag]=enabled end
 	end)
+	reg(self,opts.Name,card)
 	local api={}
 	function api:Set(o)
-		if o.CurrentValue~=nil then
-			enabled=o.CurrentValue
-			if enabled then
-				track.BackgroundTransparency=0.05
-				thumb.Position=UDim2.new(1,-14,0.5,-6)
-				thumb.BackgroundColor3=Color3.fromRGB(30,30,30)
-			else
-				track.BackgroundTransparency=0.82
-				thumb.Position=UDim2.new(0,3,0.5,-6)
-				thumb.BackgroundColor3=Color3.fromRGB(255,255,255)
-			end
-		end
+		if o.CurrentValue~=nil then enabled=o.CurrentValue; render(false) end
 	end
 	function api:GetValue() return enabled end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	if flag then Odyssey.Flags[flag]=enabled end
-	-- Fire the callback once on creation if the toggle starts enabled, so the effect
-	-- actually applies immediately instead of only visually showing "on" until clicked
+	-- Fire once on creation if it starts enabled so the effect applies immediately
 	if enabled and cb then cb(enabled) end
 	return api
 end
@@ -522,97 +617,90 @@ function Tab:CreateSlider(opts)
 	local defV=opts.CurrentValue or minV
 	local cb=opts.Callback
 	local flag=opts.Flag
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,5)
-	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Slider",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0.7,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
-	local valLbl=New("TextBox",{Text=tostring(defV),TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.3,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,ClearTextOnFocus=false,Parent=topRow})
-	local trackF=New("Frame",{Size=UDim2.new(1,0,0,5),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Parent=vl})
+	local decimals=0
+	do local d=tostring(inc):match("%.(%d+)"); if d then decimals=#d end end
+	local function fmt(v) if decimals>0 then return string.format("%."..decimals.."f",v) end return tostring(math.floor(v+0.5)) end
+	local function pctOf(v) if maxV==minV then return 0 end return (v-minV)/(maxV-minV) end
+	local card=_card(self._list,take(self))
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
+	VList(vl,8)
+	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,22),LayoutOrder=1,Parent=vl})
+	New("TextLabel",{Text=opts.Name or "Slider",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=topRow})
+	local valLbl=_fieldBox({Parent=topRow,Text=fmt(defV),Size=UDim2.new(0,56,0,22),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.GothamBold})
+	if opts.Description then
+		New("TextLabel",{Text=opts.Description,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,TextWrapped=true,TextXAlignment=LEFT,LayoutOrder=2,Parent=vl})
+	end
+	local holder=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),LayoutOrder=3,Parent=vl})
+	local trackF=New("Frame",{Size=UDim2.new(1,-8,0,6),Position=UDim2.new(0,4,0.5,-3),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=holder})
 	Corner(trackF,3)
-	local pct=(defV-minV)/(maxV-minV)
-	local fill=New("Frame",{Size=UDim2.new(pct,0,1,0),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=trackF})
-	Corner(fill,3)
-	local thumbBtn=New("TextButton",{Text="",Size=UDim2.new(0,14,0,14),Position=UDim2.new(pct,-7,0.5,-7),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,AutoButtonColor=false,Parent=trackF})
-	Corner(thumbBtn,7)
-	_div(self._list,self._order); self._order=self._order+1
+	local pct=pctOf(defV)
+	local fill=New("Frame",{Size=UDim2.new(pct,0,1,0),BackgroundColor3=C.White,BorderSizePixel=0,Parent=trackF})
+	Corner(fill,3); AccentGrad(fill,0)
+	local thumbBtn=New("TextButton",{Text="",Size=UDim2.new(0,16,0,16),Position=UDim2.new(pct,-8,0.5,-8),BackgroundColor3=C.White,BorderSizePixel=0,AutoButtonColor=false,ZIndex=2,Parent=trackF})
+	Corner(thumbBtn,8)
+	if tipOnly(opts) then AddTooltip(topRow,opts.Tooltip) end
+	local function setVisual(v)
+		local p=pctOf(v)
+		valLbl.Text=fmt(v)
+		fill.Size=UDim2.new(p,0,1,0)
+		thumbBtn.Position=UDim2.new(p,-8,0.5,-8)
+	end
+	local function commit(v)
+		setVisual(v)
+		if cb then cb(v) end
+		if flag then Odyssey.Flags[flag]=v end
+	end
+	local function fromX(x)
+		local p=math.clamp((x-trackF.AbsolutePosition.X)/math.max(trackF.AbsoluteSize.X,1),0,1)
+		local v=math.floor((minV+p*(maxV-minV))/inc+0.5)*inc
+		return math.clamp(v,minV,maxV)
+	end
 	local dragging=false
-	thumbBtn.MouseButton1Down:Connect(function() dragging=true end)
-	thumbBtn.InputBegan:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.Touch then dragging=true end
-	end)
+	local function begin(i)
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			dragging=true
+			commit(fromX(i.Position.X))
+		end
+	end
+	holder.InputBegan:Connect(begin)
+	thumbBtn.InputBegan:Connect(begin)
 	UserInputService.InputEnded:Connect(function(i)
 		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dragging=false end
 	end)
 	UserInputService.InputChanged:Connect(function(i)
 		if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
-			local p=math.clamp((i.Position.X-trackF.AbsolutePosition.X)/trackF.AbsoluteSize.X,0,1)
-			local v=math.floor((minV+p*(maxV-minV))/inc+0.5)*inc
-			v=math.clamp(v,minV,maxV)
-			valLbl.Text=tostring(v)
-			fill.Size=UDim2.new(p,0,1,0)
-			thumbBtn.Position=UDim2.new(p,-7,0.5,-7)
-			if cb then cb(v) end
-			if flag then Odyssey.Flags[flag]=v end
+			commit(fromX(i.Position.X))
 		end
 	end)
 	valLbl.FocusLost:Connect(function()
 		local n=tonumber(valLbl.Text)
-		if not n then
-			valLbl.Text=tostring(defV)
-			return
-		end
-		local v=math.floor(n/inc+0.5)*inc
-		v=math.clamp(v,minV,maxV)
-		local p=(v-minV)/(maxV-minV)
-		valLbl.Text=tostring(v)
-		fill.Size=UDim2.new(p,0,1,0)
-		thumbBtn.Position=UDim2.new(p,-7,0.5,-7)
-		if cb then cb(v) end
-		if flag then Odyssey.Flags[flag]=v end
+		if not n then valLbl.Text=fmt(defV) return end
+		local v=math.clamp(math.floor(n/inc+0.5)*inc,minV,maxV)
+		commit(v)
 	end)
+	reg(self,opts.Name,card)
 	local api={}
 	function api:Set(o)
-		if o.Value then
-			local v=math.clamp(o.Value,minV,maxV)
-			local p=(v-minV)/(maxV-minV)
-			valLbl.Text=tostring(v)
-			fill.Size=UDim2.new(p,0,1,0)
-			thumbBtn.Position=UDim2.new(p,-7,0.5,-7)
-		end
+		if o.Value then setVisual(math.clamp(o.Value,minV,maxV)) end
 	end
 	function api:GetValue() return tonumber(valLbl.Text) end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	if flag then Odyssey.Flags[flag]=defV end
 	return api
 end
-
--- Universal progress bar — automatically follows whatever theme gradient is active.
--- Tab:CreateProgressBar({
---     Name = "Wood Collected",
---     Range = {0, 1000},        -- optional, defaults to {0,100}
---     CurrentValue = 640,
---     ShowPercent = false,      -- true shows "64%" instead of "640/1000"
---     Description = "64% to next sell milestone", -- shown via info icon
---     Flag = "OdysseyWoodProgress",
--- })
 
 function Tab:CreateInput(opts)
 	opts=opts or {}
 	local cb=opts.Callback
 	local enter=opts.Enter or false
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,4)
-	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Input",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
-	local infoText=opts.Description or opts.Tooltip
-	if infoText then AddTooltip(nameRow,infoText,true,nameRow,UDim2.new(1,-16,0.5,-7)) end
-	local tb=New("TextBox",{PlaceholderText=opts.PlaceholderText or "Type here...",Text="",TextSize=11,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,28),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,Parent=vl})
-	Corner(tb,8); GlassStroke(tb,0.65); Pad(tb,0,8,0,8)
-	tb.Focused:Connect(function() Stroke(tb,Color3.fromRGB(255,255,255),1,0.2) end)
+	local card=_card(self._list,take(self))
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
+	VList(vl,6)
+	local head=_title(vl,opts.Name or "Input",opts.Description,1)
+	if tipOnly(opts) then AddTooltip(head,opts.Tooltip) end
+	local tb=_fieldBox({Parent=vl,LayoutOrder=2,Placeholder=opts.PlaceholderText or "Type here..."})
+	Pad(tb,0,10,0,10)
 	tb.FocusLost:Connect(function(ep)
-		GlassStroke(tb,0.65)
 		if opts.Numeric then tb.Text=tostring(tonumber(tb.Text) or 0) end
 		if opts.MaxCharacters and #tb.Text>opts.MaxCharacters then tb.Text=tb.Text:sub(1,opts.MaxCharacters) end
 		if enter and not ep then return end
@@ -623,16 +711,37 @@ function Tab:CreateInput(opts)
 		if opts.Numeric then tb.Text=tb.Text:gsub("[^%d%.%-]","") end
 		if not enter and cb then cb(tb.Text) end
 	end)
-	_div(self._list,self._order); self._order=self._order+1
+	reg(self,opts.Name,card)
 	local api={}
 	function api:Set(o) if o.Value then tb.Text=tostring(o.Value) end end
 	function api:GetValue() return tb.Text end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	return api
 end
 
--- A textbox and a small dropdown side-by-side in one row, instead of each
--- taking a full row on their own. Useful for name+category style pairs.
+-- Builds a dark option list (optionally scrollable) used by both dropdown types
+local function _optionList(parent,order)
+	local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,BackgroundColor3=C.Field,BorderSizePixel=0,Visible=false,LayoutOrder=order,Parent=parent})
+	Corner(body,8); Stroke(body,C.FieldStroke,1,0); Pad(body,5,5,5,5)
+	local bvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,BackgroundTransparency=1,Parent=body})
+	VList(bvl,4)
+	local scroll=New("ScrollingFrame",{Size=UDim2.new(1,0,0,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=AUTO_Y,ScrollingDirection=Enum.ScrollingDirection.Y,LayoutOrder=2,Parent=bvl})
+	VList(scroll,2)
+	return body,bvl,scroll
+end
+local function _optionBtn(scroll,text,selected)
+	local ob=New("TextButton",{Text=tostring(text),TextSize=12,TextColor3=selected and C.White or C.Dim,BackgroundColor3=C.Sel,BackgroundTransparency=selected and 0.1 or 1,BorderSizePixel=0,Font=selected and Enum.Font.GothamMedium or Enum.Font.Gotham,Size=UDim2.new(1,-4,0,28),TextXAlignment=LEFT,AutoButtonColor=false,Parent=scroll})
+	Corner(ob,6); Pad(ob,0,8,0,10)
+	ob.MouseEnter:Connect(function() if not selected then ob.BackgroundTransparency=0.6 end end)
+	ob.MouseLeave:Connect(function() if not selected then ob.BackgroundTransparency=1 end end)
+	return ob
+end
+local function _chev(parent)
+	local url=GetMaterialIcon("expand_more")
+	local c=New("ImageLabel",{Image=url or "",ImageColor3=C.Muted,BackgroundTransparency=1,Size=UDim2.new(0,18,0,18),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-6,0.5,0),Parent=parent})
+	return c
+end
+
 function Tab:CreateInputWithDropdown(opts)
 	opts=opts or {}
 	local textCb=opts.TextCallback
@@ -640,76 +749,59 @@ function Tab:CreateInputWithDropdown(opts)
 	local enter=opts.Enter or false
 	local ddOptions=opts.DropdownOptions or {}
 	local ddCurrent=opts.DropdownCurrentOption or ddOptions[1] or ""
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,4)
-	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Input",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
-	local infoText=opts.Description or opts.Tooltip
-	if infoText then AddTooltip(nameRow,infoText,true,nameRow,UDim2.new(1,-16,0.5,-7)) end
-
-	local pairRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
-	local HList2=Instance.new("UIListLayout")
-	HList2.FillDirection=Enum.FillDirection.Horizontal
-	HList2.Padding=UDim.new(0,6)
-	HList2.VerticalAlignment=Enum.VerticalAlignment.Center
-	HList2.Parent=pairRow
-
-	local tb=New("TextBox",{PlaceholderText=opts.PlaceholderText or "Type here...",Text="",TextSize=11,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(0.62,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,LayoutOrder=1,Parent=pairRow})
-	Corner(tb,8); GlassStroke(tb,0.65); Pad(tb,0,8,0,8)
-	tb.Focused:Connect(function() Stroke(tb,Color3.fromRGB(255,255,255),1,0.2) end)
+	local card=_card(self._list,take(self))
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
+	VList(vl,6)
+	local head=_title(vl,opts.Name or "Input",opts.Description,1)
+	if tipOnly(opts) then AddTooltip(head,opts.Tooltip) end
+	local pairRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,32),LayoutOrder=2,Parent=vl})
+	local tb=_fieldBox({Parent=pairRow,Size=UDim2.new(0.62,-3,1,0),Placeholder=opts.PlaceholderText or "Type here..."})
+	Pad(tb,0,10,0,10)
 	tb.FocusLost:Connect(function(ep)
-		GlassStroke(tb,0.65)
 		if enter and not ep then return end
 		if textCb then textCb(tb.Text) end
 	end)
 	tb:GetPropertyChangedSignal("Text"):Connect(function()
 		if not enter and textCb then textCb(tb.Text) end
 	end)
-
-	-- Small dropdown, compact width, dropdown body opens below the whole row
 	local ddSelected=ddCurrent
 	local ddOpen=false
-	local ddWrap=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(0.35,0,1,0),LayoutOrder=2,Parent=pairRow})
-	local ddHeader=New("TextButton",{Text=tostring(ddSelected),TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=ddWrap})
-	Corner(ddHeader,8); GlassStroke(ddHeader,0.65); Pad(ddHeader,0,6,0,16)
-	local ddArrow=New("TextLabel",{Text="v",TextSize=9,TextColor3=T.TextDim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,14,1,0),Position=UDim2.new(1,-15,0,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=ddHeader})
-	local ddBody=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Visible=false,LayoutOrder=3,Parent=vl})
-	Corner(ddBody,10); GlassStroke(ddBody,0.65); Pad(ddBody,5,5,5,5)
-	local ddList=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=ddBody})
-	VList(ddList,3)
+	local ddHeader=_fieldBox({Class="TextButton",Parent=pairRow,Text=tostring(ddSelected),Size=UDim2.new(0.38,-3,1,0),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0)})
+	ddHeader.TextTruncate=Enum.TextTruncate.AtEnd
+	Pad(ddHeader,0,26,0,10)
+	local ddArrow=_chev(ddHeader)
+	ddArrow.Position=UDim2.new(1,20,0.5,0)
+	local ddBody,_,ddScroll=_optionList(vl,3)
 	local ddBtns={}
 	local function ddBuild()
 		for _,b in ipairs(ddBtns) do b:Destroy() end
 		ddBtns={}
 		for _,opt in ipairs(ddOptions) do
-			local sel=(ddSelected==opt)
-			local ob=New("TextButton",{Text=opt,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=sel and 0.8 or 1,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,22),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=ddList})
-			Corner(ob,6); Pad(ob,0,6,0,6)
+			local ob=_optionBtn(ddScroll,opt,ddSelected==opt)
 			ob.MouseButton1Click:Connect(function()
 				ddSelected=opt
 				ddHeader.Text=tostring(ddSelected)
-				ddOpen=false; ddBody.Visible=false; ddArrow.Text="v"
+				ddOpen=false; ddBody.Visible=false; ddArrow.Rotation=0
 				ddBuild()
 				if dropCb then dropCb(ddSelected) end
 			end)
 			table.insert(ddBtns,ob)
 		end
+		ddScroll.Size=UDim2.new(1,0,0,math.min(#ddOptions*30,180))
 	end
 	ddBuild()
 	ddHeader.MouseButton1Click:Connect(function()
 		ddOpen=not ddOpen
 		ddBody.Visible=ddOpen
-		ddArrow.Text=ddOpen and "^" or "v"
+		ddArrow.Rotation=ddOpen and 180 or 0
 	end)
-
-	_div(self._list,self._order); self._order=self._order+1
+	reg(self,opts.Name,card)
 	local api={}
 	function api:SetText(v) tb.Text=tostring(v) end
 	function api:GetText() return tb.Text end
 	function api:SetDropdown(v) ddSelected=v; ddHeader.Text=tostring(v); ddBuild() end
 	function api:GetDropdown() return ddSelected end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	return api
 end
 
@@ -724,42 +816,40 @@ function Tab:CreateDropdown(opts)
 		for _,p in ipairs(Players:GetPlayers()) do table.insert(options,p.Name) end
 	end
 	local selected=multi and (type(opts.CurrentOption)=="table" and opts.CurrentOption or {opts.CurrentOption or options[1]}) or (opts.CurrentOption or options[1] or "")
-	local function selText() return multi and (type(selected)=="table" and table.concat(selected,", ") or tostring(selected)) or tostring(selected) end
+	local function selText()
+		local s=multi and (type(selected)=="table" and table.concat(selected,", ") or tostring(selected)) or tostring(selected)
+		if s=="" then return "Select..." end
+		return s
+	end
 	local open=false
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,4)
-	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Dropdown",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-20,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=nameRow})
-	local infoText=opts.Description or opts.Tooltip
-	if infoText then AddTooltip(nameRow,infoText,true,nameRow,UDim2.new(1,-16,0.5,-7)) end
-	local header=New("TextButton",{Text=selText(),TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,28),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=vl})
-	Corner(header,8); GlassStroke(header,0.65); Pad(header,0,28,0,8)
-	local arrow=New("TextLabel",{Text="v",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,18,1,0),Position=UDim2.new(1,-20,0,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=header})
-	local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Visible=false,Parent=vl})
-	Corner(body,10); GlassStroke(body,0.65); Pad(body,5,5,5,5)
-	local bvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=body})
-	VList(bvl,3)
-	local sb=New("TextBox",{PlaceholderText="Search...",Text="",TextSize=10,TextColor3=T.Text,PlaceholderColor3=T.TextMuted,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,24),TextXAlignment=Enum.TextXAlignment.Left,ClearTextOnFocus=false,LayoutOrder=0,Parent=bvl})
-	Corner(sb,6); GlassStroke(sb,0.6); Pad(sb,0,6,0,6)
-	local optF=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=bvl})
-	VList(optF,2)
+	local card=_card(self._list,take(self))
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
+	VList(vl,6)
+	local head=_title(vl,opts.Name or "Dropdown",opts.Description,1)
+	if tipOnly(opts) then AddTooltip(head,opts.Tooltip) end
+	local header=_fieldBox({Class="TextButton",Parent=vl,Text=selText(),LayoutOrder=2})
+	header.TextTruncate=Enum.TextTruncate.AtEnd
+	Pad(header,0,30,0,10)
+	local arrow=_chev(header)
+	arrow.Position=UDim2.new(1,24,0.5,0)
+	local body,bvl,optS=_optionList(vl,3)
+	local sb=_fieldBox({Parent=bvl,LayoutOrder=1,Size=UDim2.new(1,0,0,28),Placeholder="Search..."})
+	sb.BackgroundColor3=C.Card
+	Pad(sb,0,8,0,8)
 	local optBtns={}
 	local function isSel(o) return multi and type(selected)=="table" and table.find(selected,o) or selected==o end
 	local function build(list)
 		for _,b in ipairs(optBtns) do b:Destroy() end
 		optBtns={}
 		for _,opt in ipairs(list) do
-			local s=isSel(opt)
-			local ob=New("TextButton",{Text=opt,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=s and 0.8 or 1,BorderSizePixel=0,Font=Enum.Font.Gotham,Size=UDim2.new(1,0,0,24),TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Parent=optF})
-			Corner(ob,6); Pad(ob,0,6,0,6)
+			local ob=_optionBtn(optS,opt,isSel(opt) and true or false)
 			ob.MouseButton1Click:Connect(function()
 				if multi then
-					if not selected then selected={} end
+					if type(selected)~="table" then selected={} end
 					local idx=table.find(selected,opt)
 					if idx then table.remove(selected,idx) else table.insert(selected,opt) end
 				else
-					selected=opt; open=false; body.Visible=false; arrow.Text="v"
+					selected=opt; open=false; body.Visible=false; arrow.Rotation=0
 				end
 				header.Text=selText()
 				build(list)
@@ -767,41 +857,39 @@ function Tab:CreateDropdown(opts)
 			end)
 			table.insert(optBtns,ob)
 		end
+		optS.Size=UDim2.new(1,0,0,math.min(#list*30,180))
+		sb.Visible=#options>6
 	end
 	build(options)
 	sb:GetPropertyChangedSignal("Text"):Connect(function()
 		local q=sb.Text:lower()
 		local f={}
-		for _,o in ipairs(options) do if o:lower():find(q,1,true) then table.insert(f,o) end end
+		for _,o in ipairs(options) do if tostring(o):lower():find(q,1,true) then table.insert(f,o) end end
 		build(f)
 	end)
 	header.MouseButton1Click:Connect(function()
 		open=not open
 		body.Visible=open
-		arrow.Text=open and "^" or "v"
+		arrow.Rotation=open and 180 or 0
 		if open then sb.Text=""; build(options) end
 	end)
 	if special=="Player" then
-		Players.PlayerAdded:Connect(function()
+		local function refresh()
 			options={}
 			for _,p in ipairs(Players:GetPlayers()) do table.insert(options,p.Name) end
 			if open then build(options) end
-		end)
-		Players.PlayerRemoving:Connect(function()
-			task.wait(0.1)
-			options={}
-			for _,p in ipairs(Players:GetPlayers()) do table.insert(options,p.Name) end
-			if open then build(options) end
-		end)
+		end
+		Players.PlayerAdded:Connect(refresh)
+		Players.PlayerRemoving:Connect(function() task.wait(0.1); refresh() end)
 	end
-	_div(self._list,self._order); self._order=self._order+1
+	reg(self,opts.Name,card)
 	local api={}
 	function api:Set(o)
 		if o.Options then options=o.Options; build(options) end
 		if o.CurrentOption~=nil then selected=o.CurrentOption; header.Text=selText(); build(options) end
 	end
 	function api:GetValue() return selected end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	return api
 end
 
@@ -812,19 +900,19 @@ function Tab:CreateColorPicker(opts)
 	local flag=opts.Flag
 	local expanded=false
 	local currentCol=defCol
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,4)
-	New("TextLabel",{Text=opts.Name or "Color",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	local hRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
-	local hexLbl=New("TextLabel",{Text="#FFFFFF",TextSize=9,TextColor3=T.TextDim,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,-32,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
-	local swatch=New("Frame",{Size=UDim2.new(0,22,0,22),Position=UDim2.new(1,-24,0.5,-11),BackgroundColor3=defCol,BorderSizePixel=0,Parent=hRow})
-	Corner(swatch,6); GlassStroke(swatch,0.5)
-	local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Visible=false,Parent=vl})
-	Corner(body,10); GlassStroke(body,0.65); Pad(body,7,7,7,7)
-	local bvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=body})
-	VList(bvl,5)
-	local gradBox=New("Frame",{Size=UDim2.new(1,0,0,44),BackgroundColor3=defCol,BorderSizePixel=0,LayoutOrder=1,Parent=bvl})
+	local card=_card(self._list,take(self))
+	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,Parent=card})
+	VList(vl,8)
+	local hRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,26),LayoutOrder=1,Parent=vl})
+	New("TextLabel",{Text=opts.Name or "Color",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-110,1,0),TextXAlignment=LEFT,TextTruncate=Enum.TextTruncate.AtEnd,Parent=hRow})
+	local hexLbl=New("TextLabel",{Text="#FFFFFF",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(0,70,1,0),Position=UDim2.new(1,-104,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
+	local swatch=New("Frame",{Size=UDim2.new(0,26,0,26),Position=UDim2.new(1,-26,0,0),BackgroundColor3=defCol,BorderSizePixel=0,Parent=hRow})
+	Corner(swatch,7); Stroke(swatch,C.FieldStroke,1,0)
+	local body=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,BackgroundColor3=C.Field,BorderSizePixel=0,Visible=false,LayoutOrder=2,Parent=vl})
+	Corner(body,8); Stroke(body,C.FieldStroke,1,0); Pad(body,8,8,8,8)
+	local bvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=AUTO_Y,BackgroundTransparency=1,Parent=body})
+	VList(bvl,8)
+	local gradBox=New("Frame",{Size=UDim2.new(1,0,0,90),BackgroundColor3=defCol,BorderSizePixel=0,LayoutOrder=1,Parent=bvl})
 	Corner(gradBox,6)
 	local gw=New("Frame",{Size=UDim2.new(1,0,1,0),BorderSizePixel=0,Parent=gradBox})
 	Corner(gw,6)
@@ -837,44 +925,38 @@ function Tab:CreateColorPicker(opts)
 	bg2.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})
 	bg2.Rotation=90
 	bg2.Parent=gb
-	local hueRow=New("Frame",{Size=UDim2.new(1,0,0,10),BackgroundTransparency=1,LayoutOrder=2,Parent=bvl})
-	local hueBar=New("Frame",{Size=UDim2.new(1,-70,1,0),BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,Parent=hueRow})
+	local hueRow=New("Frame",{Size=UDim2.new(1,0,0,24),BackgroundTransparency=1,LayoutOrder=2,Parent=bvl})
+	local hueBar=New("Frame",{Size=UDim2.new(1,-80,0,10),Position=UDim2.new(0,0,0.5,-5),BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,Parent=hueRow})
 	Corner(hueBar,5)
 	local hg=Instance.new("UIGradient")
 	hg.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),ColorSequenceKeypoint.new(0.17,Color3.fromRGB(255,255,0)),ColorSequenceKeypoint.new(0.33,Color3.fromRGB(0,255,0)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(0,255,255)),ColorSequenceKeypoint.new(0.67,Color3.fromRGB(0,0,255)),ColorSequenceKeypoint.new(0.83,Color3.fromRGB(255,0,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0))})
 	hg.Parent=hueBar
-
 	local curH,curS,curV=Color3.toHSV(defCol)
-
-	local hueThumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=UDim2.new(curH,-6,0.5,-6),BackgroundColor3=Color3.fromHSV(curH,1,1),BorderSizePixel=0,Parent=hueBar})
-	Corner(hueThumb,6); GlassStroke(hueThumb,0.3)
-	local svThumb=New("Frame",{Size=UDim2.new(0,10,0,10),Position=UDim2.new(curS,-5,1-curV,-5),BackgroundColor3=defCol,BorderSizePixel=0,ZIndex=3,Parent=gradBox})
-	Corner(svThumb,5); GlassStroke(svThumb,0.2)
+	local hueThumb=New("Frame",{Size=UDim2.new(0,14,0,14),Position=UDim2.new(curH,-7,0.5,-7),BackgroundColor3=Color3.fromHSV(curH,1,1),BorderSizePixel=0,Parent=hueBar})
+	Corner(hueThumb,7); Stroke(hueThumb,C.White,2,0)
+	local svThumb=New("Frame",{Size=UDim2.new(0,12,0,12),Position=UDim2.new(curS,-6,1-curV,-6),BackgroundColor3=defCol,BorderSizePixel=0,ZIndex=3,Parent=gradBox})
+	Corner(svThumb,6); Stroke(svThumb,C.White,2,0)
 	gradBox.BackgroundColor3=Color3.fromHSV(curH,1,1)
-	local hexBox=New("TextBox",{Text="#FFFFFF",TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.Code,Size=UDim2.new(0,64,1,0),Position=UDim2.new(1,-64,0,0),TextXAlignment=Enum.TextXAlignment.Center,ClearTextOnFocus=false,Parent=hueRow})
-	Corner(hexBox,5); GlassStroke(hexBox,0.65)
-	do
-		local ir,ig,ib=math.floor(defCol.R*255),math.floor(defCol.G*255),math.floor(defCol.B*255)
-		local initHex=string.format("#%02X%02X%02X",ir,ig,ib)
-		hexBox.Text=initHex
-		hexLbl.Text=initHex
-	end
-
-	local function updateFromHSV()
-		currentCol=Color3.fromHSV(curH,curS,curV)
+	local hexBox=_fieldBox({Parent=hueRow,Text="#FFFFFF",Size=UDim2.new(0,72,1,0),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.Code,TextSize=11})
+	hexBox.BackgroundColor3=C.Card
+	local function hexOf(c) return string.format("#%02X%02X%02X",math.floor(c.R*255),math.floor(c.G*255),math.floor(c.B*255)) end
+	hexBox.Text=hexOf(defCol); hexLbl.Text=hexOf(defCol)
+	local function paint()
 		local pureHue=Color3.fromHSV(curH,1,1)
 		gradBox.BackgroundColor3=pureHue
 		swatch.BackgroundColor3=currentCol
 		hueThumb.BackgroundColor3=pureHue
+		hueThumb.Position=UDim2.new(curH,-7,0.5,-7)
 		svThumb.BackgroundColor3=currentCol
-		local r2,g2,b2=math.floor(currentCol.R*255),math.floor(currentCol.G*255),math.floor(currentCol.B*255)
-		local hex=string.format("#%02X%02X%02X",r2,g2,b2)
-		hexBox.Text=hex
-		hexLbl.Text=hex
+		svThumb.Position=UDim2.new(curS,-6,1-curV,-6)
+		hexBox.Text=hexOf(currentCol); hexLbl.Text=hexOf(currentCol)
+	end
+	local function updateFromHSV()
+		currentCol=Color3.fromHSV(curH,curS,curV)
+		paint()
 		if cb then cb(currentCol) end
 		if flag then Odyssey.Flags[flag]=currentCol end
 	end
-
 	local draggingHue,draggingSV=false,false
 	hueBar.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingHue=true end end)
 	gradBox.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingSV=true end end)
@@ -884,20 +966,14 @@ function Tab:CreateColorPicker(opts)
 	UserInputService.InputChanged:Connect(function(i)
 		if i.UserInputType~=Enum.UserInputType.MouseMovement and i.UserInputType~=Enum.UserInputType.Touch then return end
 		if draggingHue then
-			local p=math.clamp((i.Position.X-hueBar.AbsolutePosition.X)/hueBar.AbsoluteSize.X,0,1)
-			curH=p
-			hueThumb.Position=UDim2.new(p,-6,0.5,-6)
+			curH=math.clamp((i.Position.X-hueBar.AbsolutePosition.X)/hueBar.AbsoluteSize.X,0,1)
 			updateFromHSV()
 		elseif draggingSV then
-			local px=math.clamp((i.Position.X-gradBox.AbsolutePosition.X)/gradBox.AbsoluteSize.X,0,1)
-			local py=math.clamp((i.Position.Y-gradBox.AbsolutePosition.Y)/gradBox.AbsoluteSize.Y,0,1)
-			curS=px
-			curV=1-py
-			svThumb.Position=UDim2.new(px,-5,py,-5)
+			curS=math.clamp((i.Position.X-gradBox.AbsolutePosition.X)/gradBox.AbsoluteSize.X,0,1)
+			curV=1-math.clamp((i.Position.Y-gradBox.AbsolutePosition.Y)/gradBox.AbsoluteSize.Y,0,1)
 			updateFromHSV()
 		end
 	end)
-
 	hexBox.FocusLost:Connect(function()
 		local h=hexBox.Text:gsub("#","")
 		if #h==6 then
@@ -905,43 +981,28 @@ function Tab:CreateColorPicker(opts)
 			if r2 and g2 and b2 then
 				currentCol=Color3.fromRGB(r2,g2,b2)
 				curH,curS,curV=Color3.toHSV(currentCol)
-				local pureHue=Color3.fromHSV(curH,1,1)
-				swatch.BackgroundColor3=currentCol
-				gradBox.BackgroundColor3=pureHue
-				hueThumb.BackgroundColor3=pureHue
-				hueThumb.Position=UDim2.new(curH,-6,0.5,-6)
-				svThumb.BackgroundColor3=currentCol
-				svThumb.Position=UDim2.new(curS,-5,1-curV,-5)
-				hexLbl.Text="#"..h:upper()
+				paint()
 				if cb then cb(currentCol) end
 				if flag then Odyssey.Flags[flag]=currentCol end
+				return
 			end
 		end
+		hexBox.Text=hexOf(currentCol)
 	end)
-	local swHit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(0,22,0,22),Position=UDim2.new(1,-24,0.5,-11),Parent=hRow})
+	local swHit=New("TextButton",{Text="",BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=hRow})
 	swHit.MouseButton1Click:Connect(function() expanded=not expanded; body.Visible=expanded end)
 	if opts.Tooltip then AddTooltip(hRow,opts.Tooltip) end
-	_div(self._list,self._order); self._order=self._order+1
+	reg(self,opts.Name,card)
 	local api={}
 	function api:Set(o)
 		if o.Color then
 			currentCol=o.Color
 			curH,curS,curV=Color3.toHSV(currentCol)
-			local pureHue=Color3.fromHSV(curH,1,1)
-			swatch.BackgroundColor3=currentCol
-			gradBox.BackgroundColor3=pureHue
-			hueThumb.BackgroundColor3=pureHue
-			hueThumb.Position=UDim2.new(curH,-6,0.5,-6)
-			svThumb.BackgroundColor3=currentCol
-			svThumb.Position=UDim2.new(curS,-5,1-curV,-5)
-			local r2,g2,b2=math.floor(currentCol.R*255),math.floor(currentCol.G*255),math.floor(currentCol.B*255)
-			local hex=string.format("#%02X%02X%02X",r2,g2,b2)
-			hexBox.Text=hex
-			hexLbl.Text=hex
+			paint()
 		end
 	end
 	function api:GetValue() return currentCol end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	if flag then Odyssey.Flags[flag]=defCol end
 	return api
 end
@@ -951,23 +1012,17 @@ function Tab:CreateBind(opts)
 	local current=opts.CurrentKeybind or opts.CurrentBind or "None"
 	local hold=opts.HoldToInteract or false
 	local cb=opts.Callback
-	local row=_row(self._list,self._order); self._order=self._order+1
-	local vl=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Parent=row})
-	VList(vl,3)
-	local topRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),Parent=vl})
-	New("TextLabel",{Text=opts.Name or "Keybind",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-100,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=topRow})
-	local keyBtn=New("TextButton",{Text=current,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=topRow})
-	Corner(keyBtn,7); GlassStroke(keyBtn,0.65)
-	do
-		local infoText=opts.Description or opts.Tooltip
-		if infoText then AddTooltip(topRow,infoText,true,topRow,UDim2.new(1,-92,0.5,-7)) end
-	end
-	_div(self._list,self._order); self._order=self._order+1
+	local card=_card(self._list,take(self))
+	local left=_title(card,opts.Name or "Keybind",opts.Description)
+	left.Size=UDim2.new(1,-96,0,0)
+	local keyBtn=_fieldBox({Class="TextButton",Parent=card,Text=current,Size=UDim2.new(0,84,0,26),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,0,0.5,0),Align=Enum.TextXAlignment.Center,Font=Enum.Font.GothamBold,TextSize=11})
+	if tipOnly(opts) then AddTooltip(card,opts.Tooltip) end
 	local awaiting=false
 	local holdActive=false
-	keyBtn.MouseButton1Click:Connect(function() awaiting=true; keyBtn.Text="..." end)
+	keyBtn.MouseButton1Click:Connect(function() awaiting=true; keyBtn.Text="Press a key..." end)
 	UserInputService.InputBegan:Connect(function(i,gp)
 		if awaiting and not gp then
+			if i.UserInputType~=Enum.UserInputType.Keyboard then return end
 			current=i.KeyCode.Name
 			keyBtn.Text=current
 			awaiting=false
@@ -986,72 +1041,135 @@ function Tab:CreateBind(opts)
 			if cb then cb(false) end
 		end
 	end)
+	reg(self,opts.Name,card)
 	local api={}
 	function api:Set(o) if o.KeyCode then current=o.KeyCode.Name; keyBtn.Text=current end end
 	function api:GetValue() return current end
-	function api:Destroy() row:Destroy() end
+	function api:Destroy() card:Destroy() end
 	return api
 end
 local Window={}
 Window.__index=Window
 
+-- ===== V6 navigation: sidebar buttons (desktop) + chips (compact/mobile) =====
+function Window:_makeNav(text,iconName,glyph,order,pinned)
+	local parent=pinned and self._sideBottom or self._navScroll
+	local b=New("TextButton",{Name="Nav_"..text,Text="",BackgroundColor3=C.White,BackgroundTransparency=1,BorderSizePixel=0,Size=UDim2.new(1,0,0,34),LayoutOrder=order,AutoButtonColor=false,Parent=parent})
+	Corner(b,9)
+	local sel=New("Frame",{Name="Sel",Size=UDim2.new(1,0,1,0),BackgroundColor3=C.White,BackgroundTransparency=0.78,BorderSizePixel=0,Visible=false,Parent=b})
+	Corner(sel,9); AccentGrad(sel,0)
+	local bar=New("Frame",{Name="Bar",Size=UDim2.new(0,3,0,18),Position=UDim2.new(0,0,0.5,-9),BackgroundColor3=C.White,BorderSizePixel=0,Visible=false,ZIndex=2,Parent=b})
+	Corner(bar,2); AccentGrad(bar,90)
+	local url=GetMaterialIcon(iconName)
+	if url then
+		New("ImageLabel",{Name="Icon",Image=url,ImageColor3=C.Dim,BackgroundTransparency=1,Size=UDim2.new(0,17,0,17),Position=UDim2.new(0,12,0.5,-8),ZIndex=2,Parent=b})
+	else
+		New("TextLabel",{Name="Icon",Text=glyph or "•",TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,17,0,17),Position=UDim2.new(0,12,0.5,-8),ZIndex=2,Parent=b})
+	end
+	New("TextLabel",{Name="Label",Text=text,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-46,1,0),Position=UDim2.new(0,38,0,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,ZIndex=2,Parent=b})
+	b.MouseEnter:Connect(function() if not sel.Visible then b.BackgroundTransparency=0.95 end end)
+	b.MouseLeave:Connect(function() b.BackgroundTransparency=1 end)
+
+	local c=New("TextButton",{Name="Chip_"..text,Text="",BackgroundColor3=C.Card,BorderSizePixel=0,Size=UDim2.new(0,0,0,34),AutomaticSize=Enum.AutomaticSize.X,LayoutOrder=order,AutoButtonColor=false,Parent=self._chipScroll})
+	Corner(c,17)
+	local cst=Stroke(c,C.FieldStroke,1,0)
+	cst.Name="ChipStroke"
+	local csel=New("Frame",{Name="Sel",Size=UDim2.new(1,0,1,0),BackgroundColor3=C.White,BorderSizePixel=0,Visible=false,Parent=c})
+	Corner(csel,17); AccentGrad(csel,0)
+	local cl=New("TextLabel",{Name="Label",Text=text,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,ZIndex=2,Parent=c})
+	Pad(cl,0,16,0,16)
+	return b,c
+end
+
+function Window:_styleNav(td,on)
+	local b=td.btn
+	if b and b.Parent then
+		local sel=b:FindFirstChild("Sel"); if sel then sel.Visible=on end
+		local bar=b:FindFirstChild("Bar"); if bar then bar.Visible=on end
+		local ic=b:FindFirstChild("Icon")
+		if ic then if ic:IsA("ImageLabel") then ic.ImageColor3=on and C.White or C.Dim else ic.TextColor3=on and C.White or C.Dim end end
+		local lb=b:FindFirstChild("Label")
+		if lb then lb.TextColor3=on and C.White or C.Dim; lb.Font=on and Enum.Font.GothamBold or Enum.Font.GothamMedium end
+		b.BackgroundTransparency=1
+	end
+	local c=td.chip
+	if c and c.Parent then
+		local sel=c:FindFirstChild("Sel"); if sel then sel.Visible=on end
+		local lb=c:FindFirstChild("Label"); if lb then lb.TextColor3=on and C.White or C.Dim end
+		local st=c:FindFirstChild("ChipStroke"); if st then st.Transparency=on and 1 or 0 end
+	end
+end
+
+function Window:_selectTab(td)
+	if self._searchBoxes then
+		for _,sb in ipairs(self._searchBoxes) do if sb.Text~="" then sb.Text="" end end
+	end
+	for _,t in ipairs(self._tabs) do self:_styleNav(t,false); t.page.Visible=false; t.searchTitle.Visible=false end
+	self:_styleNav(td,true)
+	td.page.Visible=true
+	self._current=td
+	if self._titleLbl then self._titleLbl.Text=td.name end
+	if self._subLbl then self._subLbl.Text=td.desc or "" end
+	if self._contentScroll then self._contentScroll.CanvasPosition=Vector2.new(0,0) end
+	-- keep the active chip in view on compact layout
+	if td.chip and self._chipScroll and self._chipScroll.Visible then
+		pcall(function()
+			local x=td.chip.AbsolutePosition.X-self._chipScroll.AbsolutePosition.X+self._chipScroll.CanvasPosition.X
+			self._chipScroll.CanvasPosition=Vector2.new(math.max(0,x-40),0)
+		end)
+	end
+end
+
+function Window:_runSearch(q)
+	q=tostring(q or ""):lower():match("^%s*(.-)%s*$")
+	if q=="" then
+		for _,it in ipairs(self._searchItems) do it.row.Visible=true end
+		for _,s in ipairs(self._searchSections) do s.Visible=true end
+		if self._current then self:_selectTab(self._current) end
+		return
+	end
+	local hit={}
+	for _,it in ipairs(self._searchItems) do
+		local m=it.n:find(q,1,true)~=nil
+		it.row.Visible=m
+		if m and it.page then hit[it.page]=true end
+	end
+	for _,s in ipairs(self._searchSections) do s.Visible=false end
+	local any=false
+	for _,t in ipairs(self._tabs) do
+		local h=hit[t.page]==true
+		t.page.Visible=h
+		t.searchTitle.Visible=h
+		if h then any=true end
+		self:_styleNav(t,false)
+	end
+	if self._titleLbl then self._titleLbl.Text="Search" end
+	if self._subLbl then self._subLbl.Text=any and ('Results for "'..q..'"') or "No matches" end
+	if self._contentScroll then self._contentScroll.CanvasPosition=Vector2.new(0,0) end
+end
+
 function Window:CreateTab(opts)
 	opts=opts or {}
-	local icon=opts.Icon or "o"
-	local orb=New("TextButton",{Text="",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=self._tabOrder,AutoButtonColor=false,Parent=self._orbRow})
-	Corner(orb,22); GlassStroke(orb,0.75)
-
-	-- Try a real Material icon image first (opts.IconName), fall back to text glyph (opts.Icon)
-	local iconImg
-	if opts.IconName then
-		local iconUrl = GetMaterialIcon(opts.IconName)
-		if iconUrl then
-			iconImg = New("ImageLabel",{
-				Image=iconUrl,
-				ImageColor3=Color3.fromRGB(255,255,255),
-				BackgroundTransparency=1,
-				Size=UDim2.new(0,20,0,20),
-				Position=UDim2.new(0.5,-10,0.5,-10),
-				Parent=orb,
-			})
-		end
-	end
-	if not iconImg then
-		New("TextLabel",{Text=icon,TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=1,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=orb})
-	end
-
-	if opts.Name then AddTooltip(orb,opts.Name) end
-	local page=New("Frame",{Name="Page_"..opts.Name,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,Parent=self._contentScroll})
-	VList(page,7)
-	if opts.ShowTitle~=false and opts.Name then
-		New("TextLabel",{Text=opts.Name,TextSize=14,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=page})
-		New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,LayoutOrder=1,Parent=page})
-	end
+	local rawName=opts.Name or ("Tab "..self._tabOrder)
+	local display=(rawName:gsub("%s+[Tt]ab$",""))
+	local order=opts._order or self._tabOrder
+	local sideBtn,chip=self:_makeNav(display,opts.IconName,opts.Icon,order,opts._pinned)
+	local page=New("Frame",{Name="Page_"..rawName,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,LayoutOrder=order,Parent=self._contentScroll})
+	VList(page,8)
+	local sTitle=New("TextLabel",{Text=display,TextSize=12,TextColor3=C.Muted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Visible=false,LayoutOrder=0,Parent=page})
 	local listF=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=page})
 	VList(listF,6)
 	self._tabOrder=self._tabOrder+1
-	local tabData={btn=orb,page=page}
+	local tabData={btn=sideBtn,chip=chip,page=page,name=display,desc=opts.Description,searchTitle=sTitle}
 	table.insert(self._tabs,tabData)
-	orb.MouseButton1Click:Connect(function()
-		for _,t in ipairs(self._tabs) do
-			t.btn.BackgroundTransparency=0.88
-			SetOrbTint(t.btn, Color3.fromRGB(255,255,255))
-			t.page.Visible=false
-		end
-		orb.BackgroundTransparency=0.05
-		SetOrbTint(orb, Color3.fromRGB(20,20,20))
-		page.Visible=true
-	end)
-	if #self._tabs==1 then
-		orb.BackgroundTransparency=0.05
-		SetOrbTint(orb, Color3.fromRGB(20,20,20))
-		page.Visible=true
-	end
-	return setmetatable({_list=listF,_order=0,_tabData=tabData,_win=self},Tab)
+	sideBtn.MouseButton1Click:Connect(function() self:_selectTab(tabData) end)
+	chip.MouseButton1Click:Connect(function() self:_selectTab(tabData) end)
+	if #self._tabs==1 then self:_selectTab(tabData) end
+	return setmetatable({_list=listF,_order=0,_ctr={n=0},_tabData=tabData,_win=self},Tab)
 end
 
 function Window:_buildHomeTab(gameName)
-	local tab=self:CreateTab({Icon="⌂",IconName="home_filled",Name="Home",ShowTitle=false})
+	local tab=self:CreateTab({Icon="⌂",IconName="home_filled",Name="Home",ShowTitle=false,Description="Overview of your session"})
 	local execName="Unknown"
 	pcall(function()
 		if syn then execName="Synapse X"
@@ -1061,25 +1179,25 @@ function Window:_buildHomeTab(gameName)
 		end
 	end)
 
-	local welcomeP=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=0,Parent=tab._list})
+	local welcomeP=New("Frame",{BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=0,Parent=tab._list})
 	Corner(welcomeP,12); GlassStroke(welcomeP,0.7); Pad(welcomeP,11,14,11,14)
 	local wvl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=welcomeP})
 	VList(wvl,4)
 	New("TextLabel",{Text="Welcome back to Odyssey 🌲",TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=wvl})
 	New("TextLabel",{Text="Your all-in-one companion for Lumber Tycoon 2 — live stats, tools, and more.",TextSize=10,TextColor3=T.TextDim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,LayoutOrder=1,Parent=wvl})
 	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.75,BorderSizePixel=0,LayoutOrder=2,Parent=wvl})
-	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Nazab, Pete <3 & Gludgy",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
+	New("TextLabel",{Text="Created by Ihateschool & Vaxeal  |  Testers: Nazab, Pete <3 & Gludgy",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=3,Parent=wvl})
 
-	local charP=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=tab._list})
+	local charP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=1,Parent=tab._list})
 	Corner(charP,12); GlassStroke(charP,0.65); Pad(charP,11,14,11,14)
 	local charL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=charP})
 	VList(charL,7)
-	New("TextLabel",{Text="CHARACTER",TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=charL})
+	New("TextLabel",{Text="CHARACTER",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=charL})
 	local statsRow=New("Frame",{Size=UDim2.new(1,0,0,46),BackgroundTransparency=1,LayoutOrder=1,Parent=charL})
 	local function StatTile(title,val,xpos)
-		local f=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=xpos,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Parent=statsRow})
+		local f=New("Frame",{Size=UDim2.new(0.5,-4,1,0),Position=xpos,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=statsRow})
 		Corner(f,10); GlassStroke(f,0.7)
-		New("TextLabel",{Text=title,TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,12),Position=UDim2.new(0,9,0,5),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		New("TextLabel",{Text=title,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,12),Position=UDim2.new(0,9,0,5),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		local vl=New("TextLabel",{Text=val,TextSize=16,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-10,0,20),Position=UDim2.new(0,9,0,19),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		return vl
 	end
@@ -1092,7 +1210,7 @@ function Window:_buildHomeTab(gameName)
 	cgl.Parent=cg
 	local function InfoCell(key,val)
 		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=cg})
-		New("TextLabel",{Text=key,TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		New("TextLabel",{Text=key,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		return vl
 	end
@@ -1199,7 +1317,7 @@ function Window:_buildHomeTab(gameName)
 		RefreshIdentityDisplay()
 	end)
 	local gbRow=New("Frame",{Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,LayoutOrder=3,Parent=charL})
-	local gb=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Parent=gbRow})
+	local gb=New("Frame",{Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=gbRow})
 	Corner(gb,6); GlassStroke(gb,0.7); Pad(gb,0,8,0,8)
 	New("TextLabel",{Text="Roblox Game  |  "..gameName,TextSize=10,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,0,1,0),AutomaticSize=Enum.AutomaticSize.X,Parent=gb})
 	RunService.Heartbeat:Connect(function()
@@ -1218,11 +1336,11 @@ function Window:_buildHomeTab(gameName)
 		money.Changed:Connect(function(v) mVal.Text=formatMoney(v) end)
 	end)
 
-	local srvP=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=tab._list})
+	local srvP=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=2,Parent=tab._list})
 	Corner(srvP,12); GlassStroke(srvP,0.65); Pad(srvP,11,14,11,14)
 	local srvL=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=srvP})
 	VList(srvL,7)
-	New("TextLabel",{Text="SERVER",TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=srvL})
+	New("TextLabel",{Text="SERVER",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=srvL})
 	local sg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=srvL})
 	local sgl2=Instance.new("UIGridLayout")
 	sgl2.CellSize=UDim2.new(0.5,-6,0,34)
@@ -1230,7 +1348,7 @@ function Window:_buildHomeTab(gameName)
 	sgl2.Parent=sg
 	local function SrvCell(key,val)
 		local f=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,34),Parent=sg})
-		New("TextLabel",{Text=key,TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		New("TextLabel",{Text=key,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,13),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		local vl=New("TextLabel",{Text=val,TextSize=12,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,15),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		return vl
 	end
@@ -1251,20 +1369,20 @@ function Window:_buildHomeTab(gameName)
 		end)
 	end)
 
-	local lt2P=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=3,Parent=tab._list})
+	local lt2P=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=3,Parent=tab._list})
 	Corner(lt2P,12); GlassStroke(lt2P,0.65); Pad(lt2P,11,14,11,14)
 	local lt2L=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=lt2P})
 	VList(lt2L,7)
-	New("TextLabel",{Text="LUMBER TYCOON 2",TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=lt2L})
+	New("TextLabel",{Text="LUMBER TYCOON 2",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=lt2L})
 	local bg=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=1,Parent=lt2L})
 	local bgl=Instance.new("UIGridLayout")
 	bgl.CellSize=UDim2.new(0.5,-4,0,46)
 	bgl.CellPadding=UDim2.new(0,8,0,6)
 	bgl.Parent=bg
 	local function StatusBox(title,val)
-		local f=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.9,BorderSizePixel=0,Parent=bg})
+		local f=New("Frame",{BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=bg})
 		Corner(f,9); GlassStroke(f,0.75)
-		New("TextLabel",{Text=title,TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-8,0,12),Position=UDim2.new(0,7,0,6),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
+		New("TextLabel",{Text=title,TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-8,0,12),Position=UDim2.new(0,7,0,6),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		local vl=New("TextLabel",{Text=val,TextSize=13,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-8,0,16),Position=UDim2.new(0,7,0,22),TextXAlignment=Enum.TextXAlignment.Left,Parent=f})
 		return vl
 	end
@@ -1337,67 +1455,80 @@ function Window:_buildHomeTab(gameName)
 	return tab
 end
 
-function Window:Notify(nopts)
-	nopts=nopts or {}
-	local ng=New("ScreenGui",{Name="OdysseyNotif",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-	local f=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Position=UDim2.new(1,-275,1,-10),AnchorPoint=Vector2.new(0,1),Parent=ng})
-	Corner(f,13); GlassStroke(f,0.5); Pad(f,10,12,10,12)
-	local ngrad=Instance.new("UIGradient")
-	ngrad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,currentThemeColors.c1),ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),ColorSequenceKeypoint.new(1,currentThemeColors.c3)})
-	ngrad.Rotation=120
-	ngrad.Parent=f
-	f.BackgroundTransparency=0.15
-	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
-	VList(vl,4)
-	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=12,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	New("TextLabel",{Text=nopts.Content or "",TextSize=10,TextColor3=Color3.fromRGB(230,240,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
-	task.delay(nopts.Duration or 4,function() ng:Destroy() end)
+local NotifHolder
+local NotifCount=0
+local function GetNotifHolder()
+	if NotifHolder and NotifHolder.Parent and NotifHolder.Parent.Parent then return NotifHolder end
+	local ng=New("ScreenGui",{Name="OdysseyNotif",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,DisplayOrder=50,Parent=PlayerGui})
+	local h=New("Frame",{Size=UDim2.new(0,280,1,-24),Position=UDim2.new(1,-292,0,12),BackgroundTransparency=1,Parent=ng})
+	local l=VList(h,8)
+	l.VerticalAlignment=Enum.VerticalAlignment.Bottom
+	NotifHolder=h
+	return h
 end
 
--- Double confirmation dialog. Requires the user to press "Yes" twice in a row.
--- Pressing "No" at either step cancels immediately and shows a canceled notice.
--- Window:Confirm({
---     Title = "Are you sure?",
---     Warning1 = "This will run on all 6 slots.",
---     Warning2 = "This cannot be undone. Continue?",
---     OnConfirm = function() end,
---     OnCancel = function() end, -- optional
--- })
+function Window:Notify(nopts)
+	nopts=nopts or {}
+	local h=GetNotifHolder()
+	NotifCount=NotifCount+1
+	-- keep at most 5 on screen, drop the oldest
+	local frames={}
+	for _,ch in ipairs(h:GetChildren()) do if ch:IsA("Frame") then table.insert(frames,ch) end end
+	table.sort(frames,function(a,b) return a.LayoutOrder<b.LayoutOrder end)
+	while #frames>=5 do frames[1]:Destroy(); table.remove(frames,1) end
+	local wrap=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=NotifCount,Parent=h})
+	local f=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(1,24,0,0),BackgroundColor3=C.Card,BackgroundTransparency=0.02,BorderSizePixel=0,Parent=wrap})
+	Corner(f,10); Stroke(f,C.FieldStroke,1,0); Pad(f,10,12,10,18)
+	local bar=New("Frame",{Size=UDim2.new(0,3,1,-6),Position=UDim2.new(0,-11,0,3),BackgroundColor3=C.White,BorderSizePixel=0,Parent=f})
+	Corner(bar,2); AccentGrad(bar,90)
+	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
+	VList(vl,3)
+	New("TextLabel",{Text=nopts.Title or "Notification",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=vl})
+	if nopts.Content and nopts.Content~="" then
+		New("TextLabel",{Text=nopts.Content,TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,Parent=vl})
+	end
+	TweenService:Create(f,TweenInfo.new(0.25,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{Position=UDim2.new(0,0,0,0)}):Play()
+	task.delay(nopts.Duration or 4,function()
+		if not wrap.Parent then return end
+		local tw=TweenService:Create(f,TweenInfo.new(0.2),{Position=UDim2.new(1,24,0,0)})
+		tw:Play(); tw.Completed:Wait()
+		wrap:Destroy()
+	end)
+end
+
+-- Double confirmation dialog. Requires "Yes" twice. "No" cancels at either step.
+-- Window:Confirm({ Title=..., Warning1=..., Warning2=..., OnConfirm=function() end, OnCancel=function() end })
 function Window:Confirm(copts)
 	copts=copts or {}
 	local self_win=self
-	local overlay=New("ScreenGui",{Name="OdysseyConfirm",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-	local dim=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.fromRGB(0,0,0),BackgroundTransparency=0.5,BorderSizePixel=0,ZIndex=300,Parent=overlay})
-	local box=New("Frame",{Size=UDim2.new(0,320,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0.5,-160,0.5,-60),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,ZIndex=301,Parent=overlay})
-	Corner(box,14); GlassStroke(box,0.5); Pad(box,14,16,14,16)
-	local grad=Instance.new("UIGradient")
-	grad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,currentThemeColors.c1),ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),ColorSequenceKeypoint.new(1,currentThemeColors.c3)})
-	grad.Rotation=120
-	grad.Parent=box
-	box.BackgroundTransparency=0.05
-
-	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=box})
+	local overlay=New("ScreenGui",{Name="OdysseyConfirm",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,DisplayOrder=60,Parent=PlayerGui})
+	New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.fromRGB(0,0,0),BackgroundTransparency=0.45,BorderSizePixel=0,Active=true,ZIndex=300,Parent=overlay})
+	local box=New("Frame",{Size=UDim2.new(0,330,0,0),AutomaticSize=Enum.AutomaticSize.Y,AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,0),BackgroundColor3=C.Card,BorderSizePixel=0,ZIndex=301,Parent=overlay})
+	Corner(box,14); Stroke(box,C.FieldStroke,1,0); Pad(box,16,18,16,18)
+	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,ZIndex=301,Parent=box})
 	VList(vl,10)
-	local titleLbl=New("TextLabel",{Text=copts.Title or "Are you sure?",TextSize=14,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,18),TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	local warnLbl=New("TextLabel",{Text=copts.Warning1 or "This action cannot be undone.",TextSize=11,TextColor3=Color3.fromRGB(235,240,245),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
-	local btnRow=New("Frame",{Size=UDim2.new(1,0,0,32),BackgroundTransparency=1,Parent=vl})
-	local noBtn=New("TextButton",{Text="No",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.48,0,1,0),AutoButtonColor=false,Parent=btnRow})
-	Corner(noBtn,9); GlassStroke(noBtn,0.65)
-	local yesBtn=New("TextButton",{Text="Yes",TextSize=11,TextColor3=Color3.fromRGB(20,20,20),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.05,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.48,0,1,0),Position=UDim2.new(0.52,0,0,0),AutoButtonColor=false,Parent=btnRow})
-	Corner(yesBtn,9)
-
+	local topRow=New("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,ZIndex=301,LayoutOrder=1,Parent=vl})
+	New("TextLabel",{Text=copts.Title or "Are you sure?",TextSize=15,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,Parent=topRow})
+	local stepLbl=New("TextLabel",{Text="Step 1 of 2",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(0,80,1,0),Position=UDim2.new(1,-80,0,0),TextXAlignment=Enum.TextXAlignment.Right,ZIndex=302,Parent=topRow})
+	local warnLbl=New("TextLabel",{Text=copts.Warning1 or "This action cannot be undone.",TextSize=12,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=302,LayoutOrder=2,Parent=vl})
+	local btnRow=New("Frame",{Size=UDim2.new(1,0,0,36),BackgroundTransparency=1,ZIndex=301,LayoutOrder=3,Parent=vl})
+	local noBtn=New("TextButton",{Text="No",TextSize=13,TextColor3=C.Text,BackgroundColor3=C.Hover,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.5,-5,1,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
+	Corner(noBtn,9); Stroke(noBtn,C.FieldStroke,1,0)
+	local yesBtn=New("TextButton",{Text="Yes",TextSize=13,TextColor3=C.White,BackgroundColor3=C.White,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0.5,-5,1,0),Position=UDim2.new(0.5,5,0,0),AutoButtonColor=false,ZIndex=302,Parent=btnRow})
+	Corner(yesBtn,9); AccentGrad(yesBtn,0)
 	local step=1
 	local function cancel()
 		overlay:Destroy()
 		if copts.OnCancel then copts.OnCancel() end
 		self_win:Notify({Title="Canceled",Content="Action was canceled.",Duration=3})
 	end
-
 	noBtn.MouseButton1Click:Connect(cancel)
 	yesBtn.MouseButton1Click:Connect(function()
 		if step==1 then
 			step=2
+			stepLbl.Text="Step 2 of 2"
 			warnLbl.Text=copts.Warning2 or "Are you absolutely sure? This cannot be undone."
+			yesBtn.Text="Yes, do it"
 		else
 			overlay:Destroy()
 			if copts.OnConfirm then copts.OnConfirm() end
@@ -1407,60 +1538,42 @@ end
 
 function Window:SetKeybind(key) self._toggleKey=key end
 
--- Standalone floating progress bar — its own glass panel, separate from the tabbed
--- window, positioned bottom-left of the screen. Automatically follows whatever
--- theme is active, and can be relabeled/reused across a sequence of tasks.
+-- Standalone floating progress bar (top-center). Follows the active theme.
 -- local pb = Window:CreateProgressWidget({Name="Selling Wood...", CurrentValue=0})
--- pb:Set({Value=50})
--- pb:Set({Name="Selling Planks...", Value=0})
--- pb:Destroy() -- removes it when done
+-- pb:Set({Value=50}); pb:Set({Name="Selling Planks...", Value=0}); pb:Destroy()
 function Window:CreateProgressWidget(opts)
 	opts=opts or {}
 	local range=opts.Range or {0,100}
 	local minV,maxV=range[1],range[2]
 	local val=math.clamp(opts.CurrentValue or minV,minV,maxV)
 	local showPercent=opts.ShowPercent
-
-	local pg=New("ScreenGui",{Name="OdysseyProgress",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
-	local box=New("Frame",{Size=UDim2.new(0,260,0,0),AutomaticSize=Enum.AutomaticSize.Y,Position=UDim2.new(0.5,-130,0,16),AnchorPoint=Vector2.new(0,0),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=pg})
-	Corner(box,14); GlassStroke(box,0.5); Pad(box,12,14,12,14)
-	box.BackgroundTransparency=0.05
-	local grad=Instance.new("UIGradient")
-	grad.Color=ColorSequence.new({
-		ColorSequenceKeypoint.new(0,currentThemeColors.c1),
-		ColorSequenceKeypoint.new(0.5,currentThemeColors.c2),
-		ColorSequenceKeypoint.new(1,currentThemeColors.c3),
-	})
-	grad.Rotation=120
-	grad.Parent=box
-	ProgressBarGradients[grad]=true
-
+	local pg=New("ScreenGui",{Name="OdysseyProgress",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,DisplayOrder=40,Parent=PlayerGui})
+	local box=New("Frame",{Size=UDim2.new(0,280,0,0),AutomaticSize=Enum.AutomaticSize.Y,AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0,16),BackgroundColor3=C.Card,BackgroundTransparency=0.02,BorderSizePixel=0,Parent=pg})
+	Corner(box,12); Stroke(box,C.FieldStroke,1,0); Pad(box,12,14,12,14)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=box})
-	VList(vl,7)
-	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),Parent=vl})
-	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-54,1,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=nameRow})
+	VList(vl,8)
+	local nameRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,16),Parent=vl})
+	local nameLbl=New("TextLabel",{Text=opts.Name or "Progress",TextSize=13,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-64,1,0),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=nameRow})
+	local function pctOf() if maxV==minV then return 0 end return (val-minV)/(maxV-minV) end
 	local function pctText()
-		local p=math.floor(((val-minV)/(maxV-minV))*100+0.5)
-		if showPercent then return p.."%" end
-		return math.floor(val).."/"..math.floor(maxV)
+		if showPercent then return math.floor(pctOf()*100+0.5).."%" end
+		return math.floor(val).." / "..math.floor(maxV)
 	end
-	local valLbl=New("TextLabel",{Text=pctText(),TextSize=11,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,50,1,0),Position=UDim2.new(1,-50,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
-	local track=New("Frame",{Size=UDim2.new(1,0,0,8),BackgroundColor3=Color3.fromRGB(0,0,0),BackgroundTransparency=0.68,BorderSizePixel=0,Parent=vl})
-	Corner(track,5)
-	local pct0=(val-minV)/(maxV-minV)
-	local fill=New("Frame",{Size=UDim2.new(pct0,0,1,0),BackgroundColor3=Color3.fromRGB(255,255,255),BorderSizePixel=0,Parent=track})
-	Corner(fill,5)
-
+	local valLbl=New("TextLabel",{Text=pctText(),TextSize=12,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,64,1,0),Position=UDim2.new(1,-64,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=nameRow})
+	local track=New("Frame",{Size=UDim2.new(1,0,0,8),BackgroundColor3=C.Track,BorderSizePixel=0,Parent=vl})
+	Corner(track,4)
+	local fill=New("Frame",{Size=UDim2.new(pctOf(),0,1,0),BackgroundColor3=C.White,BorderSizePixel=0,Parent=track})
+	Corner(fill,4)
+	local grad=AccentGrad(fill,0)
 	local api={}
 	function api:Set(o)
 		if o.Name~=nil then nameLbl.Text=o.Name end
 		if o.Range~=nil then minV=o.Range[1]; maxV=o.Range[2] end
 		if o.Value~=nil then
 			val=math.clamp(o.Value,minV,maxV)
-			local p=(val-minV)/(maxV-minV)
-			TweenService:Create(fill,TweenInfo.new(0.2),{Size=UDim2.new(p,0,1,0)}):Play()
-			valLbl.Text=pctText()
+			TweenService:Create(fill,TweenInfo.new(0.2),{Size=UDim2.new(pctOf(),0,1,0)}):Play()
 		end
+		valLbl.Text=pctText()
 	end
 	function api:GetValue() return val end
 	function api:Destroy() ProgressBarGradients[grad]=nil; pg:Destroy() end
@@ -1471,13 +1584,13 @@ function Window:CreateUpdateLog(opts)
 	opts=opts or {}
 	local parent=self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
-	local f=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
+	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
 	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
 	VList(vl,5)
 	local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
 	New("TextLabel",{Text="Update log",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0.6,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
-	New("TextLabel",{Text=(opts.Version or "v1.0.0").."  |  "..(opts.Date or ""),TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.4,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
+	New("TextLabel",{Text=(opts.Version or "v1.0.0").."  |  "..(opts.Date or ""),TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(0.4,0,1,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=hRow})
 
 	-- Normalizes short type codes (add/fix/chg/rmv etc) into one of 4 fixed categories
 	local function NormalizeType(t)
@@ -1500,9 +1613,9 @@ function Window:CreateUpdateLog(opts)
 	for _,category in ipairs(categoryOrder) do
 		local entries=grouped[category]
 		if #entries>0 then
-			New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,LayoutOrder=order,Parent=vl})
+			New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,LayoutOrder=order,Parent=vl})
 			order=order+1
-			New("TextLabel",{Text=category:upper(),TextSize=8,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=order,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+			New("TextLabel",{Text=category:upper(),TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=order,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
 			order=order+1
 			for _,e in ipairs(entries) do
 				local er=New("Frame",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,LayoutOrder=order,Parent=vl})
@@ -1519,7 +1632,7 @@ function Window:CreateDonationPanel(opts)
 	opts=opts or {}
 	local parent=self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
-	local f=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.82,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
+	local f=New("Frame",{BackgroundColor3=C.Card,BackgroundTransparency=0.15,BorderSizePixel=0,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,LayoutOrder=self._homeOrder,Parent=parent})
 	Corner(f,12); GlassStroke(f,0.65); Pad(f,11,14,11,14)
 	local vl=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=f})
 	VList(vl,8)
@@ -1527,7 +1640,7 @@ function Window:CreateDonationPanel(opts)
 	local hRow=New("Frame",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,LayoutOrder=0,Parent=vl})
 	New("TextLabel",{Text="Support Odyssey",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=hRow})
 
-	New("TextLabel",{Text="If you enjoy the script, consider donating",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=1,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
+	New("TextLabel",{Text="If you enjoy the script, consider donating",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=1,TextXAlignment=Enum.TextXAlignment.Left,Parent=vl})
 
 	local grid=New("Frame",{Size=UDim2.new(1,0,0,64),BackgroundTransparency=1,LayoutOrder=2,Parent=vl})
 	local HList3=Instance.new("UIListLayout")
@@ -1539,13 +1652,13 @@ function Window:CreateDonationPanel(opts)
 	local cardWidth=(1/math.max(#methods,1))
 
 	for i,m in ipairs(methods) do
-		local card=New("Frame",{BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Size=UDim2.new(cardWidth,-4,1,0),LayoutOrder=i,Parent=grid})
+		local card=New("Frame",{BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Size=UDim2.new(cardWidth,-4,1,0),LayoutOrder=i,Parent=grid})
 		Corner(card,8); GlassStroke(card,0.65)
 		local cvl=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Parent=card})
 		VList(cvl,4)
 		Pad(cvl,8,4,8,4)
 		New("TextLabel",{Text=m.Name or "Method",TextSize=10,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,0,0,14),TextXAlignment=Enum.TextXAlignment.Center,LayoutOrder=1,Parent=cvl})
-		local copyBtn=New("TextButton",{Text="Copy",TextSize=9,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,20),AutoButtonColor=false,LayoutOrder=2,Parent=cvl})
+		local copyBtn=New("TextButton",{Text="Copy",TextSize=10,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,20),AutoButtonColor=false,LayoutOrder=2,Parent=cvl})
 		Corner(copyBtn,6)
 		copyBtn.MouseButton1Click:Connect(function()
 			pcall(function() setclipboard(m.Value or "") end)
@@ -1553,17 +1666,21 @@ function Window:CreateDonationPanel(opts)
 		end)
 	end
 
-	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=9,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=3,TextXAlignment=Enum.TextXAlignment.Center,Parent=vl})
+	New("TextLabel",{Text="Send Proof to School & No Refunds",TextSize=10,TextColor3=T.TextMuted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,12),LayoutOrder=3,TextXAlignment=Enum.TextXAlignment.Center,Parent=vl})
 end
 
 function Window:CreateDiscordButton(opts)
 	opts=opts or {}
 	local parent=self._homeList or self._contentScroll
 	self._homeOrder=(self._homeOrder or 10)+1
-	local btn=New("TextButton",{Text="💬  "..(opts.Label or "Join Discord Server"),TextSize=11,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,0,36),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
-	Corner(btn,11); GlassStroke(btn,0.7)
-	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.7}):Play() end)
-	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.85}):Play() end)
+	local btn=New("TextButton",{Text="",BackgroundColor3=C.White,BorderSizePixel=0,Size=UDim2.new(1,0,0,40),AutoButtonColor=false,LayoutOrder=self._homeOrder,Parent=parent})
+	Corner(btn,10)
+	local g=Instance.new("UIGradient")
+	g.Color=ColorSequence.new(T.Discord,Color3.fromRGB(125,95,255))
+	g.Parent=btn
+	New("TextLabel",{Text=opts.Label or "Join Discord Server",TextSize=13,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=btn})
+	btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0.12}):Play() end)
+	btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.1),{BackgroundTransparency=0}):Play() end)
 	btn.MouseButton1Click:Connect(function() if opts.Callback then opts.Callback() end end)
 end
 function Odyssey:CreateWindow(opts)
@@ -1581,12 +1698,18 @@ function Odyssey:CreateWindow(opts)
 
 	local Gui=New("ScreenGui",{Name="OdysseyUI",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,Parent=PlayerGui})
 	OdysseyGuiRef=Gui
-	TipFrame=New("Frame",{Size=UDim2.new(0,200,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=Gui})
-	Corner(TipFrame,10); GlassStroke(TipFrame,0.6); Pad(TipFrame,6,10,6,10)
-	TipLbl=New("TextLabel",{Text="",TextSize=10,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
+	TipFrame=New("Frame",{Size=UDim2.new(0,210,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=C.Card,BackgroundTransparency=0.02,BorderSizePixel=0,ZIndex=200,Visible=false,Parent=Gui})
+	Corner(TipFrame,8); Stroke(TipFrame,C.FieldStroke,1,0); Pad(TipFrame,7,10,7,10)
+	TipLbl=New("TextLabel",{Text="",TextSize=11,TextColor3=C.Dim,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=201,Parent=TipFrame})
 
-	local Main=New("Frame",{Name="Main",Size=UDim2.new(0,520,0,480),Position=UDim2.new(0.5,-260,0.5,-240),BackgroundColor3=Color3.fromRGB(90,90,140),BorderSizePixel=0,Parent=Gui})
-	Corner(Main,20)
+	local SIDE=172
+	local HEAD=54
+	local SIZES={Sidebar=Vector2.new(700,460),Compact=Vector2.new(440,470)}
+	local layout=(UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) and "Compact" or "Sidebar"
+	local minimized=false
+
+	local Main=New("Frame",{Name="Main",Size=UDim2.fromOffset(SIZES[layout].X,SIZES[layout].Y),AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,0),BackgroundColor3=Color3.fromRGB(90,90,140),BorderSizePixel=0,Parent=Gui})
+	Corner(Main,16)
 	local OdysseyUIScale=Instance.new("UIScale")
 	OdysseyUIScale.Scale=1
 	OdysseyUIScale.Parent=Main
@@ -1599,97 +1722,159 @@ function Odyssey:CreateWindow(opts)
 	})
 	OdysseyGradient.Rotation=120
 	OdysseyGradient.Parent=Main
+	-- Dark glass layer over the theme gradient: the theme still tints the window
+	local Shade=New("Frame",{Name="Shade",Size=UDim2.new(1,0,1,0),BackgroundColor3=C.BG,BackgroundTransparency=0.12,BorderSizePixel=0,Parent=Main})
+	Corner(Shade,16); Stroke(Shade,C.CardStroke,1,0)
 
-	local TopBar=New("Frame",{Name="TopBar",Size=UDim2.new(1,0,0,52),BackgroundTransparency=1,Parent=Main})
-	MakeDraggable(Main,TopBar)
-	local LogoCircle=New("Frame",{Size=UDim2.new(0,32,0,32),Position=UDim2.new(0,14,0.5,-16),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.1,BorderSizePixel=0,Parent=TopBar})
-	Corner(LogoCircle,16); GlassStroke(LogoCircle,0.4)
-	New("TextLabel",{Text="🌲",TextSize=15,TextColor3=Color3.fromRGB(20,20,20),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=LogoCircle})
-	New("TextLabel",{Text=name,TextSize=15,TextColor3=Color3.fromRGB(255,255,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,180,0,18),Position=UDim2.new(0,54,0.5,-14),TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar})
+	local function Logo(parent,size,pos)
+		local l=New("Frame",{Size=UDim2.new(0,size,0,size),Position=pos,BackgroundColor3=C.White,BorderSizePixel=0,Parent=parent})
+		Corner(l,math.floor(size*0.3)); AccentGrad(l,45)
+		local url=GetMaterialIcon("explore")
+		if url then
+			New("ImageLabel",{Image=url,ImageColor3=C.White,BackgroundTransparency=1,Size=UDim2.new(0,size-12,0,size-12),Position=UDim2.new(0,6,0,6),Parent=l})
+		else
+			New("TextLabel",{Text="O",TextSize=15,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=l})
+		end
+		return l
+	end
+	local function IconBtn(parent,iconName,fallback,pos,tip)
+		local b=New("TextButton",{Text="",BackgroundColor3=C.Field,BorderSizePixel=0,Size=UDim2.new(0,30,0,30),AnchorPoint=Vector2.new(1,0.5),Position=pos,AutoButtonColor=false,Parent=parent})
+		Corner(b,8); Stroke(b,C.FieldStroke,1,0)
+		local url=GetMaterialIcon(iconName)
+		if url then
+			New("ImageLabel",{Name="Icon",Image=url,ImageColor3=C.Dim,BackgroundTransparency=1,Size=UDim2.new(0,16,0,16),Position=UDim2.new(0.5,-8,0.5,-8),Parent=b})
+		else
+			New("TextLabel",{Name="Icon",Text=fallback,TextSize=13,TextColor3=C.Dim,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Parent=b})
+		end
+		b.MouseEnter:Connect(function() b.BackgroundColor3=C.Hover end)
+		b.MouseLeave:Connect(function() b.BackgroundColor3=C.Field end)
+		if tip then AddTooltip(b,tip) end
+		return b
+	end
 
-	local MinBtn=New("TextButton",{Text="-",TextSize=14,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,26,0,26),Position=UDim2.new(1,-64,0.5,-13),AutoButtonColor=false,Parent=TopBar})
-	Corner(MinBtn,13); GlassStroke(MinBtn,0.75); AddTooltip(MinBtn,"Minimize")
-	local CloseBtn=New("TextButton",{Text="X",TextSize=11,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,26,0,26),Position=UDim2.new(1,-32,0.5,-13),AutoButtonColor=false,Parent=TopBar})
-	Corner(CloseBtn,13); GlassStroke(CloseBtn,0.75); AddTooltip(CloseBtn,"Close")
+	-- ===== Sidebar =====
+	local Side=New("Frame",{Name="Sidebar",Size=UDim2.new(0,SIDE,1,0),BackgroundTransparency=1,ClipsDescendants=true,Parent=Main})
+	local sideBg=New("Frame",{Size=UDim2.new(1,24,1,0),BackgroundColor3=C.Side,BackgroundTransparency=0.35,BorderSizePixel=0,Parent=Side})
+	Corner(sideBg,16)
+	New("Frame",{Size=UDim2.new(0,1,1,0),Position=UDim2.new(1,-1,0,0),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Side})
+	local Brand=New("Frame",{Size=UDim2.new(1,0,0,HEAD),BackgroundTransparency=1,Parent=Side})
+	MakeDraggable(Main,Brand)
+	Logo(Brand,32,UDim2.new(0,14,0.5,-16))
+	New("TextLabel",{Text=name,TextSize=15,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-62,0,17),Position=UDim2.new(0,54,0.5,sub~="" and -15 or -8),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Brand})
+	if sub~="" then
+		New("TextLabel",{Text=sub,TextSize=11,TextColor3=C.Muted,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-62,0,13),Position=UDim2.new(0,54,0.5,3),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Brand})
+	end
+	local SearchWrap=New("Frame",{Size=UDim2.new(1,-24,0,32),Position=UDim2.new(0,12,0,HEAD+4),BackgroundColor3=C.Field,BorderSizePixel=0,Parent=Side})
+	Corner(SearchWrap,8)
+	local searchStroke=Stroke(SearchWrap,C.FieldStroke,1,0)
+	New("ImageLabel",{Image=GetMaterialIcon("search") or "",ImageColor3=C.Muted,BackgroundTransparency=1,Size=UDim2.new(0,15,0,15),Position=UDim2.new(0,9,0.5,-7),Parent=SearchWrap})
+	local SearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=12,Font=Enum.Font.Gotham,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,30,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=SearchWrap})
+	SearchBox.Focused:Connect(function() searchStroke.Color=C.Focus end)
+	SearchBox.FocusLost:Connect(function() searchStroke.Color=C.FieldStroke end)
+	local navTop=HEAD+46
+	local NavScroll=New("ScrollingFrame",{Size=UDim2.new(1,-16,1,-(navTop+50)),Position=UDim2.new(0,8,0,navTop),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Side})
+	VList(NavScroll,3)
+	New("Frame",{Size=UDim2.new(1,-24,0,1),Position=UDim2.new(0,12,1,-48),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Side})
+	local SideBottom=New("Frame",{Size=UDim2.new(1,-16,0,34),Position=UDim2.new(0,8,1,-42),BackgroundTransparency=1,Parent=Side})
+	VList(SideBottom,0)
+
+	-- ===== Content =====
+	local Content=New("Frame",{Name="Content",Position=UDim2.new(0,SIDE,0,0),Size=UDim2.new(1,-SIDE,1,0),BackgroundTransparency=1,Parent=Main})
+	local Header=New("Frame",{Name="Header",Size=UDim2.new(1,0,0,HEAD),BackgroundTransparency=1,Parent=Content})
+	MakeDraggable(Main,Header)
+	New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,1,-1),BackgroundColor3=C.CardStroke,BorderSizePixel=0,Parent=Header})
+	local CompactLogo=Logo(Header,30,UDim2.new(0,14,0.5,-15))
+	local TitleLbl=New("TextLabel",{Text="Home",TextSize=16,TextColor3=C.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,-150,0,18),Position=UDim2.new(0,20,0,10),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Header})
+	local SubLbl=New("TextLabel",{Text="",TextSize=11,TextColor3=C.Muted,Font=Enum.Font.Gotham,BackgroundTransparency=1,Size=UDim2.new(1,-150,0,14),Position=UDim2.new(0,20,0,30),TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=Header})
+	local CloseBtn=IconBtn(Header,"close","X",UDim2.new(1,-12,0.5,0),"Close")
+	CloseBtn.MouseEnter:Connect(function() CloseBtn.BackgroundColor3=C.DangerBg end)
+	local MinBtn=IconBtn(Header,"remove","-",UDim2.new(1,-48,0.5,0),"Minimize")
+	local SearchBtn=IconBtn(Header,"search","?",UDim2.new(1,-84,0.5,0),"Search")
 	CloseBtn.MouseButton1Click:Connect(function() Main.Visible=false end)
 
-	local OrbScrollWrap=New("Frame",{Size=UDim2.new(1,0,0,60),Position=UDim2.new(0,0,0,52),BackgroundTransparency=1,Parent=Main})
-	local OrbScroll=New("ScrollingFrame",{
-		Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,18,0,0),BackgroundTransparency=1,BorderSizePixel=0,
-		ScrollingDirection=Enum.ScrollingDirection.X,ScrollBarThickness=0,
-		CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.X,
-		ElasticBehavior=Enum.ElasticBehavior.Never,Parent=OrbScrollWrap,
-	})
-	HList(OrbScroll,12)
+	-- Compact: tab chips across the top + a search field that swaps in over them
+	local ChipBar=New("ScrollingFrame",{Size=UDim2.new(1,0,0,48),Position=UDim2.new(0,0,0,HEAD),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=0,ScrollingDirection=Enum.ScrollingDirection.X,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.X,ElasticBehavior=Enum.ElasticBehavior.Never,Visible=false,Parent=Content})
+	HList(ChipBar,6)
+	Pad(ChipBar,0,14,0,14)
+	local CSearchWrap=New("Frame",{Size=UDim2.new(1,-28,0,34),Position=UDim2.new(0,14,0,HEAD+7),BackgroundColor3=C.Field,BorderSizePixel=0,Visible=false,Parent=Content})
+	Corner(CSearchWrap,17); Stroke(CSearchWrap,C.Focus,1,0)
+	local CSearchBox=New("TextBox",{Text="",PlaceholderText="Search features...",PlaceholderColor3=C.Muted,TextColor3=C.Text,TextSize=13,Font=Enum.Font.Gotham,BackgroundTransparency=1,ClearTextOnFocus=false,Size=UDim2.new(1,-28,1,0),Position=UDim2.new(0,14,0,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=CSearchWrap})
 
-	local Body=New("Frame",{Name="Body",Size=UDim2.new(1,0,1,-118),Position=UDim2.new(0,0,0,118),BackgroundTransparency=1,Parent=Main})
-	local minimized=false
+	local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-HEAD),Position=UDim2.new(0,0,0,HEAD),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Content})
+	Pad(ContentScroll,12,16,16,16); VList(ContentScroll,10)
+
+	local function ApplyLayout(mode)
+		if not SIZES[mode] then return end
+		layout=mode
+		local compact=(mode=="Compact")
+		local s=SIZES[mode]
+		Main.Size=minimized and UDim2.fromOffset(s.X,HEAD) or UDim2.fromOffset(s.X,s.Y)
+		Side.Visible=not compact
+		Content.Position=UDim2.new(0,compact and 0 or SIDE,0,0)
+		Content.Size=UDim2.new(1,compact and 0 or -SIDE,1,0)
+		CompactLogo.Visible=compact
+		local tx=compact and 54 or 20
+		TitleLbl.Position=UDim2.new(0,tx,0,10)
+		SubLbl.Position=UDim2.new(0,tx,0,30)
+		SearchBtn.Visible=compact
+		ChipBar.Visible=compact and not minimized and not CSearchWrap.Visible
+		if not compact then CSearchWrap.Visible=false end
+		local top=compact and HEAD+48 or HEAD
+		ContentScroll.Position=UDim2.new(0,0,0,top)
+		ContentScroll.Size=UDim2.new(1,0,1,-top)
+		ContentScroll.Visible=not minimized
+	end
+
 	MinBtn.MouseButton1Click:Connect(function()
 		minimized=not minimized
-		Body.Visible=not minimized
-		OrbScrollWrap.Visible=not minimized
-		Main.Size=minimized and UDim2.new(0,520,0,52) or UDim2.new(0,520,0,480)
+		CSearchWrap.Visible=false
+		ApplyLayout(layout)
 	end)
-
-	local ContentScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=Color3.fromRGB(255,255,255),ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Body})
-	Pad(ContentScroll,4,16,14,16); VList(ContentScroll,8)
+	SearchBtn.MouseButton1Click:Connect(function()
+		if minimized then return end
+		local show=not CSearchWrap.Visible
+		CSearchWrap.Visible=show
+		ChipBar.Visible=not show
+		if show then CSearchBox:CaptureFocus() else CSearchBox.Text="" end
+	end)
 
 	local toggleKey=Enum.KeyCode.RightShift
 	UserInputService.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==toggleKey then Main.Visible=not Main.Visible end end)
 
-	-- Persistent floating button, parented directly to the Gui (not Main) so
-	-- it's still tappable even when the main window is hidden. Mobile players
-	-- have no keyboard for the RightShift toggle, so this is their way in.
-	local MobileToggle=New("TextButton",{Name="OdysseyMobileToggle",Text="🧭",TextSize=20,BackgroundColor3=Color3.fromRGB(90,90,140),BackgroundTransparency=0.1,BorderSizePixel=0,Size=UDim2.new(0,44,0,44),Position=UDim2.new(0,0,0.5,-22),AutoButtonColor=false,ZIndex=500,Parent=Gui})
-	Corner(MobileToggle,22)
-	GlassStroke(MobileToggle,0.5)
-	MobileToggle.MouseButton1Click:Connect(function()
-		Main.Visible=not Main.Visible
-	end)
-	MakeDraggable(MobileToggle,MobileToggle)
-
-	local win=setmetatable({_T=T,_orbRow=OrbScroll,_contentScroll=ContentScroll,_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey},Window)
-	win:_buildHomeTab(gameName)
-
-	local settingsPage=New("Frame",{Name="Page_Settings",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Visible=false,Parent=ContentScroll})
-	VList(settingsPage,8)
-	New("TextLabel",{Text="Settings",TextSize=14,TextColor3=T.Text,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,0,20),TextXAlignment=Enum.TextXAlignment.Left,LayoutOrder=0,Parent=settingsPage})
-	New("Frame",{Size=UDim2.new(1,0,0,1),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,LayoutOrder=1,Parent=settingsPage})
-	local settingsListF=New("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=settingsPage})
-	VList(settingsListF,8)
-	local settingsBtnData={btn=nil,page=settingsPage}
-	local settingsTab=setmetatable({_list=settingsListF,_order=0,_tabData=settingsBtnData,_win=win},Tab)
-
-	local settingsOrb=New("TextButton",{Text="",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.88,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,44,0,44),LayoutOrder=999,AutoButtonColor=false,Parent=OrbScroll})
-	Corner(settingsOrb,22); GlassStroke(settingsOrb,0.75); AddTooltip(settingsOrb,"Settings")
+	-- Floating open/close button (always visible, draggable) for touch players
+	local MobileToggle=New("TextButton",{Name="OdysseyMobileToggle",Text="",BackgroundColor3=C.Card,BackgroundTransparency=0.05,BorderSizePixel=0,Size=UDim2.new(0,46,0,46),Position=UDim2.new(0,10,0.5,-23),AutoButtonColor=false,ZIndex=500,Parent=Gui})
+	Corner(MobileToggle,14); Stroke(MobileToggle,C.FieldStroke,1,0)
 	do
-		local settingsUrl = GetMaterialIcon("settings")
-		if settingsUrl then
-			New("ImageLabel",{
-				Image=settingsUrl,
-				ImageColor3=Color3.fromRGB(255,255,255),
-				BackgroundTransparency=1,
-				Size=UDim2.new(0,20,0,20),
-				Position=UDim2.new(0.5,-10,0.5,-10),
-				Parent=settingsOrb,
-			})
+		local url=GetMaterialIcon("explore")
+		if url then
+			New("ImageLabel",{Image=url,ImageColor3=Color3.fromRGB(184,195,255),BackgroundTransparency=1,Size=UDim2.new(0,22,0,22),Position=UDim2.new(0.5,-11,0.5,-11),ZIndex=501,Parent=MobileToggle})
 		else
-			New("TextLabel",{Text="⚙",TextSize=16,TextColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=1,Font=Enum.Font.GothamBold,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Center,Parent=settingsOrb})
+			New("TextLabel",{Text="O",TextSize=18,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),ZIndex=501,Parent=MobileToggle})
 		end
 	end
-	settingsBtnData.btn=settingsOrb
-	settingsTab._win=win
-	table.insert(win._tabs,{btn=settingsOrb,page=settingsPage})
-	settingsOrb.MouseButton1Click:Connect(function()
-		for _,t in ipairs(win._tabs) do
-			t.btn.BackgroundTransparency=0.88
-			SetOrbTint(t.btn, Color3.fromRGB(255,255,255))
-			t.page.Visible=false
-		end
-		settingsOrb.BackgroundTransparency=0.05
-		SetOrbTint(settingsOrb, Color3.fromRGB(20,20,20))
-		settingsPage.Visible=true
+	MobileToggle.MouseButton1Click:Connect(function() Main.Visible=not Main.Visible end)
+	MakeDraggable(MobileToggle,MobileToggle)
+
+	local win=setmetatable({
+		_T=T,_orbRow=NavScroll,_navScroll=NavScroll,_chipScroll=ChipBar,_sideBottom=SideBottom,
+		_contentScroll=ContentScroll,_titleLbl=TitleLbl,_subLbl=SubLbl,
+		_searchItems={},_searchSections={},_searchBoxes={SearchBox,CSearchBox},
+		_tabs={},_tabOrder=1,_gui=Gui,_main=Main,_gameName=gameName,_toggleKey=toggleKey,
+	},Window)
+	for _,box in ipairs(win._searchBoxes) do
+		box:GetPropertyChangedSignal("Text"):Connect(function() win:_runSearch(box.Text) end)
+	end
+	ApplyLayout(layout)
+	-- Auto-fit small screens (phones) so the whole window is on screen
+	pcall(function()
+		local vp=workspace.CurrentCamera.ViewportSize
+		local sz=SIZES[layout]
+		local fit=math.min(1,(vp.Y-30)/sz.Y,(vp.X-30)/sz.X)
+		if fit<1 then OdysseyUIScale.Scale=math.max(fit,0.55) end
 	end)
+	win:_buildHomeTab(gameName)
+
+	local settingsTab=win:CreateTab({Name="Settings",IconName="settings",Icon="*",Description="Preferences, theme and config",_pinned=true,_order=999})
 
 	settingsTab:CreateSection("GENERAL")
 	local UIScalePresets={
@@ -1710,6 +1895,15 @@ function Odyssey:CreateWindow(opts)
 			OdysseyUIScale.Scale=UIScalePresets[v] or 1
 		end,
 	})
+	settingsTab:CreateDropdown({
+		Name="Layout",
+		Options={"Sidebar","Compact"},
+		CurrentOption=layout,
+		MultipleOptions=false,
+		Description="Compact puts the tabs across the top - better for phones",
+		Flag="OdysseyLayout",
+		Callback=function(v) ApplyLayout(v) end,
+	})
 	settingsTab:CreateButton({
 		Name="Destroy UI",
 		Tooltip="Removes Odyssey - re-run to bring it back",
@@ -1722,7 +1916,7 @@ function Odyssey:CreateWindow(opts)
 	local kbRow2=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,28),LayoutOrder=settingsTab._order,Parent=settingsTab._list})
 	settingsTab._order=settingsTab._order+1
 	New("TextLabel",{Text="Toggle keybind",TextSize=11,TextColor3=T.Text,Font=Enum.Font.GothamMedium,BackgroundTransparency=1,Size=UDim2.new(1,-80,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=kbRow2})
-	local kbBox2=New("TextButton",{Text=toggleKey.Name,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=kbRow2})
+	local kbBox2=New("TextButton",{Text=toggleKey.Name,TextSize=10,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamBold,Size=UDim2.new(0,72,0,24),Position=UDim2.new(1,-72,0.5,-12),AutoButtonColor=false,Parent=kbRow2})
 	Corner(kbBox2,7); GlassStroke(kbBox2,0.65)
 	AddTooltip(kbRow2,"Click then press any key to change",true,kbRow2)
 	local awaiting2=false
@@ -1846,6 +2040,7 @@ function Odyssey:CreateWindow(opts)
 			if t.accent then T.Accent=t.accent; T.AccentHov=t.accent end
 		end
 
+		currentThemeColors={c1=seq.Keypoints[1].Value,c2=seq.Keypoints[2].Value,c3=seq.Keypoints[3].Value}
 		if OdysseyMainRef then
 			pcall(function()
 				-- Set solid background color FIRST as a guaranteed-visible base color
@@ -1940,6 +2135,8 @@ function Odyssey:CreateWindow(opts)
 		end
 		T.Accent=customAccent
 		T.AccentHov=customAccent
+		currentThemeColors={c1=customC1,c2=customC2,c3=customC3}
+		for g,_ in pairs(ProgressBarGradients) do pcall(function() if g and g.Parent then g.Color=newSeq end end) end
 		-- Keep LT2 menus in sync with the live preview too, not just the UI itself
 		currentLT2BG=customC2
 		if lt2ThemeEnabled then
@@ -2063,7 +2260,7 @@ function Odyssey:CreateWindow(opts)
 	settingsTab:CreateSection("CONFIG")
 	local pathRow=New("Frame",{BackgroundTransparency=1,Size=UDim2.new(1,0,0,24),LayoutOrder=settingsTab._order,Parent=settingsTab._list})
 	settingsTab._order=settingsTab._order+1
-	local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Parent=pathRow})
+	local pathBox=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Parent=pathRow})
 	Corner(pathBox,7); GlassStroke(pathBox,0.65); Pad(pathBox,0,8,0,8)
 	New("TextLabel",{Text="Odyssey/",TextSize=10,TextColor3=T.Blue,Font=Enum.Font.Code,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),TextXAlignment=Enum.TextXAlignment.Left,Parent=pathBox})
 	AddTooltip(pathBox,"Root folder for all Odyssey data",true,pathBox)
@@ -2105,6 +2302,8 @@ function Odyssey:CreateWindow(opts)
 				ApplyThemeDirect(savedTheme)
 				themeDD:Set({CurrentOption=savedTheme})
 			end
+			local savedLayout=Odyssey.Flags["OdysseyLayout"]
+			if savedLayout=="Sidebar" or savedLayout=="Compact" then ApplyLayout(savedLayout) end
 		end)
 	end
 
@@ -2115,7 +2314,7 @@ function Odyssey:CreateWindow(opts)
 	cfgGrid.CellPadding=UDim2.new(0,8,0,6)
 	cfgGrid.Parent=cfgBtnRow
 	local function makeConfigBtn(txt,tip,cb2)
-		local b=New("TextButton",{Text=txt,TextSize=10,TextColor3=T.Text,BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=0.85,BorderSizePixel=0,Font=Enum.Font.GothamMedium,AutoButtonColor=false,Parent=cfgBtnRow})
+		local b=New("TextButton",{Text=txt,TextSize=10,TextColor3=T.Text,BackgroundColor3=C.Field,BackgroundTransparency=0,BorderSizePixel=0,Font=Enum.Font.GothamMedium,AutoButtonColor=false,Parent=cfgBtnRow})
 		Corner(b,8); GlassStroke(b,0.65); AddTooltip(b,tip,true,b)
 		b.MouseButton1Click:Connect(function() if cb2 then cb2() end end)
 		return b
@@ -2124,7 +2323,7 @@ function Odyssey:CreateWindow(opts)
 	makeConfigBtn("Delete config","Permanently delete saved config",function() pcall(function() if isfile(CONFIG_PATH) then delfile(CONFIG_PATH) end end); win:Notify({Title="Config",Content="Config deleted",Duration=3}) end)
 
 	settingsTab:CreateSection("CREDITS")
-	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: IHateSchool & Vaxeal\nUI Library: Odyssey Lib v3\nTesters: Nazab, Pete <3 & Gludgy"})
+	settingsTab:CreateParagraph({Title="Odyssey UI",Text="Script by: IHateSchool & Vaxeal\nUI Library: Odyssey Lib v6\nTesters: Nazab, Pete <3 & Gludgy"})
 
 	function win:Notify(nopts2) Window.Notify(self,nopts2) end
 	function win:SetKeybind(key) toggleKey=key end
