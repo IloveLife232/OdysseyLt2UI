@@ -2,7 +2,7 @@
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
-Odyssey.Version = "7.0"
+Odyssey.Version = "7.1"
 
 local Players=game:GetService("Players")
 local TweenService=game:GetService("TweenService")
@@ -261,7 +261,7 @@ local function GradientButton(btn,radius)
 	lbl.TextColor3=Color3.new(1,1,1); lbl.BackgroundTransparency=1; lbl.Size=UDim2.new(1,-12,1,0)
 	lbl.Position=UDim2.new(0,6,0,0); lbl.TextTruncate=Enum.TextTruncate.AtEnd; lbl.ZIndex=btn.ZIndex+1; lbl.Parent=btn
 	btn.TextTransparency=1
-	btn:GetPropertyChangedSignal("Text"):Connect(function() lbl.Text=btn.Text end)
+	btn:GetPropertyChangedSignal("Text"):Connect(function() if btn.Text~="" then lbl.Text=btn.Text end end)
 	return fill,lbl
 end
 local function take(self)
@@ -664,22 +664,40 @@ function Tab:CreateButton(opts)
 		local pip=New("Frame",{Size=UDim2.new(0,3,0,16),Position=UDim2.new(0,8,0.5,-8),BackgroundColor3=C.White,BorderSizePixel=0,Parent=btn})
 		Corner(pip,2); AccentGrad(pip,90)
 	end
+	-- The words always live in their own label and the button itself shows no text,
+	-- so text can never be drawn twice or run under the "i" icon.
+	local half=(btnSize.X.Scale<1)
+	local shown=opts.Name or "Button"
+	-- in a Start/Abort pair the red button just says "Abort" (its full name still works in search)
+	if half and style=="Danger" and shown:match("^Abort") then shown="Abort" end
+	local lbl=btn:FindFirstChild("Label")
+	if not lbl then
+		lbl=Instance.new("TextLabel")
+		lbl.Name="Label"; lbl.Font=btn.Font; lbl.TextColor3=btn.TextColor3; lbl.BackgroundTransparency=1
+		lbl.TextTruncate=Enum.TextTruncate.AtEnd; lbl.ZIndex=btn.ZIndex+1; lbl.Parent=btn
+	end
+	lbl.Text=shown
+	lbl.TextSize=half and 13 or 14
+	btn.Text=""
 	local infoText=opts.Description or opts.Tooltip
 	if infoText then
 		AddTooltip(btn,infoText,true,btn,nil,true)
-		-- keep the button's words clear of the "i" icon: the text gets its own label
-		-- with equal space on both sides so it stays centred and never runs under the icon
-		local lbl=btn:FindFirstChild("Label")
-		if not lbl then
-			lbl=Instance.new("TextLabel")
-			lbl.Name="Label"; lbl.Text=btn.Text; lbl.TextSize=btn.TextSize; lbl.Font=btn.Font
-			lbl.TextColor3=btn.TextColor3; lbl.BackgroundTransparency=1
-			lbl.TextTruncate=Enum.TextTruncate.AtEnd; lbl.ZIndex=btn.ZIndex+1; lbl.Parent=btn
-			btn.TextTransparency=1
-			btn:GetPropertyChangedSignal("Text"):Connect(function() lbl.Text=btn.Text end)
+		-- leave room on the right for the icon
+		if half then lbl.Size=UDim2.new(1,-38,1,0); lbl.Position=UDim2.new(0,10,0,0)
+		else lbl.Size=UDim2.new(1,-60,1,0); lbl.Position=UDim2.new(0,30,0,0) end
+	else
+		lbl.Size=UDim2.new(1,-20,1,0); lbl.Position=UDim2.new(0,10,0,0)
+	end
+	-- if this button joined a row, its partner is now half width too: give its text the same treatment
+	if prev and prev.btn then
+		local pl=prev.btn:FindFirstChild("Label")
+		if pl then
+			pl.TextSize=13
+			local hasIcon=false
+			for _,ch in ipairs(prev.btn:GetChildren()) do if ch:IsA("TextButton") and ch.Text=="i" then hasIcon=true end end
+			if hasIcon then pl.Size=UDim2.new(1,-38,1,0); pl.Position=UDim2.new(0,10,0,0)
+			else pl.Size=UDim2.new(1,-20,1,0); pl.Position=UDim2.new(0,10,0,0) end
 		end
-		lbl.Size=UDim2.new(1,-60,1,0)
-		lbl.Position=UDim2.new(0,30,0,0)
 	end
 	if fill then
 		btn.MouseEnter:Connect(function() TweenService:Create(fill,TweenInfo.new(0.1),{BackgroundTransparency=0.15}):Play() end)
@@ -700,7 +718,7 @@ function Tab:CreateButton(opts)
 	end
 	reg(self,opts.Name,row)
 	local api={}
-	function api:SetName(n) btn.Text=n end
+	function api:SetName(n) lbl.Text=n end
 	function api:Destroy() if prev then btn:Destroy() else row:Destroy() end end
 	return api
 end
