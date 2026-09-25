@@ -1,4 +1,4 @@
--- Odyssey UI Library v3
+-- Odyssey UI Library v6 (Sidebar + Compact layouts, same API as v4/v5)
 local Odyssey = {}
 Odyssey.__index = Odyssey
 Odyssey.Flags = {}
@@ -1315,7 +1315,11 @@ function Window:_buildHomeTab(gameName)
 	local colR=New("Frame",{Size=UDim2.new(0.5,-5,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,LayoutOrder=2,Parent=cols})
 	VList(colR,10)
 	self._homeCols={colL,colR}
+	local homeCompact=false
+	local syncLog=function() end
 	self._homeRelayout=function(compact)
+		homeCompact=compact
+		task.defer(function() syncLog() end)
 		statsGL.CellSize=compact and UDim2.new(0.5,-4,0,62) or UDim2.new(0.25,-6,0,62)
 		colsL.FillDirection=compact and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
 		local w=compact and UDim2.new(1,0,0,0) or UDim2.new(0.5,-5,0,0)
@@ -1373,7 +1377,15 @@ function Window:_buildHomeTab(gameName)
 	local logCard,logL=HCard(colL,2,"What's new")
 	local logPill=New("TextLabel",{Text="v1.0",TextSize=11,TextColor3=Color3.fromRGB(123,140,255),Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(0,100,0,20),AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),TextXAlignment=Enum.TextXAlignment.Right,Parent=logL:FindFirstChildWhichIsA("Frame")})
 	logCard.Visible=false
-	self._log={card=logCard,list=logL,pill=logPill}
+	-- fixed-height card with its own scroll area (height synced to the Community card below)
+	logCard.AutomaticSize=Enum.AutomaticSize.None
+	logCard.Size=UDim2.new(1,0,0,170)
+	logL.AutomaticSize=Enum.AutomaticSize.None
+	logL.Size=UDim2.new(1,0,1,0)
+	local logScroll=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-26),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=C.Muted,ScrollingDirection=Enum.ScrollingDirection.Y,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y,ElasticBehavior=Enum.ElasticBehavior.Never,LayoutOrder=1,Parent=logL})
+	VList(logScroll,5)
+	Pad(logScroll,2,8,4,0)
+	self._log={card=logCard,list=logScroll,pill=logPill}
 
 	-- Community (Discord + Donate, filled by CreateDiscordButton / CreateDonationPanel)
 	local comCard,comL=HCard(colR,2,"Community")
@@ -1401,6 +1413,25 @@ function Window:_buildHomeTab(gameName)
 	VList(donateArea,6)
 	donateBtn.MouseButton1Click:Connect(function() donateArea.Visible=not donateArea.Visible end)
 	self._community={card=comCard,discordBtn=discordBtn,discordLbl=discordLbl,donateBtn=donateBtn,donateArea=donateArea}
+	-- Keep "What's new" ending level with the bottom of the Community card;
+	-- anything longer scrolls inside the card.
+	local mainRef=self._main
+	syncLog=function()
+		if not logCard.Parent then return end
+		local h=180
+		if not homeCompact and comCard.Visible then
+			local sc=1
+			pcall(function() local us=mainRef:FindFirstChildWhichIsA("UIScale"); if us then sc=us.Scale end end)
+			if sc<=0 then sc=1 end
+			local bottom=comCard.AbsolutePosition.Y+comCard.AbsoluteSize.Y
+			h=(bottom-logCard.AbsolutePosition.Y)/sc
+		end
+		h=math.max(math.floor(h+0.5),130)
+		if logCard.Size.Y.Offset~=h then logCard.Size=UDim2.new(1,0,0,h) end
+	end
+	for _,sig in ipairs({comCard:GetPropertyChangedSignal("AbsoluteSize"),comCard:GetPropertyChangedSignal("AbsolutePosition"),comCard:GetPropertyChangedSignal("Visible"),logCard:GetPropertyChangedSignal("AbsolutePosition"),logCard:GetPropertyChangedSignal("Visible")}) do
+		sig:Connect(function() task.defer(syncLog) end)
+	end
 
 	-- ===== Identity + blur (unchanged behaviour) =====
 	local realDisplayName,realUsername,realUserId="","",""
@@ -1936,19 +1967,59 @@ function Odyssey:CreateWindow(opts)
 	local toggleKey=Enum.KeyCode.RightShift
 	UserInputService.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==toggleKey then Main.Visible=not Main.Visible end end)
 
-	-- Floating open/close button (always visible, draggable) for touch players
-	local MobileToggle=New("TextButton",{Name="OdysseyMobileToggle",Text="",BackgroundColor3=C.Card,BackgroundTransparency=0.05,BorderSizePixel=0,Size=UDim2.new(0,46,0,46),Position=UDim2.new(0,10,0.5,-23),AutoButtonColor=false,ZIndex=500,Parent=Gui})
-	Corner(MobileToggle,14); Stroke(MobileToggle,C.FieldStroke,1,0)
+	-- Floating open/close button: tap to show/hide, drag to move (a drag never toggles)
+	local MobileToggle=New("TextButton",{Name="OdysseyMobileToggle",Text="",BackgroundColor3=C.Card,BackgroundTransparency=0.02,BorderSizePixel=0,Size=UDim2.new(0,50,0,50),Position=UDim2.new(0,12,0.5,-25),AutoButtonColor=false,ZIndex=500,Parent=Gui})
+	Corner(MobileToggle,16)
+	local mtStroke=Stroke(MobileToggle,C.White,1.5,0)
+	AccentGrad(mtStroke,45)
+	local mtScale=Instance.new("UIScale"); mtScale.Parent=MobileToggle
+	local mtOrb=New("Frame",{Size=UDim2.new(0,36,0,36),AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,0),BackgroundColor3=C.White,BorderSizePixel=0,ZIndex=501,Parent=MobileToggle})
+	Corner(mtOrb,12); AccentGrad(mtOrb,45)
+	local mtIcon
 	do
 		local url=GetMaterialIcon("explore")
 		if url then
-			New("ImageLabel",{Image=url,ImageColor3=Color3.fromRGB(184,195,255),BackgroundTransparency=1,Size=UDim2.new(0,22,0,22),Position=UDim2.new(0.5,-11,0.5,-11),ZIndex=501,Parent=MobileToggle})
+			mtIcon=New("ImageLabel",{Image=url,ImageColor3=C.White,BackgroundTransparency=1,Size=UDim2.new(0,22,0,22),AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(0.5,0,0.5,0),ZIndex=502,Parent=MobileToggle})
 		else
-			New("TextLabel",{Text="O",TextSize=18,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),ZIndex=501,Parent=MobileToggle})
+			mtIcon=New("TextLabel",{Text="O",TextSize=18,TextColor3=C.White,Font=Enum.Font.GothamBold,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),ZIndex=502,Parent=MobileToggle})
 		end
 	end
-	MobileToggle.MouseButton1Click:Connect(function() Main.Visible=not Main.Visible end)
-	MakeDraggable(MobileToggle,MobileToggle)
+	local function mtRefresh()
+		local open=Main.Visible
+		TweenService:Create(mtOrb,TweenInfo.new(0.18),{BackgroundTransparency=open and 0 or 1}):Play()
+		if mtIcon:IsA("ImageLabel") then
+			TweenService:Create(mtIcon,TweenInfo.new(0.18),{ImageColor3=open and C.White or Color3.fromRGB(150,170,255),Rotation=open and 0 or -45}):Play()
+		else
+			mtIcon.TextColor3=open and C.White or Color3.fromRGB(150,170,255)
+		end
+	end
+	Main:GetPropertyChangedSignal("Visible"):Connect(mtRefresh)
+	mtRefresh()
+	MobileToggle.MouseEnter:Connect(function() TweenService:Create(mtScale,TweenInfo.new(0.12),{Scale=1.06}):Play() end)
+	MobileToggle.MouseLeave:Connect(function() TweenService:Create(mtScale,TweenInfo.new(0.12),{Scale=1}):Play() end)
+	local mtDrag,mtStart,mtPos,mtMoved=false,nil,nil,false
+	MobileToggle.InputBegan:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			mtDrag=true; mtMoved=false; mtStart=i.Position; mtPos=MobileToggle.Position
+			TweenService:Create(mtScale,TweenInfo.new(0.08),{Scale=0.92}):Play()
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(i)
+		if mtDrag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+			local d=i.Position-mtStart
+			if not mtMoved and (math.abs(d.X)>6 or math.abs(d.Y)>6) then mtMoved=true end
+			if mtMoved then
+				MobileToggle.Position=UDim2.new(mtPos.X.Scale,mtPos.X.Offset+d.X,mtPos.Y.Scale,mtPos.Y.Offset+d.Y)
+			end
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(i)
+		if mtDrag and (i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch) then
+			mtDrag=false
+			TweenService:Create(mtScale,TweenInfo.new(0.12,Enum.EasingStyle.Back),{Scale=1}):Play()
+			if not mtMoved then Main.Visible=not Main.Visible end
+		end
+	end)
 
 	win=setmetatable({
 		_T=T,_orbRow=NavScroll,_navScroll=NavScroll,_chipScroll=ChipBar,_sideBottom=SideBottom,
